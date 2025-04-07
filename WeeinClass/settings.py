@@ -85,10 +85,7 @@ WSGI_APPLICATION = 'WeeinClass.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get("DATABASE_URL"),
-    )
-
+    'default': dj_database_url.config(default='postgres://USER:PASSWORD@HOST:PORT/NAME')
         #'ENGINE': 'django.db.backends.sqlite3',
         #'NAME': BASE_DIR / "db.sqlite3",  # Nombre de tu base de datos
         #'HOST': 'localhost',  # O la IP del servidor si está en otro lugar
