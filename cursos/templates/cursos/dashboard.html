@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard de Rendimiento</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+  <!-- Cargar Chart.js desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container mt-5">
+  <a href="{% url 'menu_admin' %}" class="btn btn-primary mb-3">Volver al Menú Principal</a>
+    <h1 class="text-center">Dashboard de Rendimiento</h1>
+  <div class="text-end mb-3">
+    <a href="{% url 'export_dashboard_excel' %}" class="btn btn-success">
+      Exportar Reporte a Excel
+    </a>
+  </div>
+    <!-- Formulario de Filtros -->
+    <form id="filtros-form" class="mb-4">
+      <div class="mb-3">
+        <label for="curso" class="form-label">Curso</label>
+        <select id="curso" name="curso" class="form-select">
+          <option value="">Todos los cursos</option>
+          {% for curso in cursos %}
+            <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="fecha_inicio" class="form-label">Fecha inicio</label>
+        <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label for="fecha_fin" class="form-label">Fecha fin</label>
+        <input type="date" id="fecha_fin" name="fecha_fin" class="form-control">
+      </div>
+      <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+    </form>
+
+    <!-- Sección de Gráficos -->
+    <div class="row mt-4">
+      <!-- Gráfico de Alumnos por Curso -->
+      <div class="col-md-6">
+        <h3>Alumnos por Curso</h3>
+        <canvas id="alumnosChart"></canvas>
+      </div>
+      <!-- Gráfico de Promedio de Notas por Curso -->
+      <div class="col-md-6">
+        <h3>Promedio de Notas por Curso</h3>
+        <canvas id="notasChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Tarjeta para porcentaje de asistencia -->
+    <div class="row mt-4">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-body">
+            <h4>Porcentaje de Asistencia Promedio</h4>
+            <p class="display-4">{{ porcentaje_asistencia|floatformat:2 }}%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts para inicializar Chart.js y manejar filtros -->
+  <script>
+    let alumnosChart, notasChart;
+    document.addEventListener('DOMContentLoaded', function() {
+      const ctxAlumnos = document.getElementById('alumnosChart').getContext('2d');
+      alumnosChart = new Chart(ctxAlumnos, {
+        type: 'bar',
+        data: {
+          labels: [
+            {% for curso in alumnos_por_curso %}
+              "{{ curso.nombre }}",
+            {% endfor %}
+          ],
+          datasets: [{
+            label: 'Número de Alumnos',
+            data: [
+              {% for curso in alumnos_por_curso %}
+                {{ curso.total_alumnos }},
+              {% endfor %}
+            ],
+            backgroundColor: 'rgba(13, 110, 253, 0.6)',
+            borderColor: 'rgba(13, 110, 253, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      const ctxNotas = document.getElementById('notasChart').getContext('2d');
+      notasChart = new Chart(ctxNotas, {
+        type: 'line',
+        data: {
+          labels: [
+            {% for item in promedio_notas %}
+              "{{ item.curso__nombre }}",
+            {% endfor %}
+          ],
+          datasets: [{
+            label: 'Promedio de Notas',
+            data: [
+              {% for item in promedio_notas %}
+                {{ item.promedio|floatformat:2 }},
+              {% endfor %}
+            ],
+            backgroundColor: 'rgba(40, 167, 69, 0.6)',
+            borderColor: 'rgba(40, 167, 69, 1)',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    });
+
+    // Listener para el formulario de filtros con actualización AJAX
+    document.getElementById('filtros-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const curso = document.getElementById('curso').value;
+      const fecha_inicio = document.getElementById('fecha_inicio').value;
+      const fecha_fin = document.getElementById('fecha_fin').value;
+      const params = new URLSearchParams({ curso, fecha_inicio, fecha_fin });
+      fetch(`/cursos/datos-dashboard/?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+          // Actualiza gráfico de Alumnos por Curso
+          alumnosChart.data.labels = data.alumnos_por_curso.map(item => item.nombre);
+          alumnosChart.data.datasets[0].data = data.alumnos_por_curso.map(item => item.total_alumnos);
+          alumnosChart.update();
+          // Actualiza gráfico de Promedio de Notas por Curso
+          notasChart.data.labels = data.promedio_notas.map(item => item.curso__nombre);
+          notasChart.data.datasets[0].data = data.promedio_notas.map(item => item.promedio);
+          notasChart.update();
+          // Actualiza el porcentaje de asistencia
+          document.querySelector('.display-4').innerText = parseFloat(data.porcentaje_asistencia).toFixed(2) + '%';
+        })
+        .catch(error => console.error('Error al actualizar el dashboard:', error));
+    });
+  </script>
+</body>
+</html>
