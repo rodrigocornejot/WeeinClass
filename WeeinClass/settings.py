@@ -42,8 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'cursos',
     'django.contrib.postgres',
-    'corsheaders',
     'django_extensions',
+    'corsheaders',
 ]
 
 
@@ -123,6 +123,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    "https://weeinclass-production.up.railway.app",  # Producción
     "http://localhost:3000",
 ]
 
@@ -144,6 +145,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 LOGIN_REDIRECT_URL = '/cursos/ver-calendario/'
 
