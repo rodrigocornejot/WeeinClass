@@ -86,7 +86,7 @@ WSGI_APPLICATION = 'WeeinClass.wsgi.application'
 if os.getenv("RAILWAY_ENVIRONMENT"):
     import dj_database_url
     DATABASES = {
-        'default': dj_database_url.config(default='postgres://postgres:123@HOST:5432/weeinclass')
+        'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
     }
 else:
     DATABASES = {
