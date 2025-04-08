@@ -92,7 +92,7 @@ environ.Env.read_env()
 if os.getenv("RAILWAY_ENVIRONMENT"):
     import dj_database_url
     DATABASES = {
-        'default': env.db(),
+        'default': dj_database_url.config(default=env('DATABASE_URL')),
     }
 else:
     DATABASES = {
