@@ -376,6 +376,8 @@ def lista_notas(request):
 def detalle_matricula(request, matricula_id, fecha):
     try:
         matricula = Matricula.objects.get(id=matricula_id)
+        print(f"Matricula encontrada: {matricula}")
+        print(f"Alumno asociado: {matricula.alumno}")
 
         data = {
             "matricula_id": matricula.id,

@@ -7,7 +7,14 @@
 </head>
 <body>
   <div class="container mt-5">
-    <h2>Lista de Cursos</h2>
+    <!-- Botón para Volver al Menú Principal alineado a la izquierda -->
+    <div class="mb-4 d-flex justify-content-start">
+      <a href="{% url 'menu_admin' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left-circle"></i> Volver al Menú Principal
+      </a>
+    </div>
+
+    <h2 class="text-center mb-4">Lista de Cursos</h2>
     <ul class="list-group">
       {% for curso in cursos %}
         <li class="list-group-item">
