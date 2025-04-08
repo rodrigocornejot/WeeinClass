@@ -92,17 +92,15 @@ environ.Env.read_env()
 if os.getenv("RAILWAY_ENVIRONMENT"):
     import dj_database_url
     DATABASES = {
-        'default': dj_database_url.config(default=env('DATABASE_URL')),
-    }
-else:
-    DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / "db.sqlite3",  # Nombre de tu base de datos
-            'HOST': 'localhost',  # O la IP del servidor si está en otro lugar
-            'PORT': '5432',  # Puerto por defecto de PostgreSQL
-        }
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': 'SyByueKPmOpltYJnsJTVorFnbnkHYHIs',
+        'HOST': 'yamabiko.proxy.rlwy.net',  # Por ejemplo 'localhost' o la IP del servidor
+        'PORT': '57997',  # El puerto de PostgreSQL, por defecto es 5432
     }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -160,3 +158,7 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # Solo si usas 'static/' en la raíz
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://weeinclass-production.up.railway.app',
+]
