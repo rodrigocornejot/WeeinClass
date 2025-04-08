@@ -105,7 +105,8 @@ def calendario_matriculas(request):
                 eventos.append({
                     "title": f"{alumno} - {curso}",
                     "start": (fecha_inicio + timedelta(weeks=i)).strftime("%Y-%m-%d"),
-                    "color": color
+                    "color": color,
+                    "textColor": "black"
                 })
 
         # 🔹 EXTENDIDA: Usar días_estudio o dias si están vacíos
@@ -144,6 +145,7 @@ def calendario_matriculas(request):
                         "title": f"{alumno} - {curso}",
                         "start": fecha_actual.strftime("%Y-%m-%d"),
                         "color": color,
+                        "textColor": "black",
                         "extendedProps": {
                             "curso_id": matricula.curso.id,  # O el identificador del curso
                             "dia": fecha_actual.strftime("%Y-%m-%d"),  # O el día correspondiente
