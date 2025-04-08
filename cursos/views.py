@@ -196,6 +196,15 @@ def es_profesor(user):
 @login_required
 @user_passes_test(es_profesor)
 def vista_calendario(request):
+    cursos = Curso.objects.all()
+
+    # Crear una lista con los nombres de los cursos y sus colores
+    cursos_colores = [(curso.nombre, CURSO_COLORES.get(curso.nombre, '#000000')) for curso in cursos]
+
+    # Pasar la lista de cursos con sus colores al contexto de la plantilla
+    context = {
+        'cursos_colores': cursos_colores,
+    }
     return render(request, 'cursos/calendario.html')
 
 def es_admin(user):

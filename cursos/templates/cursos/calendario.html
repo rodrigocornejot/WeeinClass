@@ -60,6 +60,24 @@
     </nav>
 
   <h1>Calendario de Matrículas</h1>
+  <!-- tu_template.html -->
+<div style="display: flex;">
+    <div style="flex: 1;">
+        <!-- Aquí va tu calendario -->
+        <div id="calendar"></div>
+    </div>
+    <div style="flex: 0 0 200px; margin-left: 20px;">
+        <h3>Leyenda de cursos</h3>
+        <ul style="list-style: none; padding: 0;">
+            {% for curso in cursos %}
+                <li style="margin-bottom: 8px; display: flex; align-items: center;">
+                    <span style="display:inline-block; width: 20px; height: 20px; background-color: {{ curso.color }}; margin-right: 10px; border-radius: 4px;"></span>
+                    {{ curso.nombre }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
 
   <div id="calendario"></div>
 

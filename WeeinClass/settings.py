@@ -84,15 +84,20 @@ WSGI_APPLICATION = 'WeeinClass.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': dj_database_url.config(default='postgres://user_weein:rodrigo@HOST:5432/weeinclass')
-        #'ENGINE': 'django.db.backends.sqlite3',
-        #'NAME': BASE_DIR / "db.sqlite3",  # Nombre de tu base de datos
-        #'HOST': 'localhost',  # O la IP del servidor si está en otro lugar
-        #'PORT': '5432',  # Puerto por defecto de PostgreSQL
-
-}
-
+if os.getenv("RAILWAY_ENVIRONMENT"):
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(default='postgres://postgres:123@HOST:5432/weeinclass')
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / "db.sqlite3",  # Nombre de tu base de datos
+            'HOST': 'localhost',  # O la IP del servidor si está en otro lugar
+            'PORT': '5432',  # Puerto por defecto de PostgreSQL
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
