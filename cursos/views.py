@@ -1,6 +1,4 @@
 import json
-from turtledemo.penrose import start
-
 import openpyxl
 import traceback
 from rest_framework.generics import ListAPIView
