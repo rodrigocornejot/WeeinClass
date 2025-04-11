@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.postgres.forms import SimpleArrayField
 from django.contrib.postgres.fields import ArrayField
 from .models import DAY_CHOICES
-from .models import Asistencia, Curso, Nota, Alumno, Matricula
+from .models import Asistencia, Curso, Nota, Alumno, Matricula, Tarea
 from django.forms.widgets import DateInput, TimeInput
 
 
@@ -110,4 +110,7 @@ class AlumnoForm(forms.ModelForm):
         model = Alumno
         fields = ['nombre', 'correo', 'telefono']
 
-
+class TareaForm(forms.ModelForm):
+    class Meta:
+        model = Tarea
+        fields = '__all__'

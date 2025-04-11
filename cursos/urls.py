@@ -21,6 +21,8 @@ from .views import (
     vista_calendario,
 
     eliminar_matricula,
+
+    kanban, crear_tarea, actualizar_estado_tarea, delegar_tarea
 )
 
 urlpatterns = [
@@ -53,4 +55,9 @@ urlpatterns = [
     path('ver_calendario/', vista_calendario, name='vista_calendario'),
     path('api/calendario/', calendario_matriculas, name='calendario'),
     path('lista-matriculas/', lista_matriculas, name='lista_matriculas'),
+
+    path('kanban/', kanban, name='kanban'),
+    path('crear_tarea/', crear_tarea, name='crear_tarea'),
+    path('actualizar_estado_tarea/<int:tarea_id>/', actualizar_estado_tarea, name='actualizar_estado_tarea'),
+    path('delegar_tarea/<int:tarea_id>/', delegar_tarea, name='delegar_tarea'),
 ]

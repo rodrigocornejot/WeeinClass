@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Alumno, Curso, Asistencia, Nota, Matricula, Clase
+from .models import Alumno, Curso, Asistencia, Nota, Matricula, Clase, Tarea, Area
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, Http404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login
@@ -29,10 +29,10 @@ from django.views import View
 
 CURSO_COLORES = {
     'VARIADORES DE FRECUENCIA': '#33FF57',
-    'REDES INDUSTRIALES': '#5733FF',
+    'REDES INDUSTRIALES': '#b328ca',
     'PLC NIVEL 1': '#FF5733',
     'PLC NIVEL 2': '#FFFF00',
-    'INSTRUMENTACION INDUSTRIAL': '#3357FF',
+    'INSTRUMENTACION INDUSTRIAL': '#28CAAD',
     'PLC LOGO! V8': '#285ECA'
 }
 
@@ -160,7 +160,9 @@ def calendario_matriculas(request):
             print(f"⚠️ Modalidad desconocida '{modalidad}' para {alumno} en {curso}.")
 
     print("Eventos enviados a FullCalendar:", eventos)
+
     return JsonResponse(eventos, safe=False)
+
 
 # Formulario de login (puedes usar el AuthenticationForm de Django, pero aquí un ejemplo sencillo)
 class LoginForm(forms.Form):
@@ -568,3 +570,64 @@ def lista_matriculas(request):
             pass
 
     return render(request, 'cursos/lista_matriculas.html', {'matriculas': matriculas})
+
+
+def kanban(request):
+    # Filtrar tareas según el área del usuario (ejemplo para Marketing)
+    tareas = Tarea.objects.all().order_by('-prioridad')  # o por prioridad
+    return render(request, 'cursos/kanban.html', {'tareas': tareas})
+
+
+def crear_tarea(request):
+    if request.method == 'POST':
+        titulo = request.POST.get('titulo')
+        descripcion = request.POST.get('descripcion')
+        prioridad = request.POST.get('prioridad')
+        tiempo_estimado = request.POST.get('tiempo_estimado')
+        fecha_vencimiento = request.POST.get('fecha_vencimiento')
+        area_asignada = request.POST.get('area_asignada')
+
+        fecha_vencimiento = timezone.make_aware(datetime.strptime(fecha_vencimiento, '%Y-%m-%d'), timezone.get_current_timezone())
+
+
+        tarea = Tarea.objects.create(
+            titulo=titulo,
+            descripcion=descripcion,
+            prioridad=prioridad,
+            tiempo_estimado=tiempo_estimado,
+            fecha_vencimiento=fecha_vencimiento,
+            area_asignada=Area.objects.get(id=area_asignada)
+        )
+        return redirect('kanban')
+    areas = Area.objects.all()
+    return render(request, 'cursos/crear_tarea.html', {'areas': areas})
+
+@csrf_exempt
+def actualizar_estado_tarea(request, tarea_id):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        tarea = Tarea.objects.get(id=tarea_id)
+        tarea.estado = data['estado']
+        tarea.save()
+        return JsonResponse({'status': 'success'})
+
+
+@csrf_exempt
+def delegar_tarea(request, tarea_id):
+    if request.method == 'POST':
+        tarea = Tarea.objects.get(id=tarea_id)
+
+        data = json.loads(request.body)
+        area = data.get('delegar_a')
+
+        if data['delegar_a'] == 'profesor':
+            tarea.delegado_a = 'Profesor'  # Cambia según cómo lo gestiones en el modelo
+        elif data['delegar_a'] == 'administracion':
+            tarea.delegado_a = 'Administración'
+        elif data['delegar_a'] == 'marketing':
+            tarea.delegado_a = 'Marketing'
+
+        tarea.area_delegado = area
+        tarea.save()
+
+        return JsonResponse({'status': 'success'})

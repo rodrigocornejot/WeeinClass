@@ -132,3 +132,37 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.curso.nombre} - {self.alumno.nombre} ({self.fecha})"
+
+
+class Area(models.Model):
+    nombre = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.nombre
+
+
+class Tarea(models.Model):
+    ESTADOS = [
+        ('pendiente', 'Pendiente'),
+        ('en_proceso', 'En Proceso'),
+        ('completada', 'Completada'),
+    ]
+    PRIORIDADES = [
+        ('baja', 'Baja'),
+        ('media', 'Media'),
+        ('alta', 'Alta'),
+    ]
+
+    titulo = models.CharField(max_length=255)
+    descripcion = models.TextField()
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
+    prioridad = models.CharField(max_length=10, choices=PRIORIDADES, default='baja')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_vencimiento = models.DateTimeField(null=True, blank=True)
+    tiempo_estimado = models.PositiveIntegerField(help_text="Tiempo en minutos para completar la tarea")
+    area_asignada = models.ForeignKey(Area, related_name='tareas', on_delete=models.CASCADE)
+    tarea_compartida = models.ManyToManyField(Area, related_name='tareas_compartidas', blank=True)
+    tarea_delegada = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return self.titulo
