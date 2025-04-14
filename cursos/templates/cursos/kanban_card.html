@@ -1,0 +1,39 @@
+<div class="kanban-card card p-2 my-2" data-id="{{ tarea.id }}">
+    <h5 class="mb-1">{{ tarea.titulo }}</h5>
+    <p class="mb-1">{{ tarea.descripcion }}</p>
+
+    <!-- Mostrar el área delegada en la descripción -->
+    {% if tarea.area_asignada %}
+        <p class="mb-1"><strong>Delegado a:</strong> {{ tarea.area_asignada.nombre }}</p>
+    {% endif %}
+
+    <p class="mb-1"><strong>Prioridad:</strong> {{ tarea.prioridad }}</p>
+    <p class="mb-1"><strong>Vence:</strong> {{ tarea.fecha_vencimiento|date:"Y-m-d" }}</p>
+
+    {% if tarea.area_delegado %}
+        <div class="d-flex align-items-center mt-2">
+            {% if tarea.area_delegado == 'profesor' %}
+                <i class="bi bi-person-circle me-2 text-info"></i>
+                <span class="text-info">Delegado a Profesor</span>
+            {% elif tarea.area_delegado == 'administracion' %}
+                <i class="bi bi-building me-2 text-warning"></i>
+                <span class="text-warning">Delegado a Administración</span>
+            {% elif tarea.area_delegado == 'marketing' %}
+                <i class="bi bi-bullhorn me-2 text-danger"></i>
+                <span class="text-danger">Delegado a Marketing</span>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if tarea.estado == 'pendiente' %}
+        <div class="mt-2 d-flex justify-content-between">
+            <button class="btn btn-sm btn-primary" onclick="actualizarEstado({{ tarea.id }}, 'en_proceso')">▶ En Proceso</button>
+        </div>
+    {% elif tarea.estado == 'en_proceso' %}
+        <div class="mt-2">
+            <button class="btn btn-sm btn-success w-100" onclick="actualizarEstado({{ tarea.id }}, 'completada')">✔ Completar</button>
+        </div>
+    {% elif tarea.estado == 'completada' %}
+        <span class="badge bg-success mt-2">✔ Completada</span>
+    {% endif %}
+</div>
