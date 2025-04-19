@@ -33,15 +33,25 @@
         <h1>Menú Principal</h1>
         <p>Bienvenido, administrador.</p>
         <div class="row g-3">
-            <div class="col-md-6"><a href="{% url 'vista_calendario' %}" class="btn btn-primary w-100">📅 Ver Calendario</a></div>
-            <div class="col-md-6"><a href="{% url 'registrar_alumnos' %}" class="btn btn-secondary w-100">👨‍🎓 Registrar Alumno</a></div>
-            <div class="col-md-6"><a href="{% url 'crear_curso' %}" class="btn btn-success w-100">📚 Gestionar Cursos</a></div>
-            <div class="col-md-6"><a href="{% url 'registrar_matricula' %}" class="btn btn-info w-100">📝 Registrar Matrícula</a></div>
-            <div class="col-md-6"><a href="{% url 'lista_matriculas' %}" class="btn btn-warning w-100">📜 Gestionar Matrículas</a></div>
-            <div class="col-md-6"><a href="{% url 'registrar_asistencia' %}" class="btn btn-dark w-100">✅ Registrar Asistencia</a></div>
-            <div class="col-md-6"><a href="{% url 'registrar_nota' %}" class="btn btn-danger w-100">📊 Registrar Notas</a></div>
-            <div class="col-md-6"><a href="{% url 'dashboard' %}" class="btn btn-primary w-100">📈 Dashboard y Reportes</a></div>
-            <div class="col-md-6"><a href="{% url 'kanban' %}" class="btn btn-primary w-100">🗂 Lista de pendientes</a></div>
+            {% if es_profesor %}
+                <div class="col-md-6"><a href="{% url 'vista_calendario' %}" class="btn btn-primary w-100">📅 Ver Calendario</a></div>
+                <div class="col-md-6"><a href="{% url 'kanban' %}" class="btn btn-primary w-100">🗂 Lista de pendientes</a></div>
+            {% endif %}
+        </div>
+        <div class="row g-3">
+            {% if es_admin %}
+                <div class="col-md-6"><a href="{% url 'vista_calendario' %}" class="btn btn-primary w-100">📅 Ver Calendario</a></div>
+                <div class="col-md-6"><a href="{% url 'registrar_alumnos' %}" class="btn btn-secondary w-100">👨‍🎓 Registrar Alumno</a></div>
+                <div class="col-md-6"><a href="{% url 'crear_curso' %}" class="btn btn-success w-100">📚 Gestionar Cursos</a></div>
+                <div class="col-md-6"><a href="{% url 'registrar_matricula' %}" class="btn btn-info w-100">📝 Registrar Matrícula</a></div>
+                <div class="col-md-6"><a href="{% url 'lista_matriculas' %}" class="btn btn-warning w-100">📜 Gestionar Matrículas</a></div>
+                <div class="col-md-6"><a href="{% url 'registrar_asistencia' %}" class="btn btn-dark w-100">✅ Registrar Asistencia</a></div>
+                <div class="col-md-6"><a href="{% url 'registrar_nota' %}" class="btn btn-danger w-100">📊 Registrar Notas</a></div>
+                <div class="col-md-6"><a href="{% url 'dashboard' %}" class="btn btn-primary w-100">📈 Dashboard y Reportes</a></div>
+                <div class="col-md-6"><a href="{% url 'kanban' %}" class="btn btn-primary w-100">🗂 Lista de pendientes</a></div>
+            {% elif es_marketing %}
+                <div class="col-md-6"><a href="{% url 'kanban' %}" class="btn btn-primary w-100">🗂 Lista de pendientes</a></div>
+            {% endif %}
         </div>
     </div>
 </body>

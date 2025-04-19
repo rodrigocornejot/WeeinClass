@@ -6,7 +6,6 @@ from rest_framework import viewsets
 from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import Alumno, Curso, Asistencia, Nota, Matricula, Clase, Tarea, Area
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, Http404
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -19,13 +18,13 @@ from .forms import AsistenciaForm, AlumnoForm
 from datetime import date, timedelta, datetime
 from django.contrib.auth.forms import AuthenticationForm
 from openpyxl.utils import get_column_letter
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.utils import timezone
 from .utils import obtener_datos_dashboard
 from .serializers import MatriculaSerializer
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 from django.views import View
+from django.contrib.auth.decorators import login_required, user_passes_test
 
 CURSO_COLORES = {
     'VARIADORES DE FRECUENCIA': '#33FF57',
@@ -169,20 +168,33 @@ class LoginForm(forms.Form):
     username = forms.CharField(label="Nombre de usuario")
     password = forms.CharField(widget=forms.PasswordInput, label="Contraseña")
 
+@csrf_protect
 def mi_login_view(request):
     if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+
+            print("Usuario autenticado:", user.username)
+            print("Grupos:", list(user.groups.values_list("name", flat=True)))
+
             # Redirigir según rol
             if user.is_superuser or user.groups.filter(name='Administradores').exists():
+                print("Redirigiendo a: menu_admin")
                 return redirect("menu_admin")
             elif user.groups.filter(name='Profesores').exists():
-                return redirect("vista_calendario")
+                print("Redirigiendo a: menu_admin (profesor)")
+                return redirect("menu_admin")
+            elif user.groups.filter(name='Marketing').exists():
+                print("Redirigiendo a: menu_admin (marketing)")
+                return redirect("menu_admin")
             else:
+                print("Redirigiendo a: home")
                 return redirect("home")
         else:
+            print("Formulario invalido")
+            print(form.errors)
             return render(request, "registration/login.html", {"form": form})
     else:
         form = AuthenticationForm()
@@ -213,16 +225,23 @@ def es_admin(user):
     return user.is_superuser or user.groups.filter(name='Administradores').exists()
 
 @login_required
-@user_passes_test(es_admin)
-
 def menu_admin(request):
-    return render(request, 'cursos/menu_admin.html')
+    grupo_usuario = request.user.groups.first()
 
+    if grupo_usuario:
+        if grupo_usuario.name == 'Profesores':
+            tareas = Tarea.objects.filter(area_asignada__nombre='Profesores')
+        elif grupo_usuario.name == 'Marketing':
+            pendientes = Tarea.objects.filter(area_asignada__nombre='Marketing')
+        else:
+            tareas = Tarea.objects.all()
 
-from django.shortcuts import render, redirect
-from .forms import CursoForm
-from .models import Curso
-
+    return render(request, 'menu_admin.html', {
+        'tareas': tareas,
+        'es_profesor': grupo_usuario.name == 'Profesores' if grupo_usuario else False,
+        'es_marketing': grupo_usuario.name == 'Marketing' if grupo_usuario else False,
+    })
+    return render(request, 'cursos/menu_admin.html', context)
 
 def crear_curso(request):
     if request.method == 'POST':
@@ -573,8 +592,15 @@ def lista_matriculas(request):
 
 
 def kanban(request):
-    # Filtrar tareas según el área del usuario (ejemplo para Marketing)
-    tareas = Tarea.objects.all().order_by('-prioridad')  # o por prioridad
+    user = request.user
+
+    if user.groups.filter(name='Marketing').exists():
+        tareas = Tarea.objects.filter(area_asignada__nombre='Marketing')
+    elif user.groups.filter(name='Profesores').exists():
+        tareas = Tarea.objects.filter(area_asignada__nombre='Profesores')
+    else:
+        tareas = Tarea.objects.all()
+
     return render(request, 'cursos/kanban.html', {'tareas': tareas})
 
 
@@ -611,23 +637,32 @@ def actualizar_estado_tarea(request, tarea_id):
         tarea.save()
         return JsonResponse({'status': 'success'})
 
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.groups.filter(name='Administradores').exists())
+def kanban_admin(request):
+    # lógica para ver todas las tareas
+    return render(request, "kanban/kanban_admin.html")
 
-@csrf_exempt
-def delegar_tarea(request, tarea_id):
-    if request.method == 'POST':
-        tarea = Tarea.objects.get(id=tarea_id)
+@login_required
+@user_passes_test(lambda u: u.groups.filter(name='Profesores').exists())
+def kanban_profesor(request):
+    # lógica para ver solo tareas del área de profesores
+    return render(request, "kanban/kanban_profesor.html")
 
-        data = json.loads(request.body)
-        area = data.get('delegar_a')
+@login_required
+@user_passes_test(lambda u: u.groups.filter(name='Marketing').exists())
+def kanban_marketing(request):
+    # lógica para ver solo tareas del área de marketing
+    return render(request, "kanban/kanban_marketing.html")
 
-        if data['delegar_a'] == 'profesor':
-            tarea.delegado_a = 'Profesor'  # Cambia según cómo lo gestiones en el modelo
-        elif data['delegar_a'] == 'administracion':
-            tarea.delegado_a = 'Administración'
-        elif data['delegar_a'] == 'marketing':
-            tarea.delegado_a = 'Marketing'
+@login_required
+def menu_admin(request):
+    es_admin = request.user.groups.filter(name='Administradores').exists() or request.user.is_superuser
+    es_profesor = request.user.groups.filter(name='Profesores').exists()
+    es_marketing = request.user.groups.filter(name='Marketing').exists()
 
-        tarea.area_delegado = area
-        tarea.save()
-
-        return JsonResponse({'status': 'success'})
+    return render(request, 'cursos/menu_admin.html', {
+        'es_admin': es_admin,
+        'es_profesor': es_profesor,
+        'es_marketing': es_marketing,
+    })

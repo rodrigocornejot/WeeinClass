@@ -1,4 +1,5 @@
 from django.urls import path, include
+from django.contrib import admin
 from rest_framework.routers import DefaultRouter
 from .views import (
     # Administración
@@ -22,10 +23,12 @@ from .views import (
 
     eliminar_matricula,
 
-    kanban, crear_tarea, actualizar_estado_tarea, delegar_tarea
+    kanban, crear_tarea, actualizar_estado_tarea, mi_login_view
+
 )
 
 urlpatterns = [
+    path('accounts/login/', mi_login_view, name='login'),  # ← REGISTRA TU LOGIN AQUÍ
     # Administración
     path('menu-admin/', menu_admin, name='menu_admin'),
     path('dashboard/', dashboard, name='dashboard'),
@@ -59,5 +62,4 @@ urlpatterns = [
     path('kanban/', kanban, name='kanban'),
     path('crear_tarea/', crear_tarea, name='crear_tarea'),
     path('actualizar_estado_tarea/<int:tarea_id>/', actualizar_estado_tarea, name='actualizar_estado_tarea'),
-    path('delegar_tarea/<int:tarea_id>/', delegar_tarea, name='delegar_tarea'),
 ]
