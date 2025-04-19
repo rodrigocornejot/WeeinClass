@@ -59,11 +59,13 @@
         </div>
     </div>
 </div>
-
-<!-- Scripts -->
+<script>
+    // Esto genera la URL base para actualizar el estado, sin el ID aún
+    const actualizarTareaBase = "{% url 'actualizar_estado_tarea' 0 %}".replace('/0/', '');
+</script>
 <script>
     function actualizarEstado(tareaId, nuevoEstado) {
-        fetch(`/actualizar_estado_tarea/${tareaId}/`, {
+        fetch(`${actualizarTareaBase}/&{tareaId}/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -71,9 +73,19 @@
             },
             body: JSON.stringify({ estado: nuevoEstado })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (response.ok) {
+                throw new Error("No se pudo actualizar la tarea.");
+            }
+            return response.json();
+        })
         .then(data => {
-            location.reload();
+            if(data.status === 'success') {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error("Error al actualizar la tarea.", error);
         });
     }
 </script>
