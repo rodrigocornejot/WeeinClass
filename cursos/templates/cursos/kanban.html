@@ -65,7 +65,7 @@
 </script>
 <script>
     function actualizarEstado(tareaId, nuevoEstado) {
-        fetch(`${actualizarTareaBase}/&{tareaId}/`, {
+        fetch(`${actualizarTareaBase}${tareaId}/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

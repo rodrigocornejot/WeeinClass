@@ -1,6 +1,6 @@
 function actualizarEstado(tareaId, nuevoEstado) {
     const urlBase = "{% url 'actualizar_estado_tarea' 0 %}".replace('/0/', '');
-    fetch(`${urlBase}/{tareaId}/`, {
+    fetch(`${urlBase}${tareaId}/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
