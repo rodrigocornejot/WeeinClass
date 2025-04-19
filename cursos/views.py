@@ -630,12 +630,15 @@ def crear_tarea(request):
 
 @csrf_exempt
 def actualizar_estado_tarea(request, tarea_id):
-    if request.method == 'POST':
-        data = json.loads(request.body)
+    try:
         tarea = Tarea.objects.get(id=tarea_id)
-        tarea.estado = data['estado']
+        data = json.loads(request.body)
+        tarea_estado = data.get('estado')
+        tarea.estado = tarea_estado
         tarea.save()
         return JsonResponse({'status': 'success'})
+    except Tarea.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'tarea no encontrada'}, status=404)
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser or u.groups.filter(name='Administradores').exists())

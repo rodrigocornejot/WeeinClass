@@ -1,6 +1,5 @@
 function actualizarEstado(tareaId, nuevoEstado) {
-    const urlBase = "{% url 'actualizar_estado_tarea' 0 %}".replace('/0/', '');
-    fetch(`${urlBase}${tareaId}/`, {
+    fetch(`${window.actualizarTareaBase}${tareaId}/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -8,7 +7,12 @@ function actualizarEstado(tareaId, nuevoEstado) {
         },
         body: JSON.stringify({ estado: nuevoEstado })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (response.ok) {
+            throw new Error("No se pudo actualizar la tarea.");
+        }
+        response.json();
+    })
     .then(data => {
         if (data.status === 'success') {
             console.log('Estado actualizado');
