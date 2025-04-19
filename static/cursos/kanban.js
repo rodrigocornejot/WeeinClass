@@ -1,5 +1,6 @@
 function actualizarEstado(tareaId, nuevoEstado) {
-    fetch(`/cursos/actualizar_estado_tarea/${tareaId}/`, {
+    const urlBase = "{% url 'actualizar_estado_tarea' 0 %}".replace('/0/', '');
+    fetch(`${urlBase}/{tareaId}/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -13,27 +14,6 @@ function actualizarEstado(tareaId, nuevoEstado) {
             console.log('Estado actualizado');
                 // Aquí podrías mover el elemento al nuevo estado visualmente
             location.reload(); // Esto recarga la página (opcional)
-        }
-    });
-}
-
-function delegarTarea(tareaId) {
-    const areaSeleccionada = document.getElementById('delegar_a').value;
-
-    fetch(`/cursos/delegar_tarea/${tareaId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify({ delegar_a: areaSeleccionada })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            location.reload();
-        } else {
-            alert("Error al delegar la tarea");
         }
     });
 }
