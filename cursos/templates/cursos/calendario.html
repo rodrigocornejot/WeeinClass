@@ -58,6 +58,7 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap@5.11.3/main.min.js"></script>
+  <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
 <body>
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -123,62 +124,135 @@
     </div>
   </div>
 
-  <!-- Script de inicialización de FullCalendar -->
   <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    var calendarEl = document.getElementById('calendario');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    const csrfToken = getCookie('csrftoken');
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var calendarEl = document.getElementById('calendario');
+      var calendar = new FullCalendar.Calendar(calendarEl, {
         locale: 'es',
         initialView: 'dayGridMonth',
         headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
         eventColor: '#0d6efd',
         eventTextColor: '#fff',
-        events: "{% url 'calendario_matriculas' %}",  // Ajusta la URL según tu vista
+        editable: true,  // Habilita el arrastre de eventos
+        events: "{% url 'calendario_matriculas' %}",
 
         eventClick: function(info) {
-            var fecha = info.event.startStr;
-            var matricula_id = info.event.extendedProps?.matricula_id;
+          var fecha = info.event.startStr;
+          var matricula_id = info.event.extendedProps?.matricula_id;
 
-            console.log("Fecha:", fecha);
-            console.log("Matrícula ID:", matricula_id);
+          console.log("Fecha:", fecha);
+          console.log("Matrícula ID:", matricula_id);
 
-            if (!matricula_id) {
-                alert("No se encontró el ID de matrícula para este evento.");
-                return;
-            }
+          if (!matricula_id) {
+            alert("No se encontró el ID de matrícula para este evento.");
+            return;
+          }
 
-            fetch(`/cursos/detalle_matricula/${matricula_id}/${fecha}/`)
+          fetch(`/cursos/detalle_matricula/${matricula_id}/${fecha}/`)
             .then(response => {
-                if(!response.ok) throw new Error("Error al obtener detalles ");
-                return response.json()
+              if (!response.ok) throw new Error("Error al obtener detalles");
+              return response.json();
             })
             .then(data => {
-                console.log(data);
-                let contenido = `
-                    <p><strong>Alumno:</strong> ${data.nombre}</p>
-                    <p><strong>Turno:</strong> ${data.turno}</p>
-                    <p><strong>Saldo pendiente:</strong> S/ ${data.saldo}</p>
-                `;
-                document.getElementById('detalleEvento').innerHTML = contenido;
-                new bootstrap.Modal(document.getElementById('eventoModal')).show();
+              console.log(data);
+              let contenido = `
+                <p><strong>Alumno:</strong> ${data.nombre}</p>
+                <p><strong>Turno:</strong> ${data.turno}</p>
+                <p><strong>Saldo pendiente:</strong> S/ ${data.saldo}</p>
+              `;
+              document.getElementById('detalleEvento').innerHTML = contenido;
+              new bootstrap.Modal(document.getElementById('eventoModal')).show();
             })
             .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('detalleEvento').innerHTML = '<p>Error al cargar los detalles.</p>';
-                new bootstrap.Modal(document.getElementById('eventoModal')).show();
+              console.error('Error:', error);
+              document.getElementById('detalleEvento').innerHTML = '<p>Error al cargar los detalles.</p>';
+              new bootstrap.Modal(document.getElementById('eventoModal')).show();
             });
-        }
-    });
+        },
 
-    calendar.render();
-  });
+        eventDrop: function(info) {
+          const matriculaId = info.event.extendedProps?.matricula_id;
+
+          if (!matriculaId) {
+            console.error("No se encontró matricula_id en el evento");
+            alert("Error: No se pudo identificar la matrícula para este evento");
+            info.revert(); // Revertir la acción de arrastre
+            return;
+          }
+
+          const nuevaFecha = info.event.start.toISOString().split('T')[0];
+
+          Swal.fire({
+            title: '¿Deseas cambiar la fecha?',
+            text: `La nueva fecha será: ${nuevaFecha}`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, cambiar',
+            cancelButtonText: 'No, cancelar'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Usuario confirmó, enviar solicitud
+              fetch(`/cursos/actualizar_fecha_evento/${matriculaId}/`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                  nueva_fecha: nuevaFecha
+                }),
+              })
+              .then(response => {
+                if (!response.ok) throw new Error("Error al actualizar fecha.");
+                return response.json();
+              })
+              .then(data => {
+                if (data.status === 'success') {
+                  Swal.fire('Actualizado', 'La fecha fue cambiada con éxito.', 'success');
+                } else {
+                  Swal.fire('Error', data.message || 'No se pudo actualizar la fecha.', 'error');
+                  info.revert(); // Revertir si hubo error
+                }
+              })
+              .catch(error => {
+                console.error("Error:", error);
+                Swal.fire('Error', 'Hubo un problema al actualizar la fecha.', 'error');
+                info.revert();
+              });
+            } else {
+              info.revert(); // Usuario canceló
+            }
+          });
+        }
+      });
+
+      calendar.render();
+    });
   </script>
 
   <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

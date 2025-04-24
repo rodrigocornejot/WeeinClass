@@ -23,8 +23,9 @@ from .views import (
 
     eliminar_matricula,
 
-    kanban, crear_tarea, actualizar_estado_tarea, mi_login_view
+    kanban, crear_tarea, actualizar_estado_tarea, mi_login_view, actualizar_fecha_evento,
 
+    eventos_json
 )
 
 urlpatterns = [
@@ -62,4 +63,6 @@ urlpatterns = [
     path('kanban/', kanban, name='kanban'),
     path('crear_tarea/', crear_tarea, name='crear_tarea'),
     path('actualizar_estado_tarea/<int:tarea_id>/', actualizar_estado_tarea, name='actualizar_estado_tarea'),
+    path('actualizar_fecha_evento/<int:matricula_id>/', actualizar_fecha_evento, name='actualizar_fecha_evento'),
+    path('eventos/json/', eventos_json, name='eventos_json'),
 ]

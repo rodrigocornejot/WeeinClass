@@ -6,7 +6,7 @@ from rest_framework import viewsets
 from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Alumno, Curso, Asistencia, Nota, Matricula, Clase, Tarea, Area
+from .models import Alumno, Curso, Asistencia, Nota, Matricula, Clase, Tarea, Area, Evento
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, Http404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login
@@ -19,7 +19,7 @@ from datetime import date, timedelta, datetime
 from django.contrib.auth.forms import AuthenticationForm
 from openpyxl.utils import get_column_letter
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
-from django.utils import timezone
+from django.utils import timezone, dateparse
 from .utils import obtener_datos_dashboard
 from .serializers import MatriculaSerializer
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
@@ -102,10 +102,16 @@ def calendario_matriculas(request):
         if modalidad == "full_day":
             for i in range(3):
                 eventos.append({
+                    "id": matricula.id,
                     "title": f"{alumno} - {curso}",
                     "start": (fecha_inicio + timedelta(weeks=i)).strftime("%Y-%m-%d"),
                     "color": color,
-                    "textColor": "black"
+                    "textColor": "black",
+                    "extendedProps": {
+                        "curso_id" : matricula.curso.id,
+                        "dia": (fecha_inicio + timedelta(weeks=i)).strftime("%Y-%m-%d"),
+                        "matricula_id": matricula.id
+                    }
                 })
 
         # 🔹 EXTENDIDA: Usar días_estudio o dias si están vacíos
@@ -141,6 +147,7 @@ def calendario_matriculas(request):
             while clases_generadas < 6:
                 if fecha_actual.weekday() in dias_indices:
                     eventos.append({
+                        "id": matricula.id,
                         "title": f"{alumno} - {curso}",
                         "start": fecha_actual.strftime("%Y-%m-%d"),
                         "color": color,
@@ -161,7 +168,6 @@ def calendario_matriculas(request):
     print("Eventos enviados a FullCalendar:", eventos)
 
     return JsonResponse(eventos, safe=False)
-
 
 # Formulario de login (puedes usar el AuthenticationForm de Django, pero aquí un ejemplo sencillo)
 class LoginForm(forms.Form):
@@ -669,3 +675,53 @@ def menu_admin(request):
         'es_profesor': es_profesor,
         'es_marketing': es_marketing,
     })
+
+@csrf_exempt
+def actualizar_fecha_evento(request, matricula_id):
+    print(f"Recibida solicitud para actualizar matricula ID: {matricula_id}")
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print(f"Datos recibidos: {data}")
+            nueva_fecha_str = data.get('nueva_fecha')
+
+            if not nueva_fecha_str:
+                return JsonResponse({'status': 'error', 'message': 'Fecha no proporcionada'}, status=400)
+
+            if 'T' in nueva_fecha_str:
+                nueva_fecha = nueva_fecha_str.split('T')[0]
+
+            nueva_fecha = datetime.strptime(nueva_fecha_str, '%Y-%m-%d').date()
+            matricula = Matricula.objects.get(id=matricula_id)
+            fecha_original = matricula.fecha_inicio
+            matricula.fecha_inicio = nueva_fecha
+            matricula.save()
+
+            return JsonResponse({
+                'status': 'success',
+                'new_fecha': nueva_fecha_str,
+                'original_fecha' : str(fecha_original),
+            })
+
+        except Matricula.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Matrícula no encontrada'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Error al procesar JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+
+def eventos_json(request):
+    eventos = Evento.objects.all()
+    data = []
+
+    for evento in eventos:
+        data.append({
+            'id': evento.matricula.id,
+            'title': f"{evento.curso.nombre} - {evento.alumno.nombre}",
+            'start': evento.fecha.isoformat(),
+        })
+
+    return JsonResponse(data, safe=False)
