@@ -21,8 +21,8 @@
       <tbody>
         {% for asistencia in asistencias %}
           <tr>
-            <td>{{ asistencia.alumno.nombre }}</td>
-            <td>{{ asistencia.curso.nombre }}</td>
+            <td>{{ asistencia.matricula.alumno.nombre }}</td>
+            <td>{{ asistencia.matricula.curso.nombre }}</td>
             <td>{{ asistencia.fecha }}</td>
             <td>{{ asistencia.presente|yesno:"Presente,Ausente" }}</td>
           </tr>

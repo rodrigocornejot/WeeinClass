@@ -8,7 +8,6 @@
 <body>
   <div class="container mt-5">
   <a href="{% url 'menu_admin' %}" class="btn btn-primary mb-3">Volver al Menú Principal</a>
-        <button type="submit" class="btn btn-success">Registrar asistencia</button>
     <h2>Registrar Asistencia</h2>
     <!-- Formulario con CSRF token -->
     <form method="post">
@@ -19,20 +18,38 @@
       <thead>
         <tr>
           <th>Alumno</th>
+          <th>Fecha</th>
           <th>Curso Matriculado</th>
           <th>Modalidad</th>
           <th>Asistencia</th>
         </tr>
       </thead>
       <tbody>
-        {% for alumno in alumnos %}
+        {% for matricula in matriculas %}
         <tr>
-          <td>{{ alumno.nombre }}</td>
-          <td>{{ alumno.curso.nombre }}</td>
-          <td>{{ alumno.modalidad }}</td>
+          <td>{{ matricula.alumno.nombre }}</td>
+          <td>{{ fecha }}</td>
+          <td>{{ matricula.curso.nombre }}</td>
+          <td>{{ matricula.modalidad }}</td>
           <td>
-            <input type="checkbox" class="asistencia-checkbox" name="presente_{{ alumno.id }}" value="1"
-                   data-alumno-id="{{ alumno.id }}" data-curso-id="{{ curso.id|default:'' }}">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input asistencia-radio"
+                       type="radio"
+                       name="asistencia_{{ matricula.alumno.id }}"
+                       value="presente"
+                       data-id="{{ matricula.alumno.id }}"
+                       data-curso-id="{{ matricula.curso.id }}">
+                <label class="form-check-label">Presente</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input asistencia-radio"
+                       type="radio"
+                       name="asistencia_{{ matricula.alumno.id }}"
+                       value="ausente"
+                       data-id="{{ matricula.alumno.id }}"
+                       data-curso-id="{{ matricula.curso.id }}">
+                <label class="form-check-label">Ausente</label>
+            </div>
           </td>
         </tr>
         {% endfor %}
@@ -44,55 +61,56 @@
     <a href="{% url 'lista_asistencia' %}" class="btn btn-secondary">Ver Asistencia</a>
   </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const btnGuardar = document.getElementById("guardar-asistencia");
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const btnGuardar = document.getElementById("guardar-asistencia");
 
-      function getCsrfToken() {
-        return document.querySelector('[name=csrfmiddlewaretoken]').value;
-      }
+    function getCsrfToken() {
+      return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
 
-      btnGuardar.addEventListener("click", function () {
-        const checkboxes = document.querySelectorAll(".asistencia-checkbox:checked");
-        let asistenciaData = [];
+    btnGuardar.addEventListener("click", function () {
+      const radios = document.querySelectorAll(".asistencia-radio:checked");
+      let asistenciaData = [];
 
-        checkboxes.forEach(checkbox => {
-          asistenciaData.push({
-            alumno_id: checkbox.dataset.alumnoId,
-            curso_id: checkbox.dataset.cursoId,
-            presente: true,  // Checkbox marcado significa presente
-            fecha: new Date().toISOString().split("T")[0]
-          });
-        });
-
-        if (asistenciaData.length === 0) {
-          alert("No hay asistencias para registrar.");
-          return;
-        }
-
-        fetch("/cursos/registrar-asistencia/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCsrfToken()
-          },
-          body: JSON.stringify({ asistencias: asistenciaData })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            alert("Asistencia guardada correctamente.");
-            location.reload();
-          } else {
-            alert("Error al guardar la asistencia.");
-          }
-        })
-        .catch(error => {
-          console.error("Error al registrar asistencia:", error);
-          alert("Hubo un problema al registrar la asistencia.");
+      radios.forEach(radio => {
+        asistenciaData.push({
+          alumno_id: parseInt(radio.dataset.id),
+          curso_id: parseInt(radio.dataset.cursoId),
+          presente: radio.value === "presente",
+          fecha: new Date().toISOString().split("T")[0]
         });
       });
+
+      if (asistenciaData.length === 0) {
+        alert("No hay asistencias para registrar.");
+        return;
+      }
+
+      fetch("/cursos/registrar_asistencia/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrfToken()
+        },
+        body: JSON.stringify({ asistencias: asistenciaData })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert("Asistencia guardada correctamente.");
+          location.reload();
+        } else {
+          alert("Error al guardar la asistencia.");
+        }
+      })
+      .catch(error => {
+        console.error("Error al registrar asistencia:", error);
+        alert("Hubo un problema al registrar la asistencia.");
+      });
     });
-  </script>
+  });
+</script>
+
 </body>
 </html>

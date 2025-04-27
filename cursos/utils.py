@@ -1,5 +1,5 @@
 from datetime import timedelta
-
+import calendar
 
 def obtener_datos_dashboard(curso_id):
     # Simulación de datos, reemplázalo con tu lógica real
@@ -32,3 +32,23 @@ def generar_fechas(inicio, modalidad):
     print(f"Fechas generadas: {fechas}")
     return fechas
 
+def crear_asistencias_para_matricula(matricula):
+    from .models import Asistencia
+    dias_a_numeros = {nombre: i for i, nombre in enumerate(calendar.day_name)}
+    dias_clase = matricula.dias  # Usamos los días seleccionados desde la matrícula
+    dias_seleccionados = [dias_a_numeros[d.capitalize()] for d in dias_clase]
+
+    fecha = matricula.fecha_inicio
+    asistencias_creadas = 0
+    limite = 3 if matricula.modalidad == "full_day" else 6
+
+    while asistencias_creadas < limite:
+        if fecha.weekday() in dias_seleccionados:
+            Asistencia.objects.create(
+                fecha=fecha,
+                alumno=matricula.alumno,
+                curso=matricula.curso,
+                presente=False  # inicial por defecto
+            )
+            asistencias_creadas += 1
+        fecha += timedelta(days=1)

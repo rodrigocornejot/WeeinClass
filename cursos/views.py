@@ -25,6 +25,7 @@ from .serializers import MatriculaSerializer
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 from django.views import View
 from django.contrib.auth.decorators import login_required, user_passes_test
+from .utils import crear_asistencias_para_matricula  # Importar la función
 
 CURSO_COLORES = {
     'VARIADORES DE FRECUENCIA': '#33FF57',
@@ -317,25 +318,37 @@ def lista_matriculas(request):
 def registrar_asistencia(request):
     if request.method == "POST":
         try:
+            # Obtener los datos enviados por POST
             data = json.loads(request.body)
             asistencias = data.get("asistencias", [])
 
             for asistencia in asistencias:
                 alumno = Alumno.objects.filter(id=asistencia["alumno_id"]).first()
                 curso = Curso.objects.filter(id=asistencia["curso_id"]).first()
+
                 if not alumno or not curso:
                     return JsonResponse({"success": False, "error": "Alumno o curso no encontrado"})
 
+                # Verificar que el alumno esté matriculado en el curso
                 matricula = Matricula.objects.filter(alumno=alumno, curso=curso).first()
                 if not matricula:
-                    return JsonResponse({"success": False, "error": "Matricula no encontrado"})
+                    return JsonResponse({"success": False, "error": "Matrícula no encontrada"})
 
-                Asistencia.objects.create(
+                # Crear la asistencia
+                asistencia_existente = Asistencia.objects.filter(
                     fecha=asistencia["fecha"],
-                    alumno=alumno,
-                    curso=curso,
-                    presente=asistencia["presente"]
-                )
+                    matricula=matricula
+                ).first()
+
+                if asistencia_existente:
+                    asistencia_existente.presente = asistencia["presente"]
+                    asistencia_existente.save()
+                else:
+                    Asistencia.objects.create(
+                        fecha=asistencia["fecha"],
+                        matricula=matricula,
+                        presente=asistencia["presente"],
+                    )
 
             return JsonResponse({"success": True})
 
@@ -349,9 +362,7 @@ def registrar_asistencia(request):
 
     print(f"\nFecha seleccionada: {fecha}")
 
-    total_matriculas = Matricula.objects.count()
-    print(f"Total de matriculas en la BD: {total_matriculas}")
-
+    # Obtener las matriculas activas para la fecha seleccionada
     matriculas = Matricula.objects.filter(
         Q(modalidad="extendida", fecha_inicio__lte=fecha, fecha_inicio__gte=fecha - timedelta(weeks=6)) |
         Q(modalidad="full_day", fecha_inicio__lte=fecha, fecha_inicio__gte=fecha - timedelta(weeks=3))
@@ -359,16 +370,17 @@ def registrar_asistencia(request):
 
     print(f"Matrículas activas encontradas: {matriculas.count()}")
 
-    for m in matriculas:
-        print(f"Alumno: {m.alumno.nombre}, Curso: {m.curso.nombre}, Modalidad: ({m.modalidad}) - Fecha Inicio: {m.fecha_inicio}")
-
-    # Obtener los alumnos que deben estar en esa fecha
+    # Obtener los alumnos que deben estar presentes según la matrícula
     cursos_matriculados = matriculas.values_list("curso", flat=True)
     alumnos = Alumno.objects.filter(id__in=matriculas.values_list("alumno", flat=True))
 
     print(f"Alumnos encontrados: {alumnos.count()}")
 
-    return render(request, "cursos/registrar_asistencia.html", {"alumnos": alumnos, "fecha": fecha})
+    # Pasar los datos al template
+    return render(request, "cursos/registrar_asistencia.html", {
+        "matriculas": matriculas,
+        "fecha": fecha
+    })
 
 def lista_asistencia(request):
     asistencias = Asistencia.objects.all().order_by('-fecha')
@@ -481,17 +493,25 @@ def registrar_matricula(request):
                         fechas_clases.append(fecha_clase)
                         print("Fechas generadas:", fechas_clases)
 
-
             else:
                 return render(request, 'error.html', {'mensaje': 'Modalidad inválida'})
 
-            # Crear clases en la BD
+            # Crear clases en la BD y sincronizar las asistencias
             for fecha_clase in fechas_clases:
-                Clase.objects.create(
+                clase = Clase.objects.create(
                     curso=matricula.curso,
                     fecha=fecha_clase
                 )
                 print(f"Clase creada para {fecha_clase}")
+
+                # Crear la asistencia para esta clase
+                Asistencia.objects.create(
+                    fecha=fecha_clase,
+                    alumno=matricula.alumno,
+                    curso=matricula.curso,
+                    presente=False  # Asistencia inicial vacía
+                )
+                print(f"Asistencia creada para {fecha_clase}")
 
             return redirect('lista_matriculas')
 
@@ -499,6 +519,7 @@ def registrar_matricula(request):
         form = MatriculaForm()
 
     return render(request, 'cursos/registrar_matricula.html', {'form': form})
+
 
 
 def obtener_datos_dashboard(curso_id=None):
@@ -725,3 +746,4 @@ def eventos_json(request):
         })
 
     return JsonResponse(data, safe=False)
+
