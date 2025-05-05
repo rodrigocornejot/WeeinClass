@@ -7,9 +7,10 @@
 </head>
 <body>
   <div class="container mt-5">
-  <a href="{% url 'menu_admin' %}" class="btn btn-primary mb-3">Volver al Menú Principal</a>
+    <a href="{% url 'menu_admin' %}" class="btn btn-primary mb-3">Volver al Menú Principal</a>
     <h2>Lista de Asistencia</h2>
-    <table class="table">
+
+    <table class="table table-bordered">
       <thead>
         <tr>
           <th>Alumno</th>
@@ -31,7 +32,8 @@
         {% endfor %}
       </tbody>
     </table>
-    <a href="{% url 'registrar_asistencia' %}" class="btn btn-primary">Registrar nueva asistencia</a>
+
+    <a href="{% url 'registrar_asistencia' %}" class="btn btn-success">Registrar nueva asistencia</a>
   </div>
 </body>
 </html>

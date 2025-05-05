@@ -31,6 +31,10 @@
           <td>{{ m.get_turno_display }}</td>
           <td>{{ m.dias_estudio }}</td>
           <td>{{ m.saldo_pendiente }}</td>
+          <td>
+            <a href="{% url 'editar_matricula' m.id %}" class="btn btn-sm btn-warning">Editar</a>
+            <a href="{% url 'eliminar_matricula' m.id %}" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta matrícula?')">Eliminar</a>
+          </td>
         </tr>
         {% endfor %}
       </tbody>

@@ -1,6 +1,7 @@
 import json
 import openpyxl
 import traceback
+import calendar
 from rest_framework.generics import ListAPIView
 from rest_framework import viewsets
 from django.shortcuts import render, redirect, get_object_or_404
@@ -314,69 +315,60 @@ def lista_matriculas(request):
     ]
     return JsonResponse(data, safe=False)
 
+import json
+from datetime import date, timedelta
+import calendar
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.db.models import Q
+from .models import Matricula, Curso, Asistencia
 
 def registrar_asistencia(request):
     if request.method == "POST":
         try:
-            # Obtener los datos enviados por POST
             data = json.loads(request.body)
             asistencias = data.get("asistencias", [])
 
             for asistencia in asistencias:
-                alumno = Alumno.objects.filter(id=asistencia["alumno_id"]).first()
-                curso = Curso.objects.filter(id=asistencia["curso_id"]).first()
+                alumno_id = asistencia.get("alumno_id")
+                curso_id = asistencia.get("curso_id")
+                fecha = asistencia.get("fecha")
+                presente = asistencia.get("presente")
 
-                if not alumno or not curso:
-                    return JsonResponse({"success": False, "error": "Alumno o curso no encontrado"})
-
-                # Verificar que el alumno esté matriculado en el curso
-                matricula = Matricula.objects.filter(alumno=alumno, curso=curso).first()
-                if not matricula:
-                    return JsonResponse({"success": False, "error": "Matrícula no encontrada"})
-
-                # Crear la asistencia
-                asistencia_existente = Asistencia.objects.filter(
-                    fecha=asistencia["fecha"],
-                    matricula=matricula
+                # Obtener la matrícula correspondiente
+                matricula = Matricula.objects.filter(
+                    alumno_id=alumno_id,
+                    curso_id=curso_id
                 ).first()
 
-                if asistencia_existente:
-                    asistencia_existente.presente = asistencia["presente"]
-                    asistencia_existente.save()
-                else:
-                    Asistencia.objects.create(
-                        fecha=asistencia["fecha"],
-                        matricula=matricula,
-                        presente=asistencia["presente"],
-                    )
+                if not matricula:
+                    continue  # O registrar el error en una lista
+
+                Asistencia.objects.update_or_create(
+                    fecha=fecha,
+                    matricula=matricula,
+                    defaults={"presente": presente}
+                )
 
             return JsonResponse({"success": True})
-
         except Exception as e:
             print("Error:", str(e))
             return JsonResponse({"success": False, "error": str(e)})
 
-    # Manejo de solicitudes GET
     fecha_str = request.GET.get("fecha")
     fecha = date.fromisoformat(fecha_str) if fecha_str else date.today()
+    dia_semana = calendar.day_name[fecha.weekday()].lower()
 
-    print(f"\nFecha seleccionada: {fecha}")
+    cursos_del_dia = Curso.objects.filter(diaestudio__dia__iexact=dia_semana)
 
-    # Obtener las matriculas activas para la fecha seleccionada
     matriculas = Matricula.objects.filter(
-        Q(modalidad="extendida", fecha_inicio__lte=fecha, fecha_inicio__gte=fecha - timedelta(weeks=6)) |
-        Q(modalidad="full_day", fecha_inicio__lte=fecha, fecha_inicio__gte=fecha - timedelta(weeks=3))
+        curso__in=cursos_del_dia,
+        fecha_inicio__lte=fecha
+    ).filter(
+        Q(modalidad="extendida", fecha_inicio__gte=fecha - timedelta(weeks=6)) |
+        Q(modalidad="full_day", fecha_inicio__gte=fecha - timedelta(weeks=3)),
     )
 
-    print(f"Matrículas activas encontradas: {matriculas.count()}")
-
-    # Obtener los alumnos que deben estar presentes según la matrícula
-    cursos_matriculados = matriculas.values_list("curso", flat=True)
-    alumnos = Alumno.objects.filter(id__in=matriculas.values_list("alumno", flat=True))
-
-    print(f"Alumnos encontrados: {alumnos.count()}")
-
-    # Pasar los datos al template
     return render(request, "cursos/registrar_asistencia.html", {
         "matriculas": matriculas,
         "fecha": fecha
@@ -582,11 +574,6 @@ def dashboard(request):
     context = obtener_datos_dashboard(request.GET.get('curso'))
     return render(request, 'cursos/dashboard.html', context)
 
-def eliminar_matricula(request, matricula_id):
-    matricula = get_object_or_404(Matricula, id=matricula_id)
-    matricula.delete()
-    return redirect('lista_matriculas.html')  # Reemplaza con la URL correcta
-
 def registrar_alumnos(request):
     if request.method == 'POST':
         nombre = request.POST.get('nombre')
@@ -746,4 +733,36 @@ def eventos_json(request):
         })
 
     return JsonResponse(data, safe=False)
+
+def editar_alumno(request, alumno_id):
+    alumno = get_object_or_404(Alumno, id=alumno_id)
+    if request.method == "POST":
+        form = AlumnoForm(request.POST, instance=alumno)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_alumnos')
+    else:
+        form = AlumnoForm(instance=alumno)
+    return render(request, "cursos/editar_alumno.html", {"form": form})
+
+def eliminar_alumno(request, alumno_id):
+    alumno = get_object_or_404(Alumno, id=alumno_id)
+    alumno.delete()
+    return redirect('lista_alumnos')
+
+def editar_matricula(request, matricula_id):
+    matricula = get_object_or_404(Matricula, id=matricula_id)
+    if request.method == "POST":
+        form = MatriculaForm(request.POST, instance=matricula)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_matriculas')
+    else:
+        form = MatriculaForm(instance=matricula)
+    return render(request, "cursos/editar_matricula.html", {"form": form})
+
+def eliminar_matricula(request, matricula_id):
+    matricula = get_object_or_404(Matricula, id=matricula_id)
+    matricula.delete()
+    return redirect('lista_matriculas')
 
