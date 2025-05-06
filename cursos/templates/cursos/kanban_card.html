@@ -31,7 +31,7 @@
         </div>
     {% elif tarea.estado == 'en_proceso' %}
         <div class="mt-2">
-            <button class="btn btn-sm btn-success w-100" onclick="actualizarEstado({{ tarea.id }}, 'completada')">✔ Completar</button>
+            <button class="btn btn-sm btn-warning w-100" onclick="actualizarEstado({{ tarea.id }}, 'completada')">✔ Completar</button>
         </div>
     {% elif tarea.estado == 'completada' %}
         <span class="badge bg-success mt-2">✔ Completada</span>

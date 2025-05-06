@@ -2,6 +2,8 @@ import json
 import openpyxl
 import traceback
 import calendar
+
+from django.core.paginator import Paginator
 from rest_framework.generics import ListAPIView
 from rest_framework import viewsets
 from django.shortcuts import render, redirect, get_object_or_404
@@ -27,7 +29,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 from django.views import View
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .utils import crear_asistencias_para_matricula  # Importar la función
-
+import ast
 CURSO_COLORES = {
     'VARIADORES DE FRECUENCIA': '#33FF57',
     'REDES INDUSTRIALES': '#b328ca',
@@ -299,29 +301,22 @@ def lista_cursos(request):
     return render(request, 'cursos/lista_cursos.html', {'cursos': cursos})
 
 def lista_matriculas(request):
-    matriculas = Matricula.objects.select_related("alumno", "curso").all()
-    #matriculas = Matricula.objects.exclude(id__isnull=True)
-    data = [
-        {
-            "id": m.id,
-            "alumno": m.alumno.nombre,
-            "curso": m.curso.nombre,
-            "modalidad": m.get_modalidad_display(),
-            "turno": m.get_turno_display(),
-            "dias_estudio": m.dias_estudio,
-            "saldo_pendiente": float(m.saldo_pendiente),
-        }
-        for m in matriculas
-    ]
-    return JsonResponse(data, safe=False)
+    # Obtener todas las matrículas
+    matriculas_qs = Matricula.objects.all()
 
-import json
-from datetime import date, timedelta
-import calendar
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.db.models import Q
-from .models import Matricula, Curso, Asistencia
+    # Paginación
+    paginator = Paginator(matriculas_qs, 10)  # Mostrar 10 registros por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Obtener todos los cursos para el filtro
+    cursos = Curso.objects.all()
+
+    # Pasar los datos a la plantilla
+    return render(request, 'cursos/lista_matriculas.html', {
+        'matriculas': page_obj,
+        'cursos': cursos
+    })
 
 def registrar_asistencia(request):
     if request.method == "POST":
@@ -591,32 +586,39 @@ def registrar_alumnos(request):
 
     return render(request, 'cursos/registrar_alumnos.html')
 
-def lista_matriculas(request):
-    matriculas = Matricula.objects.all()
-
-    import ast
-    for m in matriculas:
-        try:
-            dias_lista = ast.literal_eval(m.dias_estudio)
-            m.dias_estudio = ", ".join(dias_lista)
-        except:
-            pass
-
-    return render(request, 'cursos/lista_matriculas.html', {'matriculas': matriculas})
-
-
 def kanban(request):
+    ahora = timezone.now()
+
+    # Marcar como vencidas las tareas cuya fecha ya pasó y aún no fueron completadas
+    Tarea.objects.filter(fecha_vencimiento__lt=ahora, estado__in=['pendiente', 'en_proceso'], vencida=False).update(vencida=True)
+
     user = request.user
 
     if user.groups.filter(name='Marketing').exists():
-        tareas = Tarea.objects.filter(area_asignada__nombre='Marketing')
+        tareas = Tarea.objects.filter(area_asignada__nombre='Marketing', vencida=False)
     elif user.groups.filter(name='Profesores').exists():
-        tareas = Tarea.objects.filter(area_asignada__nombre='Profesores')
+        tareas = Tarea.objects.filter(area_asignada__nombre='Profesores', vencida=False)
     else:
-        tareas = Tarea.objects.all()
+        tareas = Tarea.objects.filter(vencida=False)
 
     return render(request, 'cursos/kanban.html', {'tareas': tareas})
 
+@login_required
+def actualizar_tareas_vencidas(request):
+    ahora = timezone.now()
+    Tarea.objects.filter(fecha_vencimiento__lt=ahora, vencida=False).update(vencida=True)
+    return redirect('kanban')
+
+@login_required
+def tareas_vencidas(request):
+    if request.user.groups.filter(name='Marketing').exists():
+        tareas = Tarea.objects.filter(vencida=True, area_asignada__nombre='Marketing')
+    elif request.user.groups.filter(name='Profesores').exists():
+        tareas = Tarea.objects.filter(vencida=True, area_asignada__nombre='Profesores')
+    else:
+        tareas = Tarea.objects.filter(vencida=True)
+
+    return render(request, 'cursos/tareas_vencidas.html', {'tareas': tareas})
 
 def crear_tarea(request):
     if request.method == 'POST':

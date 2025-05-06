@@ -14,7 +14,10 @@
 <div class="container mt-5">
     <!-- Botón Menu Principal arriba -->
     <div class="d-flex justify-content-between mb-4">
-        <a href="{% url 'menu_admin' %}" class="btn btn-secondary">← Menú Principal</a>
+        <div>
+            <a href="{% url 'menu_admin' %}" class="btn btn-secondary me-2">← Menú Principal</a>
+            <a href="{% url 'tareas_vencidas' %}" class="btn btn-outline-danger">📅 Ver Tareas Vencidas</a>
+        </div>
         <a href="{% url 'crear_tarea' %}" class="btn btn-success">➕ Nueva Tarea</a>
     </div>
 
