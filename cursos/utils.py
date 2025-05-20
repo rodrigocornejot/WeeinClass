@@ -10,6 +10,7 @@ def obtener_datos_dashboard(curso_id):
     }
 
 def generar_fechas(inicio, modalidad):
+    from .models import UnidadCurso, AsistenciaUnidad
     if not inicio or not modalidad:
         return []  # Retorna lista vacía si la fecha de inicio no está definida
 
@@ -33,22 +34,12 @@ def generar_fechas(inicio, modalidad):
     return fechas
 
 def crear_asistencias_para_matricula(matricula):
-    from .models import Asistencia
-    dias_a_numeros = {nombre: i for i, nombre in enumerate(calendar.day_name)}
-    dias_clase = matricula.dias  # Usamos los días seleccionados desde la matrícula
-    dias_seleccionados = [dias_a_numeros[d.capitalize()] for d in dias_clase]
+    from .models import UnidadCurso, AsistenciaUnidad
+    unidades = UnidadCurso.objects.filter(curso=matricula.curso).order_by('numero')
 
-    fecha = matricula.fecha_inicio
-    asistencias_creadas = 0
-    limite = 3 if matricula.modalidad == "full_day" else 6
-
-    while asistencias_creadas < limite:
-        if fecha.weekday() in dias_seleccionados:
-            Asistencia.objects.create(
-                fecha=fecha,
-                alumno=matricula.alumno,
-                curso=matricula.curso,
-                presente=False  # inicial por defecto
-            )
-            asistencias_creadas += 1
-        fecha += timedelta(days=1)
+    for unidad in unidades:
+        AsistenciaUnidad.objects.get_or_create(
+            matricula=matricula,
+            unidad=unidad,
+            defaults={'completado': False}
+        )

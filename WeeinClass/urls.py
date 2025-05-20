@@ -16,7 +16,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.http import HttpResponse
 from cursos.views import mi_login_view  # o desde donde hayas definido la vista
 from django.shortcuts import redirect
 

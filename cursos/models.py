@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from cursos.utils import generar_fechas
-from datetime import date, datetime
+from datetime import datetime
 
 CURSO_CHOICES = (
     ('PLC NIVEL 1', 'PLC NIVEL 1'),
@@ -108,15 +108,6 @@ class Clase(models.Model):
     def __str__(self):
         return f"Clase de {self.curso.nombre} - {self.fecha} {self.horario}"
 
-class Asistencia(models.Model):
-    matricula = models.ForeignKey(Matricula, on_delete=models.CASCADE)
-    fecha = models.DateField()
-    presente = models.BooleanField(default=False)
-    comentarios = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return f"{self.matricula.alumno.nombre} - {self.matricula.curso.nombre} ({'Presente' if self.presente else 'Ausente'})"
-
 class Nota(models.Model):
     matricula = models.ForeignKey(Matricula, on_delete=models.CASCADE)
     nota = models.FloatField(default=0)
@@ -167,3 +158,23 @@ class Tarea(models.Model):
 
     def __str__(self):
         return self.titulo
+
+class UnidadCurso(models.Model):
+    curso = models.ForeignKey('Curso', on_delete=models.CASCADE, related_name='unidades')
+    numero = models.PositiveIntegerField()
+    nombre_tema = models.CharField(max_length=255)
+
+    class Meta:
+        unique_together = ('curso', 'numero')
+        ordering = ['numero']
+
+    def __str__(self):
+        return f"{self.curso.nombre} - Unidad {self.numero}"
+
+class AsistenciaUnidad(models.Model):
+    matricula = models.ForeignKey('Matricula', on_delete=models.CASCADE, related_name='asistencias')
+    unidad = models.ForeignKey('UnidadCurso', on_delete=models.CASCADE)
+    completado = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('matricula', 'unidad')

@@ -16,7 +16,7 @@ from .views import (
     detalle_matricula,
 
     # Asistencia y notas
-    registrar_asistencia, lista_asistencia, registrar_nota, lista_notas,
+    ver_asistencia_unidad, lista_asistencia, registrar_nota, lista_notas,
 
     # Calendario
     vista_calendario,
@@ -25,7 +25,7 @@ from .views import (
 
     kanban, crear_tarea, actualizar_estado_tarea, mi_login_view, actualizar_fecha_evento,
 
-    eventos_json, actualizar_tareas_vencidas, tareas_vencidas
+    eventos_json, actualizar_tareas_vencidas, tareas_vencidas, registrar_asistencia_unidad
 )
 
 urlpatterns = [
@@ -50,7 +50,8 @@ urlpatterns = [
     path('registrar_matricula/', registrar_matricula, name='registrar_matricula'),
     path('detalle_matricula/<int:matricula_id>/<str:fecha>/', detalle_matricula, name='detalle_matricula'),
     # Asistencia y Notas
-    path('registrar_asistencia/', registrar_asistencia, name='registrar_asistencia'),
+    path('registrar_asistencia_unidad/', registrar_asistencia_unidad, name='registrar_asistencia_unidad'),
+    path('ver_asistencia_unidad/', ver_asistencia_unidad, name='ver_asistencia_unidad'),
     path('lista_asistencia/', lista_asistencia, name='lista_asistencia'),
     path('registrar_nota/', registrar_nota, name='registrar_nota'),
     path('lista_notas/', lista_notas, name='lista_notas'),

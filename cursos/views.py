@@ -9,7 +9,7 @@ from rest_framework import viewsets
 from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Alumno, Curso, Asistencia, Nota, Matricula, Clase, Tarea, Area, Evento
+from .models import Alumno, Curso, Nota, Matricula, Clase, Tarea, Area, Evento, UnidadCurso, AsistenciaUnidad
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, Http404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login
@@ -17,7 +17,7 @@ from django.contrib import messages
 from django import forms
 from .forms import CursoForm, MatriculaAdminForm, MatriculaForm, NotaForm
 from django.db.models import Count, Avg, Q
-from .forms import AsistenciaForm, AlumnoForm
+from .forms import AlumnoForm
 from datetime import date, timedelta, datetime
 from django.contrib.auth.forms import AuthenticationForm
 from openpyxl.utils import get_column_letter
@@ -30,6 +30,8 @@ from django.views import View
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .utils import crear_asistencias_para_matricula  # Importar la función
 import ast
+from collections import defaultdict
+
 CURSO_COLORES = {
     'VARIADORES DE FRECUENCIA': '#33FF57',
     'REDES INDUSTRIALES': '#b328ca',
@@ -318,60 +320,90 @@ def lista_matriculas(request):
         'cursos': cursos
     })
 
-def registrar_asistencia(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            asistencias = data.get("asistencias", [])
 
-            for asistencia in asistencias:
-                alumno_id = asistencia.get("alumno_id")
-                curso_id = asistencia.get("curso_id")
-                fecha = asistencia.get("fecha")
-                presente = asistencia.get("presente")
+def registrar_asistencia_unidad(request):
+    matriculas = Matricula.objects.filter(estado='activa')
+    unidades = UnidadCurso.objects.all()
 
-                # Obtener la matrícula correspondiente
-                matricula = Matricula.objects.filter(
-                    alumno_id=alumno_id,
-                    curso_id=curso_id
-                ).first()
+    # Organizar las unidades por curso
+    unidades_por_curso = {}
+    for unidad in unidades:
+        curso = unidad.curso
+        if curso not in unidades_por_curso:
+            unidades_por_curso[curso] = []
+        unidades_por_curso[curso].append(unidad)
 
-                if not matricula:
-                    continue  # O registrar el error en una lista
+    # Crear el diccionario de asistencias
+    asistencias_dict = {}
 
-                Asistencia.objects.update_or_create(
-                    fecha=fecha,
+    for asistencia in AsistenciaUnidad.objects.all():
+        matricula_id = asistencia.matricula.id
+        unidad_id = asistencia.unidad.id
+
+        if matricula_id not in asistencias_dict:
+            asistencias_dict[matricula_id] = {}
+
+        asistencias_dict[matricula_id][unidad_id] = asistencia.completado
+
+    if request.method == 'POST':
+        for matricula in matriculas:
+            for unidad in unidades:
+                key = f"asistencia_{matricula.id}_{unidad.id}"
+                completado = key in request.POST
+                asistencia, created = AsistenciaUnidad.objects.get_or_create(
                     matricula=matricula,
-                    defaults={"presente": presente}
+                    unidad=unidad,
+                    defaults={'completado': completado}
                 )
+                if not created:
+                    asistencia.completado = completado
+                    asistencia.save()
+        return redirect('registrar_asistencia_unidad')
 
-            return JsonResponse({"success": True})
-        except Exception as e:
-            print("Error:", str(e))
-            return JsonResponse({"success": False, "error": str(e)})
-
-    fecha_str = request.GET.get("fecha")
-    fecha = date.fromisoformat(fecha_str) if fecha_str else date.today()
-    dia_semana = calendar.day_name[fecha.weekday()].lower()
-
-    cursos_del_dia = Curso.objects.filter(diaestudio__dia__iexact=dia_semana)
-
-    matriculas = Matricula.objects.filter(
-        curso__in=cursos_del_dia,
-        fecha_inicio__lte=fecha
-    ).filter(
-        Q(modalidad="extendida", fecha_inicio__gte=fecha - timedelta(weeks=6)) |
-        Q(modalidad="full_day", fecha_inicio__gte=fecha - timedelta(weeks=3)),
-    )
-
-    return render(request, "cursos/registrar_asistencia.html", {
-        "matriculas": matriculas,
-        "fecha": fecha
+    return render(request, 'cursos/registrar_asistencia_unidad.html', {
+        'matriculas': matriculas,
+        'unidades_por_curso': unidades_por_curso,  # Aquí se pasa el diccionario
+        'asistencias_dict': asistencias_dict,
     })
 
 def lista_asistencia(request):
-    asistencias = Asistencia.objects.all().order_by('-fecha')
+    asistencias = AsistenciaUnidad.objects.select_related(
+        'matricula__alumno', 'matricula__curso', 'unidad'
+    ).order_by('matricula__curso__nombre', 'matricula__alumno__nombre', 'unidad__numero')
     return render(request, 'cursos/lista_asistencia.html', {'asistencias': asistencias})
+
+def ver_asistencia_unidad(request, curso_id):
+    # Lógica para obtener las asistencias por unidad
+    # Ejemplo:
+    asistencias = AsistenciaUnidad.objects.filter(curso_id=curso_id)
+    unidades = UnidadCurso.objects.filter(curso_id=curso_id).order_by('id')
+
+    return render(request, 'cursos/ver_asistencia_unidad.html', {
+        'asistencias': asistencias,
+        'unidades': unidades
+    })
+
+def guardar_asistencias(request, curso_id):
+    if request.method == 'POST':
+        unidades = UnidadCurso.objects.filter(curso_id=curso_id)
+        matriculas = Matricula.objects.filter(curso_id=curso_id)
+
+        for matricula in matriculas:
+            for unidad in unidades:
+                checkbox_name = f'asistencia_{matricula.id}_{unidad.id}'
+                completado = checkbox_name in request.POST
+
+                asistencia, created = AsistenciaUnidad.objects.get_or_create(
+                    matricula=matricula,
+                    unidad=unidad,
+                    defaults={'completado': completado}
+                )
+
+                if not created:
+                    asistencia.completado = completado
+                    asistencia.save()
+
+        return redirect('registrar_asistencia_unidad', curso_id=curso_id)
 
 def registrar_nota(request):
     alumnos = Alumno.objects.all()
@@ -491,14 +523,18 @@ def registrar_matricula(request):
                 )
                 print(f"Clase creada para {fecha_clase}")
 
-                # Crear la asistencia para esta clase
-                Asistencia.objects.create(
-                    fecha=fecha_clase,
-                    alumno=matricula.alumno,
-                    curso=matricula.curso,
-                    presente=False  # Asistencia inicial vacía
-                )
-                print(f"Asistencia creada para {fecha_clase}")
+            unidades = UnidadCurso.objects.filter(curso=matricula.curso).order_by('numero')
+            if not unidades.exists():
+                print("⚠️ Este curso no tiene unidades registradas.")
+            else:
+                for unidad in unidades:
+                    AsistenciaUnidad.objects.create(
+                        matricula=matricula,
+                        unidad=unidad,
+                        tema_realizado="",  # Vacío al inicio
+                        realizado=False
+                    )
+                    print(f"Unidad {unidad.numero} registrada para la matrícula")
 
             return redirect('lista_matriculas')
 
@@ -506,8 +542,6 @@ def registrar_matricula(request):
         form = MatriculaForm()
 
     return render(request, 'cursos/registrar_matricula.html', {'form': form})
-
-
 
 def obtener_datos_dashboard(curso_id=None):
     cursos_qs = Curso.objects.all()
@@ -522,8 +556,8 @@ def obtener_datos_dashboard(curso_id=None):
         'matricula__curso__nombre'
     ).annotate(promedio=Avg('nota'))
 
-    total_asistencias = Asistencia.objects.count()
-    asistencias_presentes = Asistencia.objects.filter(presente=True).count()
+    total_asistencias = AsistenciaUnidad.objects.count()
+    asistencias_presentes = AsistenciaUnidad.objects.filter(completado=True).count()
     porcentaje_asistencia = (asistencias_presentes / total_asistencias * 100) if total_asistencias else 0
 
     return {

@@ -1,0 +1,82 @@
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro de Asistencia por Unidad</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #555;
+            text-align: center;
+            padding: 8px;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        .curso-header {
+            background-color: #d1e7dd;
+            font-weight: bold;
+            text-align: left;
+            padding: 10px;
+        }
+        .curso-section:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .curso-section:nth-child(odd) {
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Registro de Asistencia por Unidad</h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% for curso, unidades in unidades_por_curso.items %}
+            <div class="curso-section">
+                <div class="curso-header">Curso: {{ curso.nombre }}</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Alumno</th>
+                            {% for unidad in unidades %}
+                                <th>{{ unidad.nombre_tema }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for matricula in matriculas %}
+                            {% if matricula.curso == curso %}
+                                <tr>
+                                    <td>{{ matricula.alumno.nombre }}</td>
+                                    {% for unidad in unidades %}
+                                        <td>
+                                            {% with asistencia_matricula=asistencias_dict|get_item:matricula.id %}
+                                                {% with asistencia_unidad=asistencia_matricula|get_item:unidad.id %}
+                                                    <input type="checkbox" name="asistencia_{{ matricula.id }}_{{ unidad.id }}"
+                                                           {% if asistencia_unidad %}checked{% endif %}>
+                                                {% endwith %}
+                                            {% endwith %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <br>
+            </div>
+        {% endfor %}
+
+        <button type="submit">Guardar Asistencias</button>
+    </form>
+</body>
+</html>

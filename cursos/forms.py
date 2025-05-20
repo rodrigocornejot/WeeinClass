@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.postgres.forms import SimpleArrayField
 from django.contrib.postgres.fields import ArrayField
 from .models import DAY_CHOICES
-from .models import Asistencia, Curso, Nota, Alumno, Matricula, Tarea
+from .models import Curso, Nota, Alumno, Matricula, Tarea
 from django.forms.widgets import DateInput, TimeInput
 
 
@@ -81,17 +81,6 @@ class MatriculaAdminForm(forms.ModelForm):
         # En lugar de: choices=self.fields['dias_estudio'].choices
         self.fields['dias_estudio'].widget = forms.CheckboxSelectMultiple(choices=DAY_CHOICES
 )
-
-class AsistenciaForm(forms.ModelForm):
-    class Meta:
-        model = Asistencia
-        fields = ['matricula', 'fecha', 'presente']
-        widgets = {
-            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'alumno': forms.Select(attrs={'class': 'form-control'}),
-            'curso': forms.Select(attrs={'class': 'form-control'}),
-            'presente': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        }
 
 class NotaForm(forms.ModelForm):
     alumno = forms.ModelChoiceField(queryset=Alumno.objects.all())
