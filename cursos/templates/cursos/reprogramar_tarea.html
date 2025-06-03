@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Reprogramar tarea: {{ tarea.titulo }}</h2>
+
+<form method="post">
+    {% csrf_token %}
+    <label for="fecha_vencimiento">Nueva fecha de vencimiento:</label>
+    <input type="date" name="fecha_vencimiento" value="{{ tarea.fecha_vencimiento|date:'Y-m-d' }}" required>
+    <button type="submit">Guardar</button>
+</form>
+
+<a href="{% url 'tareas_vencidas' %}">Cancelar</a>
+{% endblock %}

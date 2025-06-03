@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-v7r!ulf@1n=zdm6ab+=%v3)s8&$1zwl$rh2=hnv@xyzhr%7vy6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['weeinclass-production.up.railway.app', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['weeinclass.onrender.com', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -91,17 +91,12 @@ load_dotenv()
 env = environ.Env()
 environ.Env.read_env()
 
-if os.getenv("RAILWAY_ENVIRONMENT"):
-    import dj_database_url
-    DATABASES = {
-        'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'railway',
-        'USER': 'postgres',
-        'PASSWORD': 'SyByueKPmOpltYJnsJTVorFnbnkHYHIs',
-        'HOST': 'yamabiko.proxy.rlwy.net',  # Por ejemplo 'localhost' o la IP del servidor
-        'PORT': '57997',  # El puerto de PostgreSQL, por defecto es 5432
-    }
+DATABASES = {
+    'default': dj_database_url.config(
+        default=env('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True,
+    )
 }
 
 # Password validation

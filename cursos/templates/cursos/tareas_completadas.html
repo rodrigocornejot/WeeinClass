@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Tareas Completadas (y vencidas)</h2>
+
+    {% if tareas %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Título</th>
+                        <th>Descripción</th>
+                        <th>Área</th>
+                        <th>Prioridad</th>
+                        <th>Fecha de Vencimiento</th>
+                        <th>Tiempo Estimado (min)</th>
+                        <th>Completada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tarea in tareas %}
+                    <tr>
+                        <td>{{ tarea.titulo }}</td>
+                        <td>{{ tarea.descripcion }}</td>
+                        <td>{{ tarea.area_asignada.nombre }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if tarea.prioridad == 'alta' %}bg-danger
+                                {% elif tarea.prioridad == 'media' %}bg-warning
+                                {% else %}bg-success
+                                {% endif %}">
+                                {{ tarea.get_prioridad_display }}
+                            </span>
+                        </td>
+                        <td>{{ tarea.fecha_vencimiento|date:"Y-m-d H:i" }}</td>
+                        <td>{{ tarea.tiempo_estimado }}</td>
+                        <td><span class="badge bg-primary">Sí</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <a href="{% url 'exportar_tareas_completadas' %}">Exportar a Excel</a>
+        </div>
+    {% else %}
+        <div class="alert alert-info">No hay tareas completadas vencidas por mostrar.</div>
+    {% endif %}
+</div>
+{% endblock %}

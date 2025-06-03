@@ -622,20 +622,52 @@ def registrar_alumnos(request):
 
 def kanban(request):
     ahora = timezone.now()
-
-    # Marcar como vencidas las tareas cuya fecha ya pasó y aún no fueron completadas
-    Tarea.objects.filter(fecha_vencimiento__lt=ahora, estado__in=['pendiente', 'en_proceso'], vencida=False).update(vencida=True)
-
     user = request.user
 
+    # Obtener área según grupo
     if user.groups.filter(name='Marketing').exists():
-        tareas = Tarea.objects.filter(area_asignada__nombre='Marketing', vencida=False)
+        area_name = 'Marketing'
     elif user.groups.filter(name='Profesores').exists():
-        tareas = Tarea.objects.filter(area_asignada__nombre='Profesores', vencida=False)
+        area_name = 'Profesores'
     else:
-        tareas = Tarea.objects.filter(vencida=False)
+        area_name = None
 
-    return render(request, 'cursos/kanban.html', {'tareas': tareas})
+    # Tareas pendientes y no vencidas
+    tareas_pendientes = Tarea.objects.filter(completado=False, fecha_vencimiento__gte=ahora)
+    # Tareas vencidas y no completadas
+    tareas_vencidas = Tarea.objects.filter(completado=False, fecha_vencimiento__lt=ahora)
+    # Tareas completadas
+    tareas_completadas = Tarea.objects.filter(completado=True)
+
+    if area_name:
+        tareas_pendientes = tareas_pendientes.filter(area_asignada__nombre=area_name)
+        tareas_vencidas = tareas_vencidas.filter(area_asignada__nombre=area_name)
+        tareas_completadas = tareas_completadas.filter(area_asignada__nombre=area_name)
+
+    return render(request, 'cursos/kanban.html', {
+        'tareas_pendientes': tareas_pendientes,
+        'tareas_vencidas': tareas_vencidas,
+        'tareas_completadas': tareas_completadas,
+    })
+
+@login_required
+def reprogramar_tarea(request, tarea_id):
+    tarea = get_object_or_404(Tarea, id=tarea_id)
+
+    if request.method == 'POST':
+        nueva_fecha = request.POST.get('fecha_vencimiento')
+        tarea.fecha_vencimiento = timezone.make_aware(
+            datetime.strptime(nueva_fecha, '%Y-%m-%d'),
+            timezone.get_current_timezone()
+        )
+
+        # Si la nueva fecha es futura, quitar la marca de vencida
+        if tarea.fecha_vencimiento > timezone.now():
+            tarea.vencida = False
+        tarea.save()
+        return redirect('tareas_vencidas')
+
+    return render(request, 'cursos/reprogramar_tarea.html', {'tarea': tarea})
 
 @login_required
 def actualizar_tareas_vencidas(request):
@@ -685,10 +717,59 @@ def actualizar_estado_tarea(request, tarea_id):
         data = json.loads(request.body)
         tarea_estado = data.get('estado')
         tarea.estado = tarea_estado
+
+        tarea.completado = (tarea_estado == 'Completado')
+
         tarea.save()
         return JsonResponse({'status': 'success'})
     except Tarea.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'tarea no encontrada'}, status=404)
+
+@login_required
+def exportar_tareas_completadas(request):
+    tareas = Tarea.objects.filter(estado='completada', vencida=True)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Tareas Completadas"
+
+    headers = ["Título", "Descripción", "Fecha Vencimiento", "Área"]
+    ws.append(headers)
+
+    for tarea in tareas:
+        ws.append([
+            tarea.titulo,
+            tarea.descripcion,
+            tarea.fecha_vencimiento.strftime("%Y-%m-%d %H:%M"),
+            tarea.area_asignada.nombre
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=tareas_completadas.xlsx'
+    wb.save(response)
+    return response
+
+@login_required
+def tareas_completadas(request):
+    ahora = timezone.now()
+    if request.user.groups.filter(name='Marketing').exists():
+        tareas = Tarea.objects.filter(
+            completado=True,
+            fecha_vencimiento__lt=ahora,
+            area_asignada__nombre='Marketing'
+        )
+    elif request.user.groups.filter(name='Profesores').exists():
+        tareas = Tarea.objects.filter(
+            completado=True,
+            fecha_vencimiento__lt=ahora,
+            area_asignada__nombre='Profesores'
+        )
+    else:
+        tareas = Tarea.objects.filter(completado=True, fecha_vencimiento__lt=ahora)
+
+    return render(request, 'cursos/tareas_completadas.html', {'tareas': tareas})
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser or u.groups.filter(name='Administradores').exists())

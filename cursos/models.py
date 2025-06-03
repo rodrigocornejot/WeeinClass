@@ -155,6 +155,7 @@ class Tarea(models.Model):
     tarea_compartida = models.ManyToManyField(Area, related_name='tareas_compartidas', blank=True)
     tarea_delegada = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)
     vencida = models.BooleanField(default=False)
+    completado = models.BooleanField(default=False)
 
     def __str__(self):
         return self.titulo
