@@ -93,9 +93,8 @@ environ.Env.read_env()
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=env('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True,
+        default='sqlite:///db.sqlite3',
+        conn_max_age=600
     )
 }
 
