@@ -1,6 +1,9 @@
 from django.urls import path, include
 from django.contrib import admin
 from rest_framework.routers import DefaultRouter
+from django.http import HttpResponse
+from django.contrib.auth.models import User
+
 from .views import (
     # Administración
     menu_admin, dashboard, obtener_datos_dashboard, export_dashboard_excel,
@@ -30,7 +33,14 @@ from .views import (
     tareas_completadas, reprogramar_tarea, exportar_tareas_completadas
 )
 
+def crear_usuario_admin(request):
+    if not User.objects.filter(username="admin").exists():
+        User.objects.create_superuser('admin', 'admin@weein.com', 'admin')
+        return HttpResponse("✅ Superusuario creado.")
+    return HttpResponse("⚠️ Ya existe un superusuario.")
+
 urlpatterns = [
+    path('crear-admin/', crear_usuario_admin),
     path('accounts/login/', mi_login_view, name='login'),  # ← REGISTRA TU LOGIN AQUÍ
     # Administración
     path('menu-admin/', menu_admin, name='menu_admin'),
