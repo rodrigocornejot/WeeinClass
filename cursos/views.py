@@ -329,9 +329,12 @@ def registrar_asistencia_unidad(request):
     unidades_por_curso = {}
     for unidad in unidades:
         curso = unidad.curso
-        if curso not in unidades_por_curso:
-            unidades_por_curso[curso] = []
-        unidades_por_curso[curso].append(unidad)
+        if curso.id not in unidades_por_curso:
+            unidades_por_curso[curso.id] = {
+                'curso': curso,
+                'unidades': []
+            }
+        unidades_por_curso[curso.id]['unidades'].append(unidad)
 
     # Crear el diccionario de asistencias
     asistencias_dict = {}

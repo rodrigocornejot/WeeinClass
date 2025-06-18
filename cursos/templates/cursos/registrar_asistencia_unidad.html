@@ -7,30 +7,88 @@
     <meta charset="UTF-8">
     <title>Registro de Asistencia por Unidad</title>
     <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        form {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .curso-header {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+            padding: 12px;
+            border-radius: 8px 8px 0 0;
+            font-size: 18px;
+        }
+
+        .curso-section {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            overflow-x: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
+
         th, td {
-            border: 1px solid #555;
+            border: 1px solid #dee2e6;
             text-align: center;
-            padding: 8px;
-        }
-        th {
-            background-color: #f0f0f0;
-        }
-        .curso-header {
-            background-color: #d1e7dd;
-            font-weight: bold;
-            text-align: left;
             padding: 10px;
         }
-        .curso-section:nth-child(even) {
-            background-color: #f9f9f9;
+
+        th {
+            background-color: #f1f3f5;
+            color: #495057;
         }
-        .curso-section:nth-child(odd) {
-            background-color: #ffffff;
+
+        td input[type="checkbox"] {
+            transform: scale(1.3);
+        }
+
+        button {
+            display: block;
+            margin: 30px auto;
+            background-color: #198754;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #157347;
+        }
+
+        @media (max-width: 768px) {
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            th, td {
+                white-space: nowrap;
+            }
         }
     </style>
 </head>
@@ -40,41 +98,41 @@
     <form method="post">
         {% csrf_token %}
 
-        {% for curso, unidades in unidades_por_curso.items %}
-            <div class="curso-section">
-                <div class="curso-header">Curso: {{ curso.nombre }}</div>
-                <table>
-                    <thead>
+        {% for curso_data in unidades_por_curso.values %}
+    <div class="curso-section">
+        <div class="curso-header">Curso: {{ curso_data.curso.nombre }}</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Alumno</th>
+                    {% for unidad in curso_data.unidades %}
+                        <th>{{ unidad.nombre_tema }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for matricula in matriculas %}
+                    {% if matricula.curso.id == curso_data.curso.id %}
                         <tr>
-                            <th>Alumno</th>
-                            {% for unidad in unidades %}
-                                <th>{{ unidad.nombre_tema }}</th>
+                            <td>{{ matricula.alumno.nombre }}</td>
+                            {% for unidad in curso_data.unidades %}
+                                <td>
+                                    {% with asistencia_matricula=asistencias_dict|get_item:matricula.id %}
+                                        {% with asistencia_unidad=asistencia_matricula|get_item:unidad.id %}
+                                            <input type="checkbox" name="asistencia_{{ matricula.id }}_{{ unidad.id }}"
+                                                   {% if asistencia_unidad %}checked{% endif %}>
+                                        {% endwith %}
+                                    {% endwith %}
+                                </td>
                             {% endfor %}
                         </tr>
-                    </thead>
-                    <tbody>
-                        {% for matricula in matriculas %}
-                            {% if matricula.curso == curso %}
-                                <tr>
-                                    <td>{{ matricula.alumno.nombre }}</td>
-                                    {% for unidad in unidades %}
-                                        <td>
-                                            {% with asistencia_matricula=asistencias_dict|get_item:matricula.id %}
-                                                {% with asistencia_unidad=asistencia_matricula|get_item:unidad.id %}
-                                                    <input type="checkbox" name="asistencia_{{ matricula.id }}_{{ unidad.id }}"
-                                                           {% if asistencia_unidad %}checked{% endif %}>
-                                                {% endwith %}
-                                            {% endwith %}
-                                        </td>
-                                    {% endfor %}
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <br>
-            </div>
-        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endfor %}
+
 
         <button type="submit">Guardar Asistencias</button>
     </form>
