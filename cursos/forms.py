@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.contrib.postgres.forms import SimpleArrayField
 from django.contrib.postgres.fields import ArrayField
 from .models import DAY_CHOICES
@@ -41,35 +42,64 @@ class CursoForm(forms.ModelForm):
 
         return cleaned_data
 
-MODALIDAD_CHOICES = [
-    ('extendida', 'Extendida'),
-    ('full_day', 'Full Day')
+DAY_CHOICES = [
+    ('lunes', 'Lunes'),
+    ('martes', 'Martes'),
+    ('miercoles', 'Miércoles'),
+    ('jueves', 'Jueves'),
+    ('viernes', 'Viernes'),
+    ('sabado', 'Sábado'),
+    ('domingo', 'Domingo'),
 ]
 
 class MatriculaForm(forms.ModelForm):
-
-    modalidad = forms.ChoiceField(
-        choices=MODALIDAD_CHOICES,
-        error_messages={'invalid_choice': 'Modalidad invalida'}
+    fechas_personalizadas = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'placeholder': 'Ej: 2026-01-15,2026-01-20,2026-02-10'
+        })
     )
 
-    dias_estudio = forms.MultipleChoiceField(
+    class Meta:
+        model = Matricula
+        fields = '__all__'
+
+    dias = forms.MultipleChoiceField(
         choices=DAY_CHOICES,
-        widget=forms.CheckboxSelectMultiple,
-        required=False
+        required=False,
+        widget=forms.CheckboxSelectMultiple
     )
 
     class Meta:
         model = Matricula
         fields = [
-            'alumno', 'curso', 'modalidad',
-            'turno', 'dias_estudio', 'saldo_pendiente',
-            'fecha_inicio', 'numero_semanas'
+            'curso',
+            'modalidad',
+            'tipo_horario',
+            'fecha_inicio',
+            'costo_curso',
+            'primer_pago',
+            'porcentaje',
+            'dias',
         ]
 
         widgets = {
-            'fecha_inicio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        tipo = cleaned_data.get('tipo_horario')
+        dias = cleaned_data.get('dias')
+
+        # 🔥 FULL Y EXTENDIDA EXIGEN DÍAS
+        if tipo in ['full', 'extendida'] and not dias:
+            raise forms.ValidationError(
+                "Debes ingresar al menos un día de estudio."
+            )
+
+        return cleaned_data
 
 class MatriculaAdminForm(forms.ModelForm):
     class Meta:
@@ -97,7 +127,14 @@ class NotaForm(forms.ModelForm):
 class AlumnoForm(forms.ModelForm):
     class Meta:
         model = Alumno
-        fields = ['nombre', 'correo', 'telefono']
+        fields = ['nombre', 'correo', 'telefono', 'dni', 'grado_academico', 'carrera', 'trabajo', 'referencia',
+            'edad', 'sexo', 'distrito', 'departamento', 'pais', 'uso_imagen'
+        ]
+
+        widgets = {
+            'sexo': forms.Select(attrs={'class': 'form-select'}),
+            'uso_imagen': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 
 class TareaForm(forms.ModelForm):
     class Meta:

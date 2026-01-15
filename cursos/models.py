@@ -5,6 +5,8 @@ from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from cursos.utils import generar_fechas
 from datetime import datetime
+from django.contrib.auth.models import User
+from django.db.models import Sum
 
 CURSO_CHOICES = (
     ('PLC NIVEL 1', 'PLC NIVEL 1'),
@@ -41,6 +43,17 @@ ESTADO_MATRICULA_CHOICES = (
     ('cancelada', 'Cancelada'),
 )
 
+SEXO_CHOICES = [
+        ('M', 'Masculino'),
+        ('F', 'Femenino'),
+]
+
+TIPO_HORARIO_CHOICES = (
+    ('full', 'Full Day (3 semanas)'),
+    ('extendida', 'Extendida (6 semanas)'),
+    ('personalizado', 'Personalizado'),
+)
+
 class Curso(models.Model):
     nombre = models.CharField(max_length=255, choices=CURSO_CHOICES)
     fecha = models.DateField()
@@ -59,8 +72,33 @@ class Curso(models.Model):
 
 class Alumno(models.Model):
     nombre = models.CharField(max_length=255)
+    dni = models.CharField(
+        max_length=8, 
+        unique=True,
+        null=True,
+        blank=True
+    )
     telefono = models.CharField(max_length=25)
     correo = models.EmailField(unique=True)
+
+    grado_academico = models.CharField(max_length=100, blank=True, null=True)
+    carrera = models.CharField(max_length=150, blank=True, null=True)
+    trabajo = models.CharField(max_length=150, blank=True, null=True)
+    referencia = models.CharField(max_length=150, blank=True, null=True)
+
+    edad = models.PositiveIntegerField(blank=True, null=True)
+    sexo = models.CharField(
+        max_length=1, 
+        choices=SEXO_CHOICES,
+        blank=True,
+        null=True
+    )
+
+    distrito = models.CharField(max_length=100, blank=True, null=True)
+    departamento = models.CharField(max_length=100, blank=True, null=True)
+    pais = models.CharField(max_length=100, default='Perú')
+
+    uso_imagen = models.BooleanField(default=False)
 
     def __str__(self):
         return self.nombre
@@ -76,28 +114,61 @@ class DiaEstudio(models.Model):
 class Matricula(models.Model):
     alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE)
-    modalidad = models.CharField(max_length=20, choices=MODALIDAD_CHOICES)
-    dias_estudio = models.CharField(max_length=100, blank=True)
-    dias = models.JSONField(default=list)  # Para almacenar una lista de días
+    modalidad = models.CharField(
+        max_length=20, 
+        choices=(('presencial', 'Presencial'), ('virtual', 'Virtual'))
+    )
+
+    tipo_horario = models.CharField(
+        max_length=20,
+        choices=TIPO_HORARIO_CHOICES
+    )
+
+    dias = models.JSONField(default=list, blank=True)  # Para almacenar una lista de días
+    
+    costo_curso = models.DecimalField(max_digits=8, decimal_places=2)
+    primer_pago = models.DecimalField(max_digits=8, decimal_places=2)
+    precio_final = models.DecimalField(max_digits=8, decimal_places=2)  # Precio acordado
+    porcentaje = models.PositiveIntegerField()
+
     saldo_pendiente = models.DecimalField(max_digits=8, decimal_places=2)
-    fecha_inscripcion = models.DateField(auto_now_add=True)
+
     fecha_inicio = models.DateField(blank=True, null=True)
-    numero_semanas = models.IntegerField()
-    turno = models.CharField(max_length=20, choices=TURNO_CHOICES, blank=True, null=True)
-    estado = models.CharField(max_length=20, choices=ESTADO_MATRICULA_CHOICES, default='activa')
-    fechas = models.JSONField(default=list)
+    fechas_personalizadas = models.JSONField(default=list, blank=True)
+
+    estado = models.CharField(
+        max_length=20, 
+        choices=ESTADO_MATRICULA_CHOICES, 
+        default='activa'
+    )
+
+    fecha_inscripcion = models.DateField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
+    # Convertir fecha si viene como string
         if isinstance(self.fecha_inicio, str):
             self.fecha_inicio = datetime.strptime(self.fecha_inicio, "%Y-%m-%d").date()
+
+        # 🔹 Calcular precio final SOLO si no existe
+        if not self.precio_final:
+            self.precio_final = self.costo_curso
+
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return f"{self.alumno.nombre} - {self.curso.nombre} ({self.modalidad})"
 
     def clean(self):
-        if not self.dias and not self.dias_estudio:
+        if not self.dias:
             raise ValidationError("Debes ingresar al menos un día de estudio.")
+        
+    def pagos_realizados(self):
+        return self.pagos.aggregate(total=Sum('monto'))['total'] or 0
+
+    def saldo(self):
+        pagos = self.pagos.aggregate(total=Sum('monto'))['total'] or 0
+        return self.costo_curso - self.primer_pago - pagos
 
 class Clase(models.Model):
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE)
@@ -164,10 +235,10 @@ class UnidadCurso(models.Model):
     curso = models.ForeignKey('Curso', on_delete=models.CASCADE, related_name='unidades')
     numero = models.PositiveIntegerField()
     nombre_tema = models.CharField(max_length=255)
+    fecha = models.DateField(null=True, blank=True)
 
     class Meta:
-        unique_together = ('curso', 'numero')
-        ordering = ['numero']
+        unique_together = ('curso', 'numero')  # opcional pero recomendable
 
     def __str__(self):
         return f"{self.curso.nombre} - Unidad {self.numero}"
@@ -176,6 +247,86 @@ class AsistenciaUnidad(models.Model):
     matricula = models.ForeignKey('Matricula', on_delete=models.CASCADE, related_name='asistencias')
     unidad = models.ForeignKey('UnidadCurso', on_delete=models.CASCADE)
     completado = models.BooleanField(default=False)
+    fecha = models.DateField(null=True, blank=True)  # 🔹 NUEVO
 
+    def __str__(self):
+        return f"Asistencia {self.matricula.alumno.nombre} - {self.matricula.curso.nombre} - Unidad {self.unidad}"
+    
     class Meta:
         unique_together = ('matricula', 'unidad')
+
+class Pago(models.Model):
+    matricula = models.ForeignKey(
+        Matricula,
+        on_delete=models.CASCADE,
+        related_name='pagos'
+    )
+
+    monto = models.DecimalField(
+        max_digits=8,
+        decimal_places=2
+    )
+
+    fecha_pago = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    concepto = models.CharField(
+        max_length=50,
+        choices=[
+            ('anticipo', 'Anticipo'),
+            ('cuota_1', 'Cuota 1'),
+            ('cuota_2', 'Cuota 2'),
+        ]
+    )
+
+    registrado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    activo = models.BooleanField(
+        default=True
+    )
+
+    def __str__(self):
+        return f"{self.matricula.alumno.nombre} - {self.get_concepto_display()} - S/ {self.monto}"
+
+class Cuota(models.Model):
+    matricula = models.ForeignKey(
+        Matricula,
+        on_delete=models.CASCADE,
+        related_name='cuotas'
+    )
+    numero = models.PositiveIntegerField()
+    monto = models.DecimalField(
+        max_digits=8, 
+        decimal_places=2)
+    fecha_vencimiento = models.DateField()
+    pagado = models.BooleanField(default=False)
+    monto_pagado = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0
+    )
+
+    def saldo(self):
+        return self.monto - self.monto_pagado
+    
+    def __str__(self):
+        return f"Cuota {self.numero} - {self.matricula.alumno.nombre}"
+
+class Egresado(models.Model):
+    matricula = models.OneToOneField(Matricula, on_delete=models.CASCADE, related_name='egresado')
+    alumno = models.ForeignKey(Alumno, on_delete=models.CASCADE)
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE)
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField()
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.alumno.nombre} - {self.curso.nombre} (Egresado)"
+    
+    

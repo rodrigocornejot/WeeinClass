@@ -10,68 +10,132 @@
       padding: 20px;
     }
     .container {
-      max-width: 500px;
+      max-width: 700px;
     }
     .card {
       border-radius: 10px;
       box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
     }
-    .btn-primary {
-      width: 100%;
-    }
-    .btn-secondary {
+    .btn {
       width: 100%;
     }
   </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'menu_admin' %}">WeeinClass</a>
-            <div class="dropdown ms-auto">
-                <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    Hola, <strong>{{ user.username }}</strong>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                    <li><a class="dropdown-item" href="#">Ver perfil</a></li>
-                    <li><a class="dropdown-item" href="#">Cambiar contraseña</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <form method="post" action="{% url 'logout' %}">
-                            {% csrf_token %}
-                            <button type="submit" class="dropdown-item">Cerrar sesión</button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-<div class="container mt-5">
-  <div class="d-flex justify-content-center">
-    <div class="card p-4">
-      <h3 class="text-center mb-4">Registrar Nuevo Alumno</h3>
-          <form method="post" action="{% url 'registrar_alumnos' %}">
-              {% csrf_token %}
-            <div class="mb-3">
-              <label for="nombre" class="form-label">Nombre:</label>
-              <input type="text" id="nombre" name="nombre" class="form-control" placeholder="Ingrese el nombre" required>
-            </div>
-
-            <div class="mb-3">
-              <label for="correo" class="form-label">Correo:</label>
-              <input type="email" id="correo" name="correo" class="form-control" placeholder="Ingrese el correo" required>
-            </div>
-
-            <div class="mb-3">
-              <label for="telefono" class="form-label">Teléfono:</label>
-              <input type="text" id="telefono" name="telefono" class="form-control" placeholder="Ingrese el teléfono" required>
-            </div>
-
-            <button type="submit" class="btn btn-success">Guardar Alumno</button>
-            <a href="{% url 'lista_alumnos' %}" class="btn btn-secondary mt-2">Ver Lista de Alumnos</a>
+<nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'menu_admin' %}">WeeinClass</a>
+    <div class="dropdown ms-auto">
+      <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        Hola, <strong>{{ user.username }}</strong>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="#">Ver perfil</a></li>
+        <li><a class="dropdown-item" href="#">Cambiar contraseña</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item">Cerrar sesión</button>
           </form>
+        </li>
+      </ul>
     </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="card p-4">
+    <h3 class="text-center mb-4">Registrar Nuevo Alumno</h3>
+
+    <form method="post" action="{% url 'registrar_alumnos' %}">
+      {% csrf_token %}
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Nombre</label>
+          <input type="text" name="nombre" class="form-control" required>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">DNI</label>
+          <input type="text" name="dni" class="form-control">
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Correo</label>
+          <input type="email" name="correo" class="form-control" required>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Celular</label>
+          <input type="text" name="telefono" class="form-control" required>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Edad</label>
+          <input type="number" name="edad" class="form-control">
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Sexo</label>
+          <select name="sexo" class="form-select">
+            <option value="">Seleccione</option>
+            <option value="M">Masculino</option>
+            <option value="F">Femenino</option>
+          </select>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Grado Académico</label>
+          <input type="text" name="grado_academico" class="form-control">
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Carrera</label>
+          <input type="text" name="carrera" class="form-control">
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Trabajo</label>
+          <input type="text" name="trabajo" class="form-control">
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Referencia</label>
+          <input type="text" name="referencia" class="form-control">
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <label class="form-label">País</label>
+          <input type="text" name="pais" class="form-control">
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Departamento</label>
+          <input type="text" name="departamento" class="form-control">
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Distrito</label>
+          <input type="text" name="distrito" class="form-control">
+        </div>
+
+        <div class="col-12 mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="uso_imagen" id="uso_imagen">
+            <label class="form-check-label" for="uso_imagen">
+              Autoriza el uso de imagen
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success">Guardar Alumno</button>
+      <a href="{% url 'lista_alumnos' %}" class="btn btn-secondary mt-2">Ver Lista de Alumnos</a>
+
+    </form>
   </div>
 </div>
 

@@ -1,0 +1,17 @@
+# Entorno virtual
+venv/
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# SQLite (si no quieres subirlo)
+db.sqlite3
+
+# Django static files
+staticfiles/
+
+# Editor/IDE
+.idea/
+.vscode/

@@ -125,131 +125,127 @@
   </div>
 
   <script>
-    function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim();
-          if (cookie.substring(0, name.length + 1) === (name + '=')) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
         }
       }
-      return cookieValue;
     }
+    return cookieValue;
+  }
 
-    const csrfToken = getCookie('csrftoken');
+  const csrfToken = getCookie('csrftoken');
 
-    document.addEventListener('DOMContentLoaded', function() {
-      var calendarEl = document.getElementById('calendario');
-      var calendar = new FullCalendar.Calendar(calendarEl, {
-        locale: 'es',
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
-        eventColor: '#0d6efd',
-        eventTextColor: '#fff',
-        editable: true,  // Habilita el arrastre de eventos
-        events: "{% url 'calendario_matriculas' %}",
+  document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendario');
 
-        eventClick: function(info) {
-          var fecha = info.event.startStr;
-          var matricula_id = info.event.extendedProps?.matricula_id;
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      locale: 'es',
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      editable: true,
+      eventTextColor: '#fff',
 
-          console.log("Fecha:", fecha);
-          console.log("Matrícula ID:", matricula_id);
+      events: "{% url 'calendario_matriculas' %}",
 
-          if (!matricula_id) {
-            alert("No se encontró el ID de matrícula para este evento.");
-            return;
-          }
+      /* ===============================
+         CLICK → VER DETALLE
+      =============================== */
+      eventClick: function(info) {
+        const fecha = info.event.startStr;
+        const matriculaId = info.event.extendedProps.matricula_id;
 
-          fetch(`/cursos/detalle_matricula/${matricula_id}/${fecha}/`)
-            .then(response => {
-              if (!response.ok) throw new Error("Error al obtener detalles");
-              return response.json();
-            })
-            .then(data => {
-              console.log(data);
-              let contenido = `
-                <p><strong>Alumno:</strong> ${data.nombre}</p>
-                <p><strong>Turno:</strong> ${data.turno}</p>
-                <p><strong>Saldo pendiente:</strong> S/ ${data.saldo}</p>
-              `;
-              document.getElementById('detalleEvento').innerHTML = contenido;
-              new bootstrap.Modal(document.getElementById('eventoModal')).show();
-            })
-            .catch(error => {
-              console.error('Error:', error);
-              document.getElementById('detalleEvento').innerHTML = '<p>Error al cargar los detalles.</p>';
-              new bootstrap.Modal(document.getElementById('eventoModal')).show();
-            });
-        },
-
-        eventDrop: function(info) {
-          const matriculaId = info.event.extendedProps?.matricula_id;
-
-          if (!matriculaId) {
-            console.error("No se encontró matricula_id en el evento");
-            alert("Error: No se pudo identificar la matrícula para este evento");
-            info.revert(); // Revertir la acción de arrastre
-            return;
-          }
-
-          const nuevaFecha = info.event.start.toISOString().split('T')[0];
-
-          Swal.fire({
-            title: '¿Deseas cambiar la fecha?',
-            text: `La nueva fecha será: ${nuevaFecha}`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, cambiar',
-            cancelButtonText: 'No, cancelar'
-          }).then((result) => {
-            if (result.isConfirmed) {
-              // Usuario confirmó, enviar solicitud
-              fetch(`/cursos/actualizar_fecha_evento/${matriculaId}/`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                  nueva_fecha: nuevaFecha
-                }),
-              })
-              .then(response => {
-                if (!response.ok) throw new Error("Error al actualizar fecha.");
-                return response.json();
-              })
-              .then(data => {
-                if (data.status === 'success') {
-                  Swal.fire('Actualizado', 'La fecha fue cambiada con éxito.', 'success');
-                } else {
-                  Swal.fire('Error', data.message || 'No se pudo actualizar la fecha.', 'error');
-                  info.revert(); // Revertir si hubo error
-                }
-              })
-              .catch(error => {
-                console.error("Error:", error);
-                Swal.fire('Error', 'Hubo un problema al actualizar la fecha.', 'error');
-                info.revert();
-              });
-            } else {
-              info.revert(); // Usuario canceló
-            }
-          });
+        if (!matriculaId) {
+          alert("No se encontró la matrícula");
+          return;
         }
-      });
 
-      calendar.render();
+        fetch(`/cursos/detalle_matricula/${matriculaId}/${fecha}/`)
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('detalleEvento').innerHTML = `
+              <p><strong>Alumno:</strong> ${data.nombre}</p>
+              <p><strong>Turno:</strong> ${data.turno}</p>
+              <p><strong>Saldo pendiente:</strong> S/ ${data.saldo}</p>
+            `;
+            new bootstrap.Modal(
+              document.getElementById('eventoModal')
+            ).show();
+          })
+          .catch(() => {
+            document.getElementById('detalleEvento').innerHTML =
+              '<p>Error al cargar datos.</p>';
+            new bootstrap.Modal(
+              document.getElementById('eventoModal')
+            ).show();
+          });
+      },
+
+      /* ===============================
+         DRAG & DROP → MOVER CLASE
+      =============================== */
+      eventDrop: function(info) {
+        const claseId = info.event.extendedProps.clase_id;
+        const nuevaFecha = info.event.start.toISOString().split('T')[0];
+
+        if (!claseId) {
+          alert("No se encontró la clase");
+          info.revert();
+          return;
+        }
+
+        Swal.fire({
+          title: '¿Reprogramar clase?',
+          text: `Nueva fecha: ${nuevaFecha}`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, cambiar',
+          cancelButtonText: 'Cancelar'
+        }).then(result => {
+          if (!result.isConfirmed) {
+            info.revert();
+            return;
+          }
+
+          fetch(`/cursos/actualizar_fecha_clase/${claseId}/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ nueva_fecha: nuevaFecha })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.status !== 'success') {
+              Swal.fire('Error', 'No se pudo actualizar', 'error');
+              info.revert();
+            } else {
+              Swal.fire('Actualizado', 'Clase reprogramada', 'success');
+            }
+          })
+          .catch(() => {
+            Swal.fire('Error', 'Error del servidor', 'error');
+            info.revert();
+          });
+        });
+      }
     });
-  </script>
+
+    calendar.render();
+  });
+</script>
+
 
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

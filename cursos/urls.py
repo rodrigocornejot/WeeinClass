@@ -26,11 +26,11 @@ from .views import (
 
     eliminar_matricula, editar_alumno, eliminar_alumno, editar_matricula,
 
-    kanban, crear_tarea, actualizar_estado_tarea, mi_login_view, actualizar_fecha_evento,
+    kanban, crear_tarea, actualizar_estado_tarea, mi_login_view, actualizar_fecha_clase,
 
     eventos_json, actualizar_tareas_vencidas, tareas_vencidas, registrar_asistencia_unidad,
 
-    tareas_completadas, reprogramar_tarea, exportar_tareas_completadas
+    tareas_completadas, reprogramar_tarea, exportar_tareas_completadas, pagina_pagos, pagar_cuota, lista_egresados
 )
 
 def crear_usuario_admin(request):
@@ -61,6 +61,7 @@ urlpatterns = [
     path('lista_matriculas/', lista_matriculas, name='lista_matriculas'),
     path('registrar_matricula/', registrar_matricula, name='registrar_matricula'),
     path('detalle_matricula/<int:matricula_id>/<str:fecha>/', detalle_matricula, name='detalle_matricula'),
+    
     # Asistencia y Notas
     path('registrar_asistencia_unidad/', registrar_asistencia_unidad, name='registrar_asistencia_unidad'),
     path('ver_asistencia_unidad/', ver_asistencia_unidad, name='ver_asistencia_unidad'),
@@ -80,7 +81,7 @@ urlpatterns = [
     path('tarea/<int:tarea_id>/reprogramar/', reprogramar_tarea, name='reprogramar_tarea'),
     path('tareas_completadas/', tareas_completadas, name='tareas_completadas'),
     path('actualizar_estado_tarea/<int:tarea_id>/', actualizar_estado_tarea, name='actualizar_estado_tarea'),
-    path('actualizar_fecha_evento/<int:matricula_id>/', actualizar_fecha_evento, name='actualizar_fecha_evento'),
+    path('actualizar_fecha_clase/<int:clase_id>/', actualizar_fecha_clase, name='actualizar_fecha_clase'),
     path('eventos/json/', eventos_json, name='eventos_json'),
     path('editar_alumno/<int:alumno_id>/', editar_alumno, name='editar_alumno'),
     path('eliminar_alumno/<int:alumno_id>/', eliminar_alumno, name='eliminar_alumno'),
@@ -89,4 +90,8 @@ urlpatterns = [
     path('tareas_vencidas/', tareas_vencidas, name='tareas_vencidas'),
     path('actualizar_vencidas/', actualizar_tareas_vencidas, name='actualizar_tareas_vencidas'),
 
+    path('pagos/', pagina_pagos, name='pagina_pagos'),
+    path('pagar-cuota/<int:cuota_id>/', pagar_cuota, name='pagar_cuota'),
+
+    path('egresados/', lista_egresados, name='lista_egresados'),
 ]

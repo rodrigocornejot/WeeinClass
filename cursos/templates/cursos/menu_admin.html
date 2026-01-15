@@ -47,7 +47,13 @@
                 <div class="col-md-6"><a href="{% url 'lista_matriculas' %}" class="btn btn-warning w-100">📜 Gestionar Matrículas</a></div>
                 <div class="col-md-6"><a href="{% url 'registrar_asistencia_unidad' %}" class="btn btn-dark w-100">✅ Registrar Asistencia</a></div>
                 <div class="col-md-6"><a href="{% url 'registrar_nota' %}" class="btn btn-danger w-100">📊 Registrar Notas</a></div>
+                <div class="col-md-6"><a href="{% url 'pagina_pagos' %}" class="btn btn-success w-100">💳 Gestión de Pagos</a></div>
                 <div class="col-md-6"><a href="{% url 'dashboard' %}" class="btn btn-primary w-100">📈 Dashboard y Reportes</a></div>
+                <div class="col-md-6">
+                    <a href="{% url 'lista_egresados' %}" class="btn btn-success w-100">
+                        🎓 Ver egresados
+                    </a>
+                </div>
                 <div class="col-md-6"><a href="{% url 'kanban' %}" class="btn btn-primary w-100">🗂 Lista de pendientes</a></div>
             {% elif es_marketing %}
                 <div class="col-md-6"><a href="{% url 'kanban' %}" class="btn btn-primary w-100">🗂 Lista de pendientes</a></div>

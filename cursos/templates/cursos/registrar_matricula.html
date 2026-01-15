@@ -2,68 +2,112 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar Matrícula</title>
-    <!-- Estilos y Scripts -->
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 
-    <script>
-        $(document).ready(function(){
-            $("#id_fecha_inicio").datepicker({
-                dateFormat: "yy-mm-dd",
-                changeMonth: true,
-                changeYear: true
-            });
-        });
-    </script>
+    <style>
+        .hidden { display: none; }
+    </style>
 </head>
 
 <body>
-    <div class="container mt-5">
-        <div class="row">
-            <div class="col-12 text-center mb-4">
-                <h2>Registrar Matrícula</h2>
-                <p class="text-muted">Complete el formulario para registrar una nueva matrícula.</p>
-            </div>
+<div class="container mt-5">
 
-            <!-- Botones principales arriba -->
-            <div class="col-12 col-md-8 offset-md-2 mb-4 d-flex justify-content-between">
-                <a href="{% url 'menu_admin' %}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left-circle"></i> Volver al Menú Principal
-                </a>
-                <a href="{% url 'lista_matriculas' %}" class="btn btn-dark">
-                    <i class="bi bi-list"></i> Ver Lista de Matrículas
-                </a>
-            </div>
+    <h3 class="text-center mb-4">Registrar Matrícula</h3>
 
-            <div class="col-12 col-md-8 offset-md-2">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <form method="post">
-                            {% csrf_token %}
-
-                            <!-- Formulario de Matrícula -->
-                            <div class="mb-3">
-                                {{ form.as_p }}
-                            </div>
-
-                            <!-- Botón de guardar matrícula -->
-                            <div class="text-center mt-4">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-save"></i> Guardar Matrícula
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="d-flex justify-content-between mb-3">
+        <a href="{% url 'menu_admin' %}" class="btn btn-secondary">⬅ Volver</a>
+        <a href="{% url 'lista_matriculas' %}" class="btn btn-dark">📋 Ver matrículas</a>
     </div>
 
-    <!-- Bootstrap Icons -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.js"></script>
+    <!-- 🔍 BUSCAR POR DNI -->
+    <form method="get" class="mb-4">
+        <label class="form-label">DNI del alumno</label>
+        <input type="text"
+               name="dni"
+               class="form-control"
+               placeholder="Ingrese DNI"
+               value="{{ dni }}">
+        <button class="btn btn-secondary mt-2">Buscar</button>
+    </form>
+
+    <!-- 📌 MOSTRAR ALUMNO -->
+    <div class="mb-3">
+        <label class="form-label">Alumno</label>
+        <input type="text"
+               class="form-control"
+               value="{% if alumno %}{{ alumno.nombre }}{% else %}No encontrado{% endif %}"
+               readonly>
+    </div>
+
+    <!-- 📝 FORMULARIO MATRÍCULA -->
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="dni" value="{{ dni }}">
+
+        <!-- CURSO -->
+        <div class="mb-3">
+            {{ form.curso.label_tag }}
+            {{ form.curso }}
+        </div>
+
+        <!-- MODALIDAD -->
+        <div class="mb-3">
+            {{ form.modalidad.label_tag }}
+            {{ form.modalidad }}
+        </div>
+
+        <!-- TIPO HORARIO -->
+        <div class="mb-3">
+            {{ form.tipo_horario.label_tag }}
+            {{ form.tipo_horario }}
+        </div>
+
+        <!-- DÍAS -->
+        <div class="mb-3 hidden" id="dias_box">
+            {{ form.dias.label_tag }}
+            {{ form.dias }}
+        </div>
+
+        <!-- FECHA INICIO -->
+        <div class="mb-3">
+            {{ form.fecha_inicio.label_tag }}
+            {{ form.fecha_inicio }}
+        </div>
+
+        <!-- COSTOS -->
+        <div class="row">
+            <div class="col-md-4">
+                <label>Costo</label>
+                <input type="number" name="costo_curso" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label>Primer pago</label>
+                <input type="number" name="primer_pago" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label>Porcentaje</label>
+                <input type="number" name="porcentaje" class="form-control">
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <button class="btn btn-success">Guardar Matrícula</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleDias() {
+    let tipo = $('#id_tipo_horario').val();
+    $('#dias_box').toggle(tipo === 'full' || tipo === 'extendida');
+}
+
+$('#id_tipo_horario').on('change', toggleDias);
+$(document).ready(toggleDias);
+</script>
 
 </body>
 </html>
