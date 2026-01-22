@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django import forms
-from .forms import CursoForm, MatriculaAdminForm, MatriculaForm, NotaForm
+from .forms import CursoForm, MatriculaAdminForm, MatriculaForm, NotaForm, Pago
 from django.db.models import Count, Avg, Q, Sum
 from .forms import AlumnoForm
 from datetime import date, timedelta, datetime
@@ -33,7 +33,20 @@ import ast
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 from django.views.decorators.http import require_POST
-
+from django.utils.dateparse import parse_date
+from django.db import transaction
+from cursos.models import Certificado
+from django.core.files.base import ContentFile
+from django.conf import settings
+from django.utils.timezone import now
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from cursos.utils import emitir_certificado_si_corresponde, verificar_y_generar_certificado, puede_generar_certificado
+from django.template.loader import render_to_string
+import os
 
 CURSO_COLORES = {
     'VARIADORES DE FRECUENCIA': '#33FF57',
@@ -283,19 +296,20 @@ def lista_matriculas(request):
 @user_passes_test(es_profesor_o_recepcion)
 @login_required
 def registrar_asistencia_unidad(request):
-    cursos = Curso.objects.all()
+    cursos = Curso.objects.all().order_by("nombre")
 
-    curso_id = request.GET.get('curso') or request.POST.get('curso')
-    fecha_str = request.GET.get('fecha') or request.POST.get('fecha')
+    curso_id = request.GET.get("curso") or request.POST.get("curso")
+    fecha_str = request.GET.get("fecha") or request.POST.get("fecha")
 
     curso_seleccionado = None
     fecha_seleccionada = None
     clase = None
-    alumnos_unidades = []
-    unidades_curso = []
 
-    if curso_id and fecha_str:
-        # 1) Parsear fecha (YYYY-MM-DD o dd/mm/YYYY)
+    alumnos_unidades = []
+    unidades = []
+
+    # ---- Parse fecha ----
+    if fecha_str:
         try:
             fecha_seleccionada = datetime.strptime(fecha_str, "%Y-%m-%d").date()
         except ValueError:
@@ -304,87 +318,98 @@ def registrar_asistencia_unidad(request):
             except ValueError:
                 fecha_seleccionada = None
 
+    if curso_id:
         curso_seleccionado = Curso.objects.filter(id=curso_id).first()
 
-        if curso_seleccionado and fecha_seleccionada:
-            # 2) Tomar las primeras 6 fechas reales de clases de ese curso
-            fechas_clases_qs = (
-                Clase.objects
-                .filter(curso=curso_seleccionado)
-                .order_by('fecha')
-                .values_list('fecha', flat=True)
-                .distinct()
-            )
-            fechas_clases = list(fechas_clases_qs)[:6]
+    if curso_seleccionado and fecha_seleccionada:
+        # ✅ obligar a que exista clase ese día
+        clase = Clase.objects.filter(
+            curso=curso_seleccionado,
+            fecha=fecha_seleccionada
+        ).first()
 
-            # Crear/actualizar 6 unidades con sus fechas
-            for idx in range(1, 7):
-                # Si hay menos de 6 fechas, las unidades sobrantes tendrán fecha None
-                fecha_unidad = fechas_clases[idx - 1] if idx - 1 < len(fechas_clases) else None
+        if clase:
+            matriculas = clase.matriculas.select_related("alumno", "curso").distinct()
 
-                unidad, created = UnidadCurso.objects.get_or_create(
-                    curso=curso_seleccionado,
-                    numero=idx,
-                    defaults={
-                        "nombre": f"Unidad {idx}",
-                        "fecha": fecha_unidad,
-                    }
+            # ✅ unidades reales (5 o 6) + nombre_tema correcto
+            unidades = asegurar_unidades_curso(curso_seleccionado)
+
+            # Si no hay unidades configuradas, avisamos
+            if not unidades:
+                messages.warning(
+                    request,
+                    f"⚠ El curso '{curso_seleccionado.nombre}' no tiene módulos configurados."
                 )
-                # Si ya existía y la fecha cambió, la actualizamos
-                if fecha_unidad is not None and unidad.fecha != fecha_unidad:
-                    unidad.fecha = fecha_unidad
-                    unidad.save()
 
-                unidades_curso.append(unidad)
-
-            # 3) Buscar la clase programada para ese curso y esa fecha concreta
-            clase = Clase.objects.filter(
-                curso=curso_seleccionado,
-                fecha=fecha_seleccionada
-            ).first()
-
-            if clase:
-                # 4) Matriculas (alumnos) que tienen clase ese día
-                matriculas = clase.matriculas.select_related('alumno', 'curso')
-
-                # 5) Guardar asistencias si es POST
-                if request.method == 'POST' and request.POST.get('guardar_asistencias'):
+            # ---- POST: guardar ----
+            if request.method == "POST" and request.POST.get("guardar_asistencias"):
+                with transaction.atomic():
                     for matricula in matriculas:
-                        for unidad in unidades_curso:
-                            campo = f"asistencia_{matricula.id}_{unidad.numero}"
+                        for unidad in unidades:
+                            campo = f"asistencia_{matricula.id}_{unidad.id}"
                             presente = request.POST.get(campo) == "on"
 
-                            asistencia, created = AsistenciaUnidad.objects.get_or_create(
+                            asistencia = AsistenciaUnidad.objects.filter(
                                 matricula=matricula,
-                                unidad=unidad,
-                                defaults={"completado": presente}
-                            )
-                            if not created:
-                                asistencia.completado = presente
-                                asistencia.save()
+                                unidad=unidad
+                            ).order_by("fecha").first()
 
-                    messages.success(request, "Asistencias guardadas correctamente.")
-                    return redirect(
-                        f"/cursos/registrar_asistencia_unidad/?curso={curso_id}&fecha={fecha_seleccionada}"
-                    )
+                            if presente:
+                                if not asistencia:
+                                    AsistenciaUnidad.objects.create(
+                                        matricula=matricula,
+                                        unidad=unidad,
+                                        fecha=fecha_seleccionada,
+                                        completado=True
+                                    )
+                                else:
+                                    # ya está completado antes → NO crear duplicado
+                                    if not asistencia.completado:
+                                        asistencia.completado = True
+                                        if not asistencia.fecha:
+                                            asistencia.fecha = fecha_seleccionada
+                                        asistencia.save(update_fields=["completado", "fecha"])
+                            else:
+                                # ✅ Opcional recomendado: NO borrar módulos ya completados en días anteriores
+                                # Solo borrar si fue marcado hoy (para correcciones del mismo día)
+                                if asistencia and asistencia.fecha == fecha_seleccionada:
+                                    asistencia.delete()
 
-                # 6) Construir la estructura para el template (tabla)
+                messages.success(request, "✅ Asistencias guardadas correctamente.")
+
                 for matricula in matriculas:
-                    unidades_info = []
-                    for unidad in unidades_curso:
-                        asistencia = AsistenciaUnidad.objects.filter(
-                            matricula=matricula,
-                            unidad=unidad
-                        ).first()
-                        unidades_info.append({
-                            "unidad": unidad.numero,
-                            "fecha_unidad": unidad.fecha,
-                            "completado": asistencia.completado if asistencia else False
-                        })
-                    alumnos_unidades.append({
-                        "matricula": matricula,
-                        "unidades": unidades_info
+                    verificar_y_generar_certificado(matricula)
+
+                return redirect(
+                    f"/cursos/registrar_asistencia_unidad/?curso={curso_seleccionado.id}&fecha={fecha_seleccionada}"
+                )
+
+            # ---- GET: construir tabla ----
+            for matricula in matriculas:
+                unidades_info = []
+                for unidad in unidades:
+                    asistencia_global = AsistenciaUnidad.objects.filter(
+                        matricula=matricula,
+                        unidad=unidad,
+                        completado=True
+                    ).order_by("fecha").first()
+
+                    marcado_global = asistencia_global is not None
+                    marcado_hoy = marcado_global and asistencia_global.fecha == fecha_seleccionada
+
+                    unidades_info.append({
+                        "unidad_id": unidad.id,
+                        "numero": unidad.numero,
+                        "nombre_tema": unidad.nombre_tema,  # ✅ SIEMPRE nombre_tema
+                        "completado": marcado_global,     # ✅ ya está completado (cualquier fecha)
+                        "marcado_hoy": marcado_hoy,       # ✅ se completó justo hoy
+                        "fecha_completado": asistencia_global.fecha if asistencia_global else None,
                     })
+
+                alumnos_unidades.append({
+                    "matricula": matricula,
+                    "unidades": unidades_info
+                })
 
     context = {
         "cursos": cursos,
@@ -392,10 +417,9 @@ def registrar_asistencia_unidad(request):
         "fecha_seleccionada": fecha_seleccionada,
         "clase": clase,
         "alumnos_unidades": alumnos_unidades,
-        "unidades_curso": unidades_curso,
+        "unidades": unidades,
     }
     return render(request, "cursos/registrar_asistencia_unidad.html", context)
-
 
 def lista_asistencia(request):
     asistencias = AsistenciaUnidad.objects.select_related(
@@ -487,6 +511,61 @@ def detalle_matricula(request, matricula_id, fecha):
         print("❌ Error:", e)
         return JsonResponse({"error": "Error interno"}, status=500)
 
+def asegurar_unidades_curso(curso: Curso):
+    """ 
+    Crea/asegura las unidades reales del curso (5 o 6) con su nombre_tema correcto.
+    Si ya existen, solo las retorna ordenadas.
+    """
+    existentes = list(UnidadCurso.objects.filter(curso=curso).order_by("numero"))
+    if existentes:
+        return existentes
+
+    # ✅ CONFIG REAL (según lo que me mandaste)
+    # OJO: las llaves deben coincidir con Curso.nombre EXACTO en tu BD.
+    MAPA_MODULOS = {
+        "INSTRUMENTACION INDUSTRIAL": [
+            "INTRODUCCION", "TEMPERATURA", "PRESION", "NIVEL", "CAUDAL", "VALVULAS"
+        ],
+        "PLC NIVEL 1": [
+            "SESION 1", "SESION 2", "SESION 3", "SESION 4", "SESION 5", "SESION 6"
+        ],
+        "PLC NIVEL 2": [
+            "SESION 1", "SESION 2", "SESION 3", "SESION 4", "SESION 5", "SESION 6"
+        ],
+        "REDES INDUSTRIALES": [
+            "DP", "RTU", "TCP", "PN", "ETH/IP"
+        ],
+        "VARIADORES DE FRECUENCIA": [
+            "SINAMICS", "DELTA", "SCHNEIDER", "ABB", "DANFOSS", "POWERFLEX"
+        ],
+        "AUTOMATIZACION PARA EL ARRANQUE DE MOTORES ELECTRICOS CON PLC LOGO V8!": [
+            "SESION 1", "SESION 2", "SESION 3", "SESION 4", "SESION 5"
+        ],
+        "PLC LOGO! V8": [
+            "SESION 1", "SESION 2", "SESION 3", "SESION 4", "SESION 5"
+        ],
+    }
+    
+    nombre_normalizado = (curso.nombre or "").strip()
+
+    temas = MAPA_MODULOS.get(nombre_normalizado, [])
+
+    # Si por algún motivo el curso no está en el mapa, NO forzamos 6.
+    # Creamos 0 y te obligará a registrar módulos en BD primero (mejor que inventar).
+    if not temas:
+        return []
+
+    unidades = []
+    for i, tema in enumerate(temas, start=1):
+        unidad = UnidadCurso.objects.create(
+            curso=curso,
+            numero=i,
+            nombre_tema=tema
+        )
+        unidades.append(unidad)
+
+    return unidades
+
 @login_required
 def registrar_matricula(request):
     alumno = None
@@ -508,11 +587,10 @@ def registrar_matricula(request):
             # ==============================
             # 🔵 CÁLCULOS FINANCIEROS
             # ==============================
-            precio_base = matricula.costo_curso          # Precio del curso
+            precio_base = Decimal(matricula.costo_curso or 0)
             descuento_pct = Decimal(matricula.porcentaje or 0)
-            anticipo = matricula.primer_pago or Decimal('0.00')
+            anticipo = Decimal(matricula.primer_pago or 0)
 
-            # Precio final = precio con descuento (solo informativo, tú lo puedes redondear a mano si quieres)
             descuento_monto = (precio_base * descuento_pct / Decimal('100')).quantize(Decimal('0.01'))
             precio_final = (precio_base - descuento_monto).quantize(Decimal('0.01'))
 
@@ -523,7 +601,7 @@ def registrar_matricula(request):
             form.save_m2m()
 
             # ==============================
-            # 🟣 CREAR 2 CUOTAS SI NO EXISTEN
+            # 🟣 CREAR CUOTAS (2) SI NO EXISTEN
             # ==============================
             saldo = matricula.saldo_pendiente
 
@@ -550,22 +628,30 @@ def registrar_matricula(request):
                 )
 
             # ==============================
-            # 🟢 GENERAR CLASES
+            # 🟢 GENERAR FECHAS DE CLASES SEGÚN MÓDULOS (5 o 6)
             # ==============================
-            tipo = matricula.tipo_horario
             fecha_inicio = matricula.fecha_inicio
-            dias = form.cleaned_data.get('dias')
+            dias = form.cleaned_data.get('dias')  # lista de strings: ['lunes', 'miercoles', ...]
             fechas_personalizadas = form.cleaned_data.get('fechas_personalizadas')
+
+            # ✅ Traer módulos reales del curso (5 o 6)
+            unidades = asegurar_unidades_curso(matricula.curso)  # debe devolver lista ordenada
+            total_unidades = len(unidades)
+
+            if total_unidades == 0:
+                # fallback por si no tienes unidades cargadas
+                total_unidades = 6
 
             fechas = []
 
-            # 🔹 HORARIO PERSONALIZADO
+            # ==============================
+            # 🟢 HORARIO PERSONALIZADO
+            # ==============================
             if fechas_personalizadas:
                 try:
+                    # ejemplo: "2026-01-15, 2026-01-20, 2026-02-10"
                     for f in fechas_personalizadas.split(','):
-                        fechas.append(
-                            datetime.strptime(f.strip(), '%Y-%m-%d').date()
-                        )
+                        fechas.append(datetime.strptime(f.strip(), '%Y-%m-%d').date())
                 except ValueError:
                     form.add_error(
                         'fechas_personalizadas',
@@ -577,7 +663,15 @@ def registrar_matricula(request):
                         'dni': dni
                     })
 
-            # 🔹 HORARIO NORMAL (full / extendida)
+                # ✅ quitar duplicados y ordenar
+                fechas = sorted(set(fechas))
+
+                # ✅ si mandan más fechas que módulos, solo toma las primeras N
+                fechas = fechas[:total_unidades]
+
+            # ==============================
+            # 🔵 HORARIO NORMAL (FULL / EXTENDIDA)
+            # ==============================
             else:
                 if not dias:
                     form.add_error('dias', 'Debe seleccionar al menos un día')
@@ -587,37 +681,70 @@ def registrar_matricula(request):
                         'dni': dni
                     })
 
+                if not fecha_inicio:
+                    form.add_error('fecha_inicio', 'Debe ingresar una fecha de inicio.')
+                    return render(request, 'cursos/registrar_matricula.html', {
+                        'form': form,
+                        'alumno': alumno,
+                        'dni': dni
+                    })
+
                 dias_map = {
-                    'lunes': 0,
-                    'martes': 1,
-                    'miercoles': 2,
-                    'jueves': 3,
-                    'viernes': 4,
-                    'sabado': 5,
-                    'domingo': 6
+                    'lunes': 0, 'martes': 1, 'miercoles': 2, 'jueves': 3,
+                    'viernes': 4, 'sabado': 5, 'domingo': 6
                 }
 
-                semanas = 3 if tipo == 'full_day' else 6
+                # Ordenar días por weekday para construir fechas en orden real
+                dias_ordenados = sorted(dias, key=lambda d: dias_map[d])
 
-                for semana in range(semanas):
-                    for dia in dias:
+                # ✅ Crear EXACTAMENTE N fechas (N = módulos del curso)
+                fecha_cursor = fecha_inicio
+                while len(fechas) < total_unidades:
+                    for dia in dias_ordenados:
+                        if len(fechas) >= total_unidades:
+                            break
+
                         dia_num = dias_map[dia]
-                        offset = (dia_num - fecha_inicio.weekday()) % 7
-                        fecha_clase = fecha_inicio + timedelta(
-                            days=offset + semana * 7
-                        )
-                        fechas.append(fecha_clase)
+                        offset = (dia_num - fecha_cursor.weekday()) % 7
+                        fecha_clase = fecha_cursor + timedelta(days=offset)
+
+                        if fecha_clase not in fechas:
+                            fechas.append(fecha_clase)
+
+                    # avanzar una semana
+                    fecha_cursor = fecha_cursor + timedelta(days=7)
+
+                fechas = sorted(fechas)
 
             # ==============================
-            # 🟠 GUARDAR CLASES
+            # 🟠 CREAR CLASES + ASISTENCIAS POR MÓDULO
             # ==============================
-            for fecha in fechas:
+            # ✅ seguridad: si por alguna razón unidades está vacío, no romper
+            if not unidades:
+                unidades = list(UnidadCurso.objects.filter(curso=matricula.curso).order_by('numero'))
+            # Recalcular total_unidades real
+            total_unidades = min(len(unidades), len(fechas))
+
+            for idx in range(total_unidades):
+                fecha = fechas[idx]
+                unidad = unidades[idx]  # módulo correspondiente (1 con 1ra fecha, etc.)
+
+                # ✅ No duplicar clases por fecha/curso
                 clase, _ = Clase.objects.get_or_create(
                     curso=matricula.curso,
                     fecha=fecha
                 )
                 clase.matriculas.add(matricula)
 
+                # ✅ Crear asistencia ligada a esa clase y a ese módulo
+                AsistenciaUnidad.objects.get_or_create(
+                    matricula=matricula,
+                    unidad=unidad,
+                    clase=clase,
+                    defaults={"completado": False}
+                )
+
+            messages.success(request, "✅ Matrícula registrada, clases y asistencias creadas correctamente.")
             return redirect('vista_calendario')
 
         else:
@@ -995,46 +1122,61 @@ def eliminar_matricula(request, matricula_id):
 
 @login_required
 def pagina_pagos(request):
-    dni = (request.GET.get('dni') or '').strip()
+    dni = (request.GET.get("dni") or "").strip()
+    matricula_id = (request.GET.get("matricula_id") or "").strip()
 
     alumno = None
+    matriculas = []
     matricula = None
     cuotas = []
-    total_pagado_cuotas = Decimal('0.00')
+    total_pagado_cuotas = Decimal("0.00")
 
     if dni:
         alumno = Alumno.objects.filter(dni=dni).first()
 
         if alumno:
-            # última matrícula de ese alumno
-            matricula = (
-                Matricula.objects
-                .filter(alumno=alumno)
-                .order_by('-fecha_inscripcion')
-                .first()
-            )
+            matriculas = Matricula.objects.filter(alumno=alumno).order_by("-fecha_inscripcion", "-id")
 
-            if matricula:
-                cuotas = list(
-                    Cuota.objects.filter(matricula=matricula).order_by('numero')
-                )
+            if matriculas.exists():
+                # 1) usar la seleccionada
+                if matricula_id:
+                    matricula = matriculas.filter(id=matricula_id).first()
 
-                # normalizar y calcular saldo de cada cuota
-                for c in cuotas:
-                    c.monto_pagado = c.monto_pagado or Decimal('0.00')
-                    c.saldo_cuota = (c.monto - c.monto_pagado).quantize(Decimal('0.01'))
-                    c.esta_pagada = c.saldo_cuota <= 0
+                # 2) si no hay seleccionada, tomar la primera
+                if not matricula:
+                    matricula = matriculas.first()
 
-                total_pagado_cuotas = sum(
-                    (c.monto_pagado or Decimal('0.00')) for c in cuotas
-                )
+                # ✅ asegurar cuotas para la matrícula seleccionada
+                asegurar_cuotas(matricula)
 
-    return render(request, 'cursos/pagos.html', {
-        'dni': dni,
-        'alumno': alumno,
-        'matricula': matricula,
-        'cuotas': cuotas,
-        'total_pagado_cuotas': total_pagado_cuotas,
+                # cuotas reales
+                cuotas = Cuota.objects.filter(matricula=matricula).order_by("numero", "id")
+
+                # total pagado en cuotas
+                total_pagado_cuotas = cuotas.aggregate(total=Sum("monto_pagado"))["total"] or Decimal("0.00")
+
+                # recalcular saldo pendiente coherente
+                precio_final = getattr(matricula, "precio_final", None)
+                if precio_final is None:
+                    precio_final = matricula.costo_curso
+
+                anticipo = matricula.primer_pago or Decimal("0.00")
+                nuevo_saldo = precio_final - anticipo - total_pagado_cuotas
+                if nuevo_saldo < 0:
+                    nuevo_saldo = Decimal("0.00")
+
+                if matricula.saldo_pendiente != nuevo_saldo:
+                    matricula.saldo_pendiente = nuevo_saldo
+                    matricula.save(update_fields=["saldo_pendiente"])
+
+    return render(request, "cursos/pagos.html", {
+        "dni": dni,
+        "alumno": alumno,
+        "matriculas": matriculas,
+        "matricula": matricula,
+        "matricula_id": str(matricula.id) if matricula else "",
+        "cuotas": cuotas,
+        "total_pagado_cuotas": total_pagado_cuotas,
     })
 
 def crear_cuotas(matricula):
@@ -1064,101 +1206,239 @@ def crear_cuotas(matricula):
     )
 
 @login_required
-@require_POST
 def pagar_cuota(request, cuota_id):
-    """
-    Registra un pago parcial o total de una cuota.
-    Ajusta monto_pagado, marca pagado si corresponde
-    y actualiza el saldo_pendiente de la matrícula.
-    """
+    if request.method != "POST":
+        return redirect("pagina_pagos")
+
     cuota = get_object_or_404(Cuota, id=cuota_id)
 
-    dni = request.POST.get("dni", "").strip()
-    monto_str = request.POST.get("monto", "").strip()
+    dni = (request.POST.get("dni") or "").strip()
+    matricula_id = (request.POST.get("matricula_id") or "").strip()
 
-    # Si no llegó monto, volvemos a la página de pagos
+    monto_str = (request.POST.get("monto") or "").strip()
     if not monto_str:
-        if dni:
-            return redirect(f"/cursos/pagos/?dni={dni}")
-        return redirect("/cursos/pagos/")
+        messages.error(request, "Ingresa un monto.")
+        return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
-    # Convertimos a Decimal de forma segura
     try:
         monto = Decimal(monto_str)
-    except InvalidOperation:
-        if dni:
-            return redirect(f"/cursos/pagos/?dni={dni}")
-        return redirect("/cursos/pagos/")
+    except:
+        messages.error(request, "Monto inválido.")
+        return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
     if monto <= 0:
-        if dni:
-            return redirect(f"/cursos/pagos/?dni={dni}")
-        return redirect("/cursos/pagos/")
+        messages.error(request, "El monto debe ser mayor a 0.")
+        return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
-    # Aseguramos que monto_pagado nunca sea None
-    monto_pagado_actual = cuota.monto_pagado or Decimal("0.00")
+    saldo_cuota = (cuota.monto - (cuota.monto_pagado or Decimal("0.00")))
+    if monto > saldo_cuota:
+        monto = saldo_cuota  # no permitir pagar más de lo que falta
 
-    # No permitir pagar más de lo que falta
-    saldo_cuota = cuota.monto - monto_pagado_actual
-    monto_a_pagar = monto if monto <= saldo_cuota else saldo_cuota
+    # ✅ registra el pago (ajusta campos según tu modelo Pago real)
+    Pago.objects.create(
+        matricula=cuota.matricula,
+        monto=monto,
+        concepto=f"cuota_{cuota.numero}",
+    )
 
-    cuota.monto_pagado = (monto_pagado_actual + monto_a_pagar).quantize(Decimal("0.01"))
-
-    # Si ya se completó la cuota, marcar como pagada
+    # ✅ actualizar cuota
+    cuota.monto_pagado = (cuota.monto_pagado or Decimal("0.00")) + monto
     if cuota.monto_pagado >= cuota.monto:
         cuota.pagado = True
-        cuota.monto_pagado = cuota.monto  # por si se pasó por redondeo
-
     cuota.save()
 
-    # 🔁 Recalcular saldo de la matrícula
+    # ✅ RECALCULAR saldo pendiente de la matrícula
+    from django.db.models import Sum
+
     matricula = cuota.matricula
-    precio_final = matricula.precio_final or matricula.costo_curso
-    anticipo = matricula.primer_pago or Decimal("0.00")
-    total_pagado_cuotas = (
-        Cuota.objects.filter(matricula=matricula).aggregate(
-            total=Sum("monto_pagado")
-        )["total"]
+    total_pagado = (
+        Pago.objects
+        .filter(matricula=matricula)
+        .aggregate(s=Sum("monto"))["s"]
         or Decimal("0.00")
     )
 
-    matricula.saldo_pendiente = (
-        precio_final - anticipo - total_pagado_cuotas
-    ).quantize(Decimal("0.01"))
-    matricula.save()
+    matricula.saldo_pendiente = matricula.costo_curso - total_pagado
+    matricula.save(update_fields=["saldo_pendiente"])
 
-    # Volver a la pantalla de pagos del mismo alumno
-    if dni:
-        return redirect(f"/cursos/pagos/?dni={dni}")
-    return redirect("/cursos/pagos/")
 
-def verificar_egreso(matricula):
-    # Total de clases que tiene ese alumno en ese curso
-    total_clases = Clase.objects.filter(matriculas=matricula).count()
+    ruta_cert = verificar_y_generar_certificado(matricula)
 
-    # Total de asistencias completadas
-    total_asistencias = AsistenciaUnidad.objects.filter(
+    if ruta_cert:
+        # Si tienes un campo para guardar el certificado en Matricula, guarda aquí:
+        # cuota.matricula.certificado_pdf = ruta_cert
+        # cuota.matricula.save(update_fields=["certificado_pdf"])
+        messages.success(request, "✅ Pago completo y asistencias completas: Certificado generado.")
+        # ✅ redirigir manteniendo matrícula seleccionada
+    return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={cuota.matricula.id}")
+
+def egresados(request):
+    todas = Matricula.objects.select_related("alumno", "curso")
+    matriculas = [m for m in todas if puede_generar_certificado(m)]
+
+    certificados = Certificado.objects.filter(matricula__in=matriculas)
+    cert_map = {c.matricula_id: c for c in certificados}
+
+    for m in matriculas:
+        m.certificado = cert_map.get(m.id)
+
+    return render(request, "cursos/egresados.html", {"matriculas": matriculas})
+
+def asegurar_cuotas(matricula: Matricula):
+    """
+    Crea Cuota 1 y Cuota 2 si la matrícula no tiene cuotas.
+    """
+    existe = Cuota.objects.filter(matricula=matricula).exists()
+    if existe:
+        return
+
+    # Precio final (si no existe, usa costo_curso)
+    precio_final = getattr(matricula, "precio_final", None)
+    if precio_final is None:
+        precio_final = matricula.costo_curso
+
+    anticipo = matricula.primer_pago or Decimal("0.00")
+    saldo = precio_final - anticipo
+    if saldo <= 0:
+        return
+
+    monto_cuota = (saldo / Decimal("2")).quantize(Decimal("0.01"))
+
+    fecha_base = matricula.fecha_inicio or matricula.fecha_inscripcion
+    Cuota.objects.create(
         matricula=matricula,
-        completado=True
-    ).count()
+        numero=1,
+        monto=monto_cuota,
+        monto_pagado=Decimal("0.00"),
+        pagado=False,
+        fecha_vencimiento=fecha_base + timedelta(days=15),
+    )
+    Cuota.objects.create(
+        matricula=matricula,
+        numero=2,
+        monto=monto_cuota,
+        monto_pagado=Decimal("0.00"),
+        pagado=False,
+        fecha_vencimiento=fecha_base + timedelta(days=30),
+    )
+def wrap_center(text, font_name, font_size, max_width):
+    words = text.split()
+    lines, line = [], ""
+    for w in words:
+        test = (line + " " + w).strip()
+        if stringWidth(test, font_name, font_size) <= max_width:
+            line = test
+        else:
+            if line:
+                lines.append(line)
+            line = w
+    if line:
+        lines.append(line)
+    return lines
 
-    if total_clases and total_asistencias >= total_clases:
-        # Crear egresado solo si no existe
-        Egresado.objects.get_or_create(
-            matricula=matricula,
-            defaults={
-                'alumno': matricula.alumno,
-                'curso': matricula.curso,
-                'fecha_inicio': matricula.fecha_inicio,
-                'fecha_fin': date.today(),
-            }
-        )
-        return True  # Se convirtió en egresado
-    return False
+def generar_certificado(request, matricula_id):
+    matricula = get_object_or_404(Matricula, id=matricula_id)
+    cert, _ = Certificado.objects.get_or_create(matricula=matricula)
 
-@login_required
-def lista_egresados(request):
-    egresados = Egresado.objects.select_related('alumno', 'curso', 'matricula').order_by('-fecha_fin')
-    return render(request, 'cursos/egresados.html', {
-        'egresados': egresados
-    })
+    regen = request.GET.get("regen") == "1"
+
+    # ✅ 1) Si piden regen: borrar el PDF guardado (si existe)
+    if regen and cert.archivo_pdf:
+        cert.archivo_pdf.delete(save=False)
+        cert.archivo_pdf = None
+        cert.save()
+
+    # ✅ 2) Si hay archivo en BD: verificar que exista físicamente
+    if cert.archivo_pdf and cert.archivo_pdf.name:
+        try:
+            ruta = cert.archivo_pdf.path
+        except Exception:
+            ruta = None
+
+        # Si no existe en disco, limpiar el campo para regenerar
+        if (not ruta) or (not os.path.exists(ruta)):
+            cert.archivo_pdf = None
+            cert.save()
+        else:
+            # Existe y está OK
+            return redirect(cert.archivo_pdf.url)
+
+    # ✅ 3) Código (si no existe)
+    if not cert.codigo:
+        cert.codigo = f"CW-{now().strftime('%d%m%Y')}-{matricula.id:02d}"
+        cert.save()
+
+    # ✅ 4) rutas a imágenes
+    fondo = os.path.join(settings.BASE_DIR, "static", "certificados", "fondo.png")
+    logo  = os.path.join(settings.BASE_DIR, "static", "certificados", "logo.png")
+    firma = os.path.join(settings.BASE_DIR, "static", "certificados", "firma.png")
+
+    # ✅ 5) generar PDF
+    buffer = BytesIO()
+    w, h = landscape(A4)
+    p = canvas.Canvas(buffer, pagesize=(w, h))
+
+    M = 70
+    CX = w / 2
+
+    p.drawImage(ImageReader(fondo), 0, 0, width=w, height=h, mask="auto")
+
+    logo_w, logo_h = 200, 60
+    p.drawImage(ImageReader(logo), CX - (logo_w/2), h - 120, width=logo_w, height=logo_h, mask="auto")
+
+    p.setFont("Helvetica-Bold", 20)
+    p.drawCentredString(CX, h - 165, "CENTRO DE CAPACITACIONES WEEIN")
+
+    p.setFont("Helvetica-Bold", 11)
+    p.drawCentredString(CX, h - 205, "CERTIFICADO OTORGADO A:")
+
+    p.setFont("Helvetica-Bold", 26)
+    p.drawCentredString(CX, h - 255, matricula.alumno.nombre)
+
+    p.setLineWidth(1)
+    p.line(M + 120, h - 270, w - (M + 120), h - 270)
+
+    # TEXTO centrado (usa tu wrap_center)
+    max_text_width = w - 2*(M + 50)
+    texto1 = "Por haber participado y aprobado satisfactoriamente el curso de"
+    texto2 = f"{matricula.curso.nombre}."
+
+    y = h - 330
+
+    p.setFont("Helvetica", 12)
+    for ln in wrap_center(texto1, "Helvetica", 12, max_text_width):
+        p.drawCentredString(CX, y, ln)
+        y -= 16
+
+    p.setFont("Helvetica-Bold", 12)
+    for ln in wrap_center(texto2, "Helvetica-Bold", 12, max_text_width):
+        p.drawCentredString(CX, y, ln)
+        y -= 16
+
+    p.setFont("Helvetica", 12)
+    p.drawString(M + 60, 150, f"Lima, {now().strftime('%d de %B del %Y')}")
+
+    firma_w, firma_h = 190, 90
+    firma_x = w - M - firma_w
+    firma_y = 85
+    p.drawImage(ImageReader(firma), firma_x, firma_y, width=firma_w, height=firma_h, mask="auto")
+
+    tx = w - M
+    p.setFont("Helvetica-Bold", 10)
+    p.drawRightString(tx, firma_y - 5, "ING. YORDAN SMITH TORRES")
+    p.drawRightString(tx, firma_y - 18, "TRUJILLO")
+    p.setFont("Helvetica", 10)
+    p.drawRightString(tx, firma_y - 32, "Gerente General")
+
+    p.setFont("Helvetica", 10)
+    p.drawString(M, 35, f"CERTIFICADO - {cert.codigo}")
+
+    p.showPage()
+    p.save()
+
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+
+    cert.archivo_pdf.save(f"cert_{cert.codigo}.pdf", ContentFile(pdf_bytes), save=True)
+
+    return redirect(cert.archivo_pdf.url)

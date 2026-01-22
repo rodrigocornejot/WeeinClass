@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+@page {
+  size: A4;
+  margin: 0;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: url("{{ base_url }}/static/certificados/fondo.png") no-repeat center;
+  background-size: cover;
+}
+
+.contenido {
+  padding: 90px 80px;
+  text-align: center;
+}
+
+.logo {
+  width: 200px;
+  margin-bottom: 25px;
+}
+
+.titulo {
+  font-size: 26px;
+  font-weight: bold;
+}
+
+.subtitulo {
+  margin: 20px 0;
+  font-size: 16px;
+}
+
+.nombre {
+  font-family: "Brush Script MT", cursive;
+  font-size: 38px;
+  margin: 25px 0;
+  border-bottom: 1px solid #000;
+  display: inline-block;
+  padding-bottom: 5px;
+}
+
+.texto {
+  font-size: 14px;
+  line-height: 1.8;
+  margin-top: 30px;
+}
+
+.fecha {
+  margin-top: 40px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.firma {
+  margin-top: 40px;
+  text-align: right;
+}
+
+.firma img {
+  width: 170px;
+}
+
+.codigo {
+  position: absolute;
+  bottom: 40px;
+  left: 80px;
+  font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+  <div class="contenido">
+    <img src="{{ base_url }}/static/certificados/logo.png" class="logo">
+
+    <div class="titulo">CENTRO DE CAPACITACIONES WEEIN</div>
+    <div class="subtitulo">CERTIFICADO OTORGADO A:</div>
+
+    <div class="nombre">{{ matricula.alumno.nombre }}</div>
+
+    <div class="texto">
+      Por haber participado y aprobado satisfactoriamente el curso de
+      <strong>{{ matricula.curso.nombre }}</strong>.
+      <br>
+      Realizado del {{ matricula.fecha_inicio }} al {{ matricula.fecha_fin }},
+      haciendo un total de {{ matricula.horas }} horas académicas en modalidad
+      <strong>{{ matricula.modalidad }}</strong>.
+    </div>
+
+    <div class="fecha">
+      Lima, {{ fecha }}
+    </div>
+
+    <div class="firma">
+      <img src="{{ base_url }}/static/certificados/firma.png"><br>
+      <strong>ING. YORDAN SMITH TORRES</strong><br>
+      TRUJILLO<br>
+      Gerente General
+    </div>
+
+    <div class="codigo">
+      CERTIFICADO - {{ certificado.codigo }}
+    </div>
+  </div>
+</body>
+</html>

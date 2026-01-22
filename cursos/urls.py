@@ -30,7 +30,7 @@ from .views import (
 
     eventos_json, actualizar_tareas_vencidas, tareas_vencidas, registrar_asistencia_unidad,
 
-    tareas_completadas, reprogramar_tarea, exportar_tareas_completadas, pagina_pagos, pagar_cuota, lista_egresados
+    tareas_completadas, reprogramar_tarea, exportar_tareas_completadas, pagina_pagos, pagar_cuota, egresados, generar_certificado
 )
 
 def crear_usuario_admin(request):
@@ -93,5 +93,10 @@ urlpatterns = [
     path('pagos/', pagina_pagos, name='pagina_pagos'),
     path('pagar-cuota/<int:cuota_id>/', pagar_cuota, name='pagar_cuota'),
 
-    path('egresados/', lista_egresados, name='lista_egresados'),
+    path('egresados/', egresados, name='egresados'),
+    path(
+    "generar-certificado/<int:matricula_id>/",
+    generar_certificado,
+    name="generar_certificado"
+),
 ]

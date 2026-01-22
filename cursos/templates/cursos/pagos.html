@@ -1,183 +1,227 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Gestión de Pagos</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f4f6f9;
-        }
-        .card-resumen {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .card-resumen .card-header {
-            background: #0d6efd;
-            color: white;
-            font-weight: 600;
-        }
-        .badge-estado-pendiente {
-            background-color: #ffcccc;
-            color: #b10000;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Gestión de Pagos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f6f9; }
+    .hero {
+      background: linear-gradient(90deg, #0d6efd, #084298);
+      color: #fff;
+      border-radius: 14px;
+      padding: 22px 22px;
+    }
+    .shadow-soft { box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    .card-rounded { border-radius: 14px; }
+    .kpi {
+      background: #f8fafc;
+      border: 1px solid #eef2f7;
+      border-radius: 12px;
+      padding: 12px 14px;
+      height: 100%;
+    }
+    .kpi .label { color: #6c757d; font-size: .85rem; }
+    .kpi .value { font-weight: 700; font-size: 1.05rem; }
+  </style>
 </head>
 <body>
-<div class="container py-4">
+<div class="container py-4" style="max-width: 980px;">
 
-    <!-- Botón volver -->
-    <div class="mb-3">
-        <a href="{% url 'menu_admin' %}" class="btn btn-outline-secondary btn-sm">
-            ← Volver al menú
-        </a>
+  <!-- Header -->
+  <div class="hero shadow-soft mb-4 d-flex align-items-center justify-content-between">
+    <div>
+      <div class="h4 mb-1">💰 Gestión de Pagos</div>
+      <div class="opacity-75">Control de cuotas, pagos parciales y estado del alumno</div>
     </div>
+    <a href="{% url 'menu_admin' %}" class="btn btn-light btn-sm fw-semibold">
+      ← Volver al menú
+    </a>
+  </div>
 
-    <!-- Buscador -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Buscar alumno por DNI</label>
-                    <input type="text"
-                           name="dni"
-                           class="form-control"
-                           placeholder="Ej: 74321098"
-                           value="{{ dni|default_if_none:'' }}"
-                           required>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100 mt-4">
-                        Buscar
-                    </button>
-                </div>
-            </form>
+  <!-- Buscador + selector -->
+  <div class="card card-rounded shadow-soft border-0 mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Buscar alumno por DNI</label>
+          <input type="text" name="dni" class="form-control" placeholder="Ej: 74321098"
+                 value="{{ dni|default_if_none:'' }}" required>
         </div>
-    </div>
 
-    {% if alumno %}
-    <!-- Alumno encontrado -->
-    <div class="alert alert-info d-flex justify-content-between">
-        <div>
-            <strong>Alumno encontrado:</strong> {{ alumno.nombre }} (DNI: {{ alumno.dni }})
-        </div>
-    </div>
-    {% endif %}
-
-    {% if matricula %}
-        {% if matricula.saldo_pendiente > 0 %}
-        <div class="alert alert-danger">
-            ⚠ Alumno con pagos pendientes
-        </div>
-        {% else %}
-        <div class="alert alert-success">
-            ✅ Alumno al día en sus pagos
+        {% if matriculas and matriculas.count > 1 %}
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Elegir matrícula / curso</label>
+          <select name="matricula_id" class="form-select">
+            {% for m in matriculas %}
+              <option value="{{ m.id }}" {% if matricula and m.id == matricula.id %}selected{% endif %}>
+                {{ m.curso.nombre }} — {{ m.get_tipo_horario_display }} — Inscripción: {{ m.fecha_inscripcion|date:"d/m/Y" }}
+              </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Si el alumno tiene más de un curso, elige aquí cuál pagar.</div>
         </div>
         {% endif %}
 
-        <!-- Resumen del curso -->
-        <div class="card card-resumen shadow-sm mb-4">
-            <div class="card-header">
-                Resumen del Curso
-            </div>
-            <div class="card-body">
-                <p><strong>Curso:</strong> {{ matricula.curso.nombre }}</p>
-                <p><strong>Turno:</strong> {{ matricula.get_tipo_horario_display }}</p>
-                <hr>
-                <div class="row">
-                    <div class="col-md-6">
-                        <p>Precio del curso:</p>
-                        <p>Descuento:</p>
-                        <p>Precio final:</p>
-                        <p>Anticipo:</p>
-                        <p>Pagado en cuotas:</p>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <p><strong>S/ {{ matricula.costo_curso }}</strong></p>
-                        <p><strong>{{ matricula.porcentaje }}%</strong></p>
-                        <p><strong>S/ {{ matricula.precio_final }}</strong></p>
-                        <p class="text-success"><strong>- S/ {{ matricula.primer_pago }}</strong></p>
-                        <p class="text-success"><strong>S/ {{ total_pagado_cuotas }}</strong></p>
-                    </div>
-                </div>
-                <hr>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold">Saldo pendiente:</span>
-                    <span class="fw-bold text-danger">S/ {{ matricula.saldo_pendiente }}</span>
-                </div>
-            </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100 fw-semibold">
+            Buscar
+          </button>
         </div>
+      </form>
+    </div>
+  </div>
 
-        <!-- Tabla de cuotas -->
-        <div class="card shadow-sm border-0 mt-4">
-            <div class="card-body">
-                <h5 class="fw-semibold mb-3">Cuotas</h5>
+  {% if dni and not alumno %}
+    <div class="alert alert-warning shadow-soft">No se encontró alumno con DNI <strong>{{ dni }}</strong>.</div>
+  {% endif %}
 
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle text-center">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Cuota</th>
-                                <th>Monto</th>
-                                <th>Pagado</th>
-                                <th>Saldo</th>
-                                <th>Pagar</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% if cuotas %}
-                            {% for cuota in cuotas %}
-                            <tr>
-                                <td>Cuota {{ cuota.numero }}</td>
-                                <td>S/ {{ cuota.monto }}</td>
-                                <td class="text-success">S/ {{ cuota.monto_pagado }}</td>
-                                <td class="text-danger">S/ {{ cuota.saldo_cuota }}</td>
-                                <td>
-                                    {% if cuota.esta_pagada %}
-                                        <span class="badge bg-success">Pagada</span>
-                                    {% else %}
-                                        <form method="post"
-                                              action="{% url 'pagar_cuota' cuota.id %}"
-                                              class="d-flex justify-content-center align-items-center gap-2">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="dni" value="{{ dni }}">
-                                            <input type="number"
-                                                   name="monto"
-                                                   step="0.01"
-                                                   min="0.01"
-                                                   max="{{ cuota.saldo_cuota }}"
-                                                   class="form-control form-control-sm"
-                                                   style="width: 90px;"
-                                                   placeholder="Monto">
-                                            <button type="submit" class="btn btn-sm btn-success">
-                                                Pagar
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="5" class="text-muted py-4">
-                                    No hay cuotas registradas para esta matrícula.
-                                </td>
-                            </tr>
-                        {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+  {% if alumno %}
+    <div class="alert alert-info shadow-soft d-flex justify-content-between align-items-center">
+      <div>👤 <strong>Alumno:</strong> {{ alumno.nombre }} (DNI: {{ alumno.dni }})</div>
+      {% if matriculas %}
+        <span class="badge bg-dark">{{ matriculas.count }} matrícula(s)</span>
+      {% endif %}
+    </div>
+  {% endif %}
 
-    {% elif dni %}
-        <!-- DNI ingresado pero sin matrícula -->
-        <div class="alert alert-warning">
-            No se encontró matrícula para el DNI {{ dni }}.
-        </div>
+  {% if matricula %}
+    {% if matricula.saldo_pendiente > 0 %}
+      <div class="alert alert-danger shadow-soft">⚠ Alumno con pagos pendientes</div>
+    {% else %}
+      <div class="alert alert-success shadow-soft">✅ Alumno al día en sus pagos</div>
     {% endif %}
 
+    <!-- Resumen -->
+    <div class="card card-rounded shadow-soft border-0 mb-4">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <div>
+            <div class="h5 mb-0">📚 Resumen del Curso</div>
+            <div class="text-muted">
+              {{ matricula.curso.nombre }} • {{ matricula.get_tipo_horario_display }}
+            </div>
+          </div>
+
+          {% if matricula.saldo_pendiente > 0 %}
+            <span class="badge text-bg-danger">PENDIENTE</span>
+          {% else %}
+            <span class="badge text-bg-success">AL DÍA</span>
+          {% endif %}
+        </div>
+
+        <hr>
+
+        <div class="row g-3">
+          <div class="col-md-3">
+            <div class="kpi">
+              <div class="label">Precio base</div>
+              <div class="value">S/ {{ matricula.costo_curso }}</div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="kpi">
+              <div class="label">Descuento</div>
+              <div class="value">{{ matricula.porcentaje }}%</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi">
+              <div class="label">Precio final</div>
+              <div class="value">S/ {{ matricula.precio_final }}</div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="kpi">
+              <div class="label">Anticipo</div>
+              <div class="value text-success">S/ {{ matricula.primer_pago }}</div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="kpi">
+              <div class="label">Pagado cuotas</div>
+              <div class="value text-success">S/ {{ total_pagado_cuotas }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 d-flex justify-content-between">
+          <span class="fw-semibold">Saldo pendiente</span>
+          <span class="fw-bold text-danger">S/ {{ matricula.saldo_pendiente }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cuotas -->
+    <div class="card card-rounded shadow-soft border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="h5 mb-0">🧾 Cuotas</div>
+          <div class="text-muted small">Puedes registrar pagos parciales (se actualizará el saldo).</div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle text-center">
+            <thead class="table-dark">
+              <tr>
+                <th>Cuota</th>
+                <th>Monto</th>
+                <th>Pagado</th>
+                <th>Saldo</th>
+                <th style="width: 260px;">Registrar pago</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if cuotas %}
+                {% for cuota in cuotas %}
+                <tr>
+                  <td class="fw-semibold">Cuota {{ cuota.numero }}</td>
+                  <td>S/ {{ cuota.monto }}</td>
+                  <td class="text-success">S/ {{ cuota.monto_pagado }}</td>
+                  <td class="text-danger">S/ {{ cuota.saldo_cuota }}</td>
+                  <td>
+                    {% if cuota.esta_pagada %}
+                      <span class="badge text-bg-success">Pagada</span>
+                    {% else %}
+                      <form method="post"
+                            action="{% url 'pagar_cuota' cuota.id %}"
+                            class="d-flex gap-2 justify-content-center">
+                        {% csrf_token %}
+                        <input type="hidden" name="dni" value="{{ dni }}">
+                        <input type="hidden" name="matricula_id" value="{{ matricula.id }}">
+
+                        <input type="number"
+                               name="monto"
+                               step="0.01"
+                               min="0.01"
+                               max="{{ cuota.saldo_cuota }}"
+                               class="form-control form-control-sm"
+                               style="width: 110px;"
+                               placeholder="Monto">
+
+                        <button type="submit" class="btn btn-sm btn-success fw-semibold">
+                          Pagar
+                        </button>
+                      </form>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5" class="text-muted py-4">No hay cuotas registradas para esta matrícula.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  {% endif %}
+
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@ from django.db.models import Q
 from django.contrib.postgres.forms import SimpleArrayField
 from django.contrib.postgres.fields import ArrayField
 from .models import DAY_CHOICES
-from .models import Curso, Nota, Alumno, Matricula, Tarea
+from .models import Curso, Nota, Alumno, Matricula, Tarea, Pago
 from django.forms.widgets import DateInput, TimeInput
 
 
@@ -140,3 +140,8 @@ class TareaForm(forms.ModelForm):
     class Meta:
         model = Tarea
         fields = '__all__'
+
+class PagoCuotaForm(forms.Form):
+    monto = forms.DecimalField(min_value=0.01, decimal_places=2, max_digits=8)
+    fecha_pago = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    metodo_pago = forms.ChoiceField(choices=Pago.METODO_PAGO_CHOICES)

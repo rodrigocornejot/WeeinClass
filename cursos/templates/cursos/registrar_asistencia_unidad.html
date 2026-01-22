@@ -1,163 +1,246 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Registrar asistencia</title>
+  <meta charset="UTF-8">
+  <title>Registrar asistencia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- BOOTSTRAP -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <style>
-        body {
-            background: #eef1f7;
-        }
-        .card {
-            border-radius: 12px;
-        }
-        .header-title {
-            font-size: 26px;
-            font-weight: 700;
-            color: #1d1d1d;
-        }
-        th {
-            background: #1f1f1f !important;
-            color: white !important;
-        }
-    </style>
+  <style>
+    body { background: #f3f6fb; }
+
+    .page-header{
+      background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+      color: #fff;
+      border-radius: 16px;
+      padding: 18px 18px;
+      box-shadow: 0 10px 24px rgba(13,110,253,.18);
+    }
+    .page-header .subtitle{ opacity:.9; font-size: 14px; }
+
+    .card-soft{
+      border: 0;
+      border-radius: 16px;
+      box-shadow: 0 10px 24px rgba(16,24,40,.08);
+    }
+
+    .table thead th{
+      background: #1f2937 !important;
+      color: #fff !important;
+      white-space: nowrap;
+      vertical-align: middle;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .table td, .table th { vertical-align: middle; }
+    .badge-mod{
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+    .mod-name{
+      font-size: 12px;
+      opacity: .95;
+      line-height: 1.1;
+    }
+    .check-big{
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .muted-small{ font-size: 12px; color:#6b7280; }
+    .divider-soft{ border-top: 1px solid rgba(0,0,0,.08); }
+
+    .pill-info{
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.25);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+    }
+  </style>
 </head>
 
 <body>
-
 <div class="container py-4">
 
-    <!-- VOLVER -->
-    <a href="{% url 'menu_admin' %}" class="btn btn-outline-secondary mb-3">
-        ← Volver al menú
-    </a>
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size:22px;">✅</span>
+          <h3 class="m-0 fw-bold">Registrar asistencia</h3>
+        </div>
+        <div class="subtitle mt-1">Solo profesores y recepción</div>
+      </div>
 
-    <!-- TÍTULO -->
-    <div class="d-flex align-items-center mb-4">
-        <h2 class="header-title me-3">✔ Registrar asistencia</h2>
-        <small class="text-muted">Solo profesores y recepción</small>
+      <div class="d-flex align-items-center gap-2">
+        <span class="pill-info">📅 {{ fecha_seleccionada|default:"—" }}</span>
+        <a href="{% url 'menu_admin' %}" class="btn btn-light btn-sm fw-semibold">
+          ← Volver al menú
+        </a>
+      </div>
     </div>
+  </div>
 
-    <!-- CARD DE FILTROS -->
-    <div class="card shadow-sm mb-4">
+  <!-- Filtros -->
+  <div class="card card-soft mb-4">
+    <div class="card-body">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h5 class="fw-bold m-0">Filtros</h5>
+        <span class="muted-small">Elige curso y fecha para registrar el módulo dictado ese día</span>
+      </div>
+
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Curso</label>
+          <select name="curso" class="form-select" required>
+            <option value="">-- Seleccione curso --</option>
+            {% for c in cursos %}
+              <option value="{{ c.id }}" {% if curso_seleccionado and c.id == curso_seleccionado.id %}selected{% endif %}>
+                {{ c.nombre }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Fecha</label>
+          <input type="date" name="fecha" class="form-control" value="{{ fecha_seleccionada|date:'Y-m-d' }}" required>
+        </div>
+
+        <div class="col-md-2">
+          <button class="btn btn-primary w-100 fw-semibold">
+            🔍 Aplicar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if curso_seleccionado and fecha_seleccionada %}
+
+    {% if not clase %}
+      <div class="alert alert-warning text-center card-soft">
+        ⚠ No hay clases programadas para <strong>{{ curso_seleccionado.nombre_tema }}</strong>
+        el día <strong>{{ fecha_seleccionada }}</strong>.
+      </div>
+
+    {% elif not alumnos_unidades %}
+      <div class="alert alert-info text-center card-soft">
+        ℹ No hay alumnos matriculados para esta clase.
+      </div>
+
+    {% else %}
+
+      <!-- Estado -->
+      <div class="alert alert-success d-flex justify-content-between align-items-center flex-wrap gap-2 card-soft">
+        <div>
+          ✅ Clase encontrada para <strong>{{ curso_seleccionado.nombre_tema }}</strong> — <strong>{{ fecha_seleccionada }}</strong>
+        </div>
+        <span class="badge bg-dark">Alumnos: {{ alumnos_unidades|length }}</span>
+      </div>
+
+      <!-- Tabla -->
+      <div class="card card-soft">
         <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+              <h5 class="fw-bold mb-0">Listado de alumnos</h5>
+              <div class="muted-small">
+                Marca el/los módulos que se dictaron hoy. (No depende del orden)
+              </div>
+            </div>
+          </div>
 
-            <h5 class="fw-bold mb-3">Filtros</h5>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="curso" value="{{ curso_seleccionado.id }}">
+            <input type="hidden" name="fecha" value="{{ fecha_seleccionada|date:'Y-m-d' }}">
+            <input type="hidden" name="guardar_asistencias" value="1">
 
-            <form method="get" class="row g-3">
+            <div class="table-responsive" style="max-height: 520px;">
+              <table class="table table-bordered table-hover text-center mb-0">
+                <thead>
+                  <tr>
+                    <th class="text-start">Alumno</th>
 
-                <div class="col-md-5">
-                    <label class="form-label">Curso</label>
-                    <select name="curso" class="form-select">
-                        <option value="">-- Seleccione curso --</option>
+                    {% for u in unidades %}
+                      <th>
+                        <span class="badge bg-light text-dark badge-mod">
+                          Módulo {{ u.numero }}
+                        </span>
+                        <div class="mod-name mt-1">{{ u.nombre_tema }}</div>
+                      </th>
+                    {% endfor %}
+                  </tr>
+                </thead>
 
-                        {% for c in cursos %}
-                        <option value="{{ c.id }}"
-                            {% if curso_seleccionado and c.id == curso_seleccionado.id %}
-                                selected
-                            {% endif %}>
-                            {{ c.nombre }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                <tbody>
+                  {% for item in alumnos_unidades %}
+                    <tr>
+                      <td class="text-start">
+                        <div class="fw-semibold">{{ item.matricula.alumno.nombre }}</div>
+                        <div class="muted-small">DNI: {{ item.matricula.alumno.dni }}</div>
+                      </td>
 
-                <div class="col-md-4">
-                    <label class="form-label">Fecha</label>
-                    <input type="date" name="fecha"
-                           class="form-control"
-                           value="{{ fecha_seleccionada|date:'Y-m-d' }}">
-                </div>
+                      {% for unidad in item.unidades %}
+                        <td>
+                          <input
+                            type="checkbox"
+                            class="form-check-input check-big"
+                            name="asistencia_{{ item.matricula.id }}_{{ unidad.unidad_id }}"
+                            {% if unidad.completado %}checked{% endif %}
+                            {% if unidad.completado and not unidad.marcado_hoy %}disabled{% endif %}
+                            {% if unidad.fecha_completado %}
+                              title="Completado el {{ unidad.fecha_completado|date:'d/m/Y' }}"
+                              data-bs-toggle="tooltip"
+                            {% endif %}
+                          >
+                        </td>
+                      {% endfor %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
 
-                <div class="col-md-3 d-flex align-items-end">
-                    <button class="btn btn-primary w-100">
-                        🔍 Aplicar
-                    </button>
-                </div>
+            <div class="divider-soft my-3"></div>
 
-            </form>
+            <div class="d-flex justify-content-end">
+              <button class="btn btn-success fw-semibold px-4">
+                💾 Guardar asistencias
+              </button>
+            </div>
+
+          </form>
         </div>
-    </div>
+      </div>
 
-    <!-- RESULTADOS -->
-    {% if curso_seleccionado and fecha_seleccionada %}
-
-        {% if not clase %}
-            <div class="alert alert-warning text-center">
-                ⚠ No hay clases programadas para <strong>{{ curso_seleccionado.nombre }}</strong>
-                el día <strong>{{ fecha_seleccionada }}</strong>.
-            </div>
-        {% elif not alumnos_unidades %}
-            <div class="alert alert-info text-center">
-                ℹ No hay alumnos matriculados para esta clase.
-            </div>
-        {% else %}
-
-        <!-- TABLA -->
-        <div class="card shadow-sm">
-            <div class="card-body">
-
-                <h5 class="fw-bold mb-3">Listado de alumnos</h5>
-
-                <form method="post">
-                    {% csrf_token %}
-
-                    <input type="hidden" name="curso" value="{{ curso_seleccionado.id }}">
-                    <input type="hidden" name="fecha" value="{{ fecha_seleccionada|date:'Y-m-d' }}">
-                    <input type="hidden" name="guardar_asistencias" value="1">
-
-                    <div class="table-responsive">
-                        <table class="table align-middle table-bordered text-center">
-
-                            <thead>
-                                <tr>
-                                    <th>Alumno</th>
-                                    <th>Curso</th>
-                                    {% for u in "123456" %}
-                                        <th>Unidad {{ forloop.counter }}</th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {% for item in alumnos_unidades %}
-                                <tr>
-                                    <td>{{ item.matricula.alumno.nombre }}</td>
-                                    <td>{{ item.matricula.curso.nombre }}</td>
-
-                                    {% for unidad in item.unidades %}
-                                    <td>
-                                        <input type="checkbox"
-                                               class="form-check-input"
-                                               name="asistencia_{{ item.matricula.id }}_{{ unidad.unidad }}"
-                                               {% if unidad.completado %}checked{% endif %}>
-                                    </td>
-                                    {% endfor %}
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-
-                        </table>
-                    </div>
-
-                    <div class="text-end">
-                        <button class="btn btn-success mt-3">
-                            💾 Guardar asistencias
-                        </button>
-                    </div>
-
-                </form>
-
-            </div>
-        </div>
-
-        {% endif %}
     {% endif %}
+  {% endif %}
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const tooltipTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
+    tooltipTriggerList.map(function (el) {
+      return new bootstrap.Tooltip(el);
+    });
+  });
+</script>
 
 </body>
 </html>

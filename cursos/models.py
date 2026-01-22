@@ -7,6 +7,7 @@ from cursos.utils import generar_fechas
 from datetime import datetime
 from django.contrib.auth.models import User
 from django.db.models import Sum
+from decimal import Decimal
 
 CURSO_CHOICES = (
     ('PLC NIVEL 1', 'PLC NIVEL 1'),
@@ -143,6 +144,7 @@ class Matricula(models.Model):
     )
 
     fecha_inscripcion = models.DateField(auto_now_add=True)
+    certificado_pdf = models.FileField(upload_to="certificados/", null=True, blank=True)
 
     def save(self, *args, **kwargs):
     # Convertir fecha si viene como string
@@ -238,37 +240,67 @@ class UnidadCurso(models.Model):
     fecha = models.DateField(null=True, blank=True)
 
     class Meta:
-        unique_together = ('curso', 'numero')  # opcional pero recomendable
+        unique_together = ("curso", "numero")
+        ordering = ["numero"]
+
+    @property
+    def nombre(self):
+        # Alias para compatibilidad (si en views/templates usas unidad.nombre)
+        return self.nombre_tema
 
     def __str__(self):
-        return f"{self.curso.nombre} - Unidad {self.numero}"
+        return f"{self.curso.nombre} - Unidad {self.numero}: {self.nombre_tema}"
+
 
 class AsistenciaUnidad(models.Model):
     matricula = models.ForeignKey('Matricula', on_delete=models.CASCADE, related_name='asistencias')
     unidad = models.ForeignKey('UnidadCurso', on_delete=models.CASCADE)
+    clase = models.ForeignKey(Clase, on_delete=models.CASCADE, null=True, blank=True)
     completado = models.BooleanField(default=False)
     fecha = models.DateField(null=True, blank=True)  # 🔹 NUEVO
 
     def __str__(self):
-        return f"Asistencia {self.matricula.alumno.nombre} - {self.matricula.curso.nombre} - Unidad {self.unidad}"
+        return f"{self.matricula.alumno.nombre} - {self.unidad} - {self.fecha}"
     
     class Meta:
-        unique_together = ('matricula', 'unidad')
+        unique_together = ('matricula', 'unidad', 'fecha')
 
 class Pago(models.Model):
+    METODO_PAGO_CHOICES = [
+        ('plin', 'Plin'),
+        ('yape', 'Yape'),
+        ('izipay', 'Izipay'),
+        ('interbank', 'Interbank'),
+        ('culqi', 'Culqi'),
+        ('efectivo', 'Efectivo'),
+    ]
+
     matricula = models.ForeignKey(
         Matricula,
         on_delete=models.CASCADE,
         related_name='pagos'
     )
+    cuota = models.ForeignKey('Cuota', on_delete=models.SET_NULL, null=True, blank=True, related_name='pagos')
 
     monto = models.DecimalField(
         max_digits=8,
         decimal_places=2
     )
 
-    fecha_pago = models.DateTimeField(
-        auto_now_add=True
+    fecha_pago_real = models.DateField(null=True, blank=True)
+
+    metodo_pago = models.CharField(
+        max_length=30,
+        choices=[
+            ('plin', 'Plin'),
+            ('yape', 'Yape'),
+            ('izipay', 'Izipay'),
+            ('interbank', 'Interbank'),
+            ('culqi', 'Culqi'),
+            ('efectivo', 'Efectivo'),
+        ],
+        null=True,
+        blank=True
     )
 
     concepto = models.CharField(
@@ -292,7 +324,7 @@ class Pago(models.Model):
     )
 
     def __str__(self):
-        return f"{self.matricula.alumno.nombre} - {self.get_concepto_display()} - S/ {self.monto}"
+        return f"{self.matricula.alumno.nombre} - {self.concepto} - S/ {self.monto}"
 
 class Cuota(models.Model):
     matricula = models.ForeignKey(
@@ -312,8 +344,17 @@ class Cuota(models.Model):
         default=0
     )
 
-    def saldo(self):
-        return self.monto - self.monto_pagado
+    @property
+    def saldo_cuota(self):
+        pagado = self.monto_pagado or Decimal('0.00')
+        saldo = (self.monto or Decimal('0.00')) - pagado
+        if saldo < 0:
+            saldo = Decimal('0.00')
+        return saldo
+    
+    @property
+    def esta_pagada(self):
+        return self.saldo_cuota <= Decimal('0.00')
     
     def __str__(self):
         return f"Cuota {self.numero} - {self.matricula.alumno.nombre}"
@@ -329,4 +370,11 @@ class Egresado(models.Model):
     def __str__(self):
         return f"{self.alumno.nombre} - {self.curso.nombre} (Egresado)"
     
-    
+class Certificado(models.Model):
+    matricula = models.OneToOneField('Matricula', on_delete=models.CASCADE, related_name='certificado')
+    codigo = models.CharField(max_length=50, unique=True)
+    fecha_emision = models.DateField(default=timezone.now)
+    archivo_pdf = models.FileField(upload_to='certificados/', null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.codigo} - {self.matricula.alumno.nombre} - {self.matricula.curso.nombre}"
