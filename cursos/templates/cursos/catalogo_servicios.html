@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Catálogo de Servicios - Caja</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4" style="max-width: 1100px;">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="mb-0">🧩 Servicios adicionales (Caja)</h3>
+      <div class="text-muted">Busca por DNI, cobra y se suma al historial para cuadre.</div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'historial_pagos' %}" class="btn btn-outline-dark btn-sm">🧾 Historial</a>
+      <a href="{% url 'menu_admin' %}" class="btn btn-outline-secondary btn-sm">← Volver</a>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">DNI</label>
+          <input name="dni" class="form-control" value="{{ dni }}" placeholder="Ej: 74326879" required>
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-primary w-100">Buscar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if dni and not alumno %}
+    <div class="alert alert-warning">No se encontró alumno con DNI <strong>{{ dni }}</strong>.</div>
+  {% endif %}
+
+  {% if alumno %}
+    <div class="alert alert-info d-flex justify-content-between align-items-center">
+      <div>👤 <strong>{{ alumno.nombre }}</strong> (DNI: {{ alumno.dni }})</div>
+      <span class="badge bg-success">Total servicios pagados: S/ {{ total_servicios }}</span>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">Registrar cobro</h6>
+
+        <form method="post" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <input type="hidden" name="dni" value="{{ dni }}">
+
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">Servicio</label>
+            <select name="servicio_id" class="form-select" required>
+              <option value="">-- Selecciona --</option>
+              {% for s in servicios %}
+                <option value="{{ s.id }}">{{ s.nombre }} (S/ {{ s.precio }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Cantidad</label>
+            <input type="number" name="cantidad" class="form-control" value="1" min="1" required>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Método</label>
+            <select name="metodo_pago" class="form-select" required>
+              <option value="">Método</option>
+              <option value="yape">Yape</option>
+              <option value="plin">Plin</option>
+              <option value="izipay">Izipay</option>
+              <option value="interbank">Interbank</option>
+              <option value="culqi">Culqi</option>
+              <option value="efectivo">Efectivo</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <button class="btn btn-success w-100 fw-semibold">Cobrar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if pagos_servicios %}
+    <div class="card">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">Últimos servicios cobrados</h6>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle text-center">
+            <thead class="table-dark">
+              <tr>
+                <th>Fecha</th>
+                <th>Detalle</th>
+                <th>Método</th>
+                <th>Monto</th>
+                <th>Asesora</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in pagos_servicios %}
+              <tr>
+                <td>
+                  {% if p.fecha_pago_real %}{{ p.fecha_pago_real|date:"d/m/Y" }}{% else %}—{% endif %}
+                  <br><small class="text-muted">{{ p.creado_en|date:"d/m/Y H:i" }}</small>
+                </td>
+                <td class="fw-semibold">{{ p.detalle|default:"Servicio adicional" }}</td>
+                <td>{% if p.metodo_pago %}{{ p.get_metodo_pago_display }}{% else %}—{% endif %}</td>
+                <td class="fw-bold text-success">S/ {{ p.monto }}</td>
+                <td>
+                  {% if p.registrado_por %}
+                    {{ p.registrado_por.get_full_name|default:p.registrado_por.username }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+    {% endif %}
+  {% endif %}
+
+</div>
+</body>
+</html>

@@ -18,35 +18,205 @@
       <select id="filtroCurso" class="form-select">
         <option value="">Todos</option>
         {% for curso in cursos %}
-        <option value="{{ curso.nombre }}">{{ curso.nombre }}</option>
+          <option value="{{ curso.nombre }}">{{ curso.nombre }}</option>
         {% endfor %}
       </select>
     </div>
 
-    <table id="matriculasTable" class="table table-striped table-bordered">
+    <table id="matriculasTable" class="table table-striped table-bordered align-middle">
       <thead>
         <tr>
           <th>Alumno</th>
           <th>Curso</th>
           <th>Modalidad</th>
-          <th>Turno</th>
-          <th>Días de estudio</th>
+
+          <!-- ✅ Corrección -->
+          <th>Tipo horario</th>
+          <th>Días</th>
+
+          <!-- ✅ Más datos importantes -->
+          <th>Fecha inicio</th>
+          <th>Estado</th>
+          <th>Costo</th>
+          <th>Anticipo</th>
+          <th>Precio final</th>
+          <th>% Desc.</th>
+          <th>Inscripción</th>
+
+          <!-- ✅ LOS ÚLTIMOS 5 (como pediste) -->
           <th>Saldo pendiente</th>
+          <th>Asesor(a)</th>
+          <th>Manual</th>
+          <th>Video</th>
           <th>Acciones</th>
         </tr>
       </thead>
+
       <tbody>
         {% for m in matriculas %}
         <tr>
-          <td>{{ m.alumno.nombre }}</td>
-          <td>{{ m.curso.nombre }}</td>
-          <td>{{ m.get_modalidad_display }}</td>
-          <td>{{ m.get_turno_display }}</td>
-          <td>{{ m.dias_estudio }}</td>
-          <td>{{ m.saldo_pendiente }}</td>
+          <td>{{ m.alumno.nombre|default:"—" }}</td>
+          <td>{{ m.curso.nombre|default:"—" }}</td>
+
           <td>
+            {% if m.modalidad %}
+              {{ m.get_modalidad_display }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <!-- ✅ Tipo horario -->
+          <td>
+            {% if m.tipo_horario %}
+              {{ m.get_tipo_horario_display }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <!-- ✅ Días -->
+          <td>
+            {% if m.dias and m.dias|length > 0 %}
+              {{ m.dias|join:", " }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <!-- ✅ Más datos -->
+          <td>
+            {% if m.fecha_inicio %}
+              {{ m.fecha_inicio|date:"d/m/Y" }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <td>
+            {% if m.estado %}
+              <span class="badge
+                {% if m.estado == 'activa' %} bg-success
+                {% elif m.estado == 'finalizada' %} bg-secondary
+                {% elif m.estado == 'retirada' %} bg-danger
+                {% else %} bg-dark {% endif %}">
+                {{ m.get_estado_display }}
+              </span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <td>
+            {% if m.costo_curso != None %}
+              S/ {{ m.costo_curso }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <td>
+            {% if m.primer_pago != None %}
+              S/ {{ m.primer_pago }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <td>
+            {% if m.precio_final != None %}
+              S/ {{ m.precio_final }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <td>
+            {% if m.porcentaje != None %}
+              {{ m.porcentaje }}%
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <td>
+            {% if m.fecha_inscripcion %}
+              {{ m.fecha_inscripcion|date:"d/m/Y" }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <!-- ✅ (1) Saldo pendiente -->
+          <td>
+            {% if m.saldo_pendiente != None %}
+              S/ {{ m.saldo_pendiente }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <!-- ✅ (2) Asesor(a) -->
+          <td>
+            {% if m.registrada_por %}
+              {{ m.registrada_por.get_full_name|default:m.registrada_por.username }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <!-- ✅ (3) Manual -->
+          <td class="text-center">
+            <form method="post" action="{% url 'toggle_kit_matricula' m.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="tipo" value="manual">
+              <button type="submit"
+                class="btn btn-sm {% if m.kit and m.kit.manual_entregado %}btn-success{% else %}btn-outline-secondary{% endif %}">
+                {% if m.kit and m.kit.manual_entregado %}
+                  ✅ Entregado
+                {% else %}
+                  Marcar
+                {% endif %}
+              </button>
+            </form>
+
+            {% if m.kit and m.kit.manual_entregado_en %}
+              <div class="small text-muted mt-1">
+                {{ m.kit.manual_entregado_en|date:"d/m/Y H:i" }}
+              </div>
+            {% endif %}
+          </td>
+
+          <!-- ✅ (4) Video -->
+          <td class="text-center">
+            <form method="post" action="{% url 'toggle_kit_matricula' m.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="tipo" value="video">
+              <button type="submit"
+                class="btn btn-sm {% if m.kit and m.kit.video_enviado %}btn-success{% else %}btn-outline-secondary{% endif %}">
+                {% if m.kit and m.kit.video_enviado %}
+                  ✅ Enviado
+                {% else %}
+                  Marcar
+                {% endif %}
+              </button>
+            </form>
+
+            {% if m.kit and m.kit.video_enviado_en %}
+              <div class="small text-muted mt-1">
+                {{ m.kit.video_enviado_en|date:"d/m/Y H:i" }}
+              </div>
+            {% endif %}
+          </td>
+
+          <!-- ✅ (5) Acciones -->
+          <td class="text-nowrap">
             <a href="{% url 'editar_matricula' m.id %}" class="btn btn-sm btn-warning">Editar</a>
-            <a href="{% url 'eliminar_matricula' m.id %}" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta matrícula?')">Eliminar</a>
+            <a href="{% url 'eliminar_matricula' m.id %}" class="btn btn-sm btn-danger"
+               onclick="return confirm('¿Estás seguro de eliminar esta matrícula?')">Eliminar</a>
+            <a href="{% url 'marcar_truncado' m.id %}" class="btn btn-sm btn-outline-danger">
+              Truncado
+            </a>
           </td>
         </tr>
         {% endfor %}
@@ -57,31 +227,28 @@
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 
     <script>
-        $(document).ready(function () {
-            var table = $('#matriculasTable').DataTable({
-                "paging": true,
-                "searching": true,
-                "ordering": true,
-                "language": {
-                    "lengthMenu": "Mostrar _MENU_ registros por página",
-                    "zeroRecords": "No se encontraron registros",
-                    "info": "Mostrando página _PAGE_ de _PAGES_",
-                    "search": "Buscar:",
-                    "paginate": {
-                        "previous": "Anterior",
-                        "next": "Siguiente"
-                    }
-                },
-                "dom": '<"row"<"col-sm-6"l><"col-sm-6"f>>' +
-                       '<"row"<"col-sm-12"tr>>' +
-                       '<"row"<"col-sm-6"i><"col-sm-6"p>>'
-            });
-
-            $('#filtroCurso').on('change', function () {
-                var curso = $(this).val();
-                table.column(1).search(curso).draw();  // La columna 1 es "Curso"
-            });
+      $(document).ready(function () {
+        var table = $('#matriculasTable').DataTable({
+          paging: true,
+          searching: true,
+          ordering: true,
+          language: {
+            lengthMenu: "Mostrar _MENU_ registros por página",
+            zeroRecords: "No se encontraron registros",
+            info: "Mostrando página _PAGE_ de _PAGES_",
+            search: "Buscar:",
+            paginate: { previous: "Anterior", next: "Siguiente" }
+          },
+          dom: '<"row"<"col-sm-6"l><"col-sm-6"f>>' +
+               '<"row"<"col-sm-12"tr>>' +
+               '<"row"<"col-sm-6"i><"col-sm-6"p>>'
         });
+
+        $('#filtroCurso').on('change', function () {
+          var curso = $(this).val();
+          table.column(1).search(curso).draw(); // columna 1 = Curso
+        });
+      });
     </script>
   </div>
 </body>

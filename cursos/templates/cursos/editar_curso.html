@@ -1,0 +1,16 @@
+
+{% block content %}
+<div class="container mt-4" style="max-width:700px;">
+  <h3 class="mb-3">Editar curso</h3>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary">Guardar cambios</button>
+      <a href="{% url 'lista_cursos' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -6,10 +6,10 @@ from django.contrib.auth.models import User
 
 from .views import (
     # Administración
-    menu_admin, dashboard, obtener_datos_dashboard, export_dashboard_excel,
+    menu_admin, dashboard, datos_dashboard, export_dashboard_excel,
 
     # Cursos
-    crear_curso, lista_cursos,
+    crear_curso, lista_cursos, editar_curso, eliminar_curso,
 
     # Alumnos
     registrar_alumnos, lista_alumnos,
@@ -30,7 +30,13 @@ from .views import (
 
     eventos_json, actualizar_tareas_vencidas, tareas_vencidas, registrar_asistencia_unidad,
 
-    tareas_completadas, reprogramar_tarea, exportar_tareas_completadas, pagina_pagos, pagar_cuota, egresados, generar_certificado
+    tareas_completadas, reprogramar_tarea, exportar_tareas_completadas, pagina_pagos, pagar_cuota, egresados, generar_certificado,
+
+    pagar_reprogramacion, historial_pagos, pagar_reprogramacion_pagos, exportar_historial_pagos_excel, catalogo_servicios, editar_servicio
+
+    , servicios_listar_crear, servicios_editar, servicios_toggle_activo, toggle_kit_matricula
+
+    , reporte_caja, marcar_truncado
 )
 
 def crear_usuario_admin(request):
@@ -51,6 +57,8 @@ urlpatterns = [
     # Cursos
     path('crear_curso/', crear_curso, name='crear_curso'),
     path('lista_cursos/', lista_cursos, name='lista_cursos'),
+    path("editar_curso/<int:curso_id>/", editar_curso, name="editar_curso"),
+    path("eliminar_curso/<int:curso_id>/", eliminar_curso, name="eliminar_curso"),
 
     # Alumnos
     path('registrar_alumnos/', registrar_alumnos, name='registrar_alumnos'),
@@ -97,6 +105,18 @@ urlpatterns = [
     path(
     "generar-certificado/<int:matricula_id>/",
     generar_certificado,
-    name="generar_certificado"
-),
+    name="generar_certificado"),
+    path("pagar-reprogramacion/", pagar_reprogramacion, name="pagar_reprogramacion"),
+    path("historial-pagos/", historial_pagos, name="historial_pagos"),
+    path("pagar-reprogramacion-pagos/<int:reprog_id>/", pagar_reprogramacion_pagos, name="pagar_reprogramacion_pagos"),
+    path("exportar-historial-pagos-excel/", exportar_historial_pagos_excel, name="exportar_historial_pagos_excel"),
+    path("catalogo-servicios/", catalogo_servicios, name="catalogo_servicios"),
+    path("catalogo-servicios/editar/<int:servicio_id>/", editar_servicio, name="editar_servicio"),
+    path("servicios/", servicios_listar_crear, name="servicios_gestion"),
+    path("servicios/<int:servicio_id>/editar/", servicios_editar, name="servicios_editar"),
+    path("servicios/<int:servicio_id>/toggle/", servicios_toggle_activo, name="servicios_toggle"),
+    path("matriculas/<int:matricula_id>/kit-toggle/", toggle_kit_matricula, name="toggle_kit_matricula"),
+    path("reporte-caja/", reporte_caja, name="reporte_caja"),
+    path("datos-dashboard/", datos_dashboard, name="datos_dashboard"),
+    path("matriculas/<int:matricula_id>/truncado/", marcar_truncado, name="marcar_truncado"),
 ]

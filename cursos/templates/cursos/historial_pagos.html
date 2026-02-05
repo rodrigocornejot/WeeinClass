@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Historial de Pagos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container py-4" style="max-width: 1100px;">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="mb-0">🧾 Historial de Pagos</h3>
+      <div class="text-muted">Pagos realizados, fechas, montos, método y asesora</div>
+    </div>
+
+    <div class="d-flex gap-2">
+      {% if alumno %}
+        <a href="?dni={{ dni }}&matricula_id={{ matricula_id }}&export=1"
+           class="btn btn-success btn-sm fw-semibold">
+          ⬇ Exportar Excel
+        </a>
+      {% endif %}
+
+      <a href="{% url 'menu_admin' %}" class="btn btn-outline-secondary btn-sm">
+        ← Volver
+      </a>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Buscar por DNI</label>
+          <input type="text" name="dni" class="form-control"
+                 value="{{ dni }}" placeholder="Ej: 74326879" required>
+        </div>
+
+        {% if matriculas and matriculas.count > 1 %}
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Elegir curso / matrícula</label>
+          <select name="matricula_id" class="form-select">
+            {% for m in matriculas %}
+              <option value="{{ m.id }}" {% if matricula and m.id == matricula.id %}selected{% endif %}>
+                {{ m.curso.nombre }} — {{ m.get_tipo_horario_display }} — {{ m.fecha_inscripcion|date:"d/m/Y" }}
+              </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Elige el curso para ver el historial de pagos de esa matrícula.</div>
+        </div>
+        {% endif %}
+
+        <div class="col-md-3">
+          <button class="btn btn-primary w-100">Buscar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if dni and not alumno %}
+    <div class="alert alert-warning">
+      No se encontró alumno con DNI <strong>{{ dni }}</strong>.
+    </div>
+  {% endif %}
+
+  {% if alumno %}
+    <div class="alert alert-info d-flex justify-content-between align-items-center">
+      <div>👤 <strong>{{ alumno.nombre }}</strong> (DNI: {{ alumno.dni }})</div>
+      <div class="d-flex gap-2">
+        <span class="badge bg-dark">{{ matriculas.count }} curso(s)</span>
+        <span class="badge bg-success">Total general pagado: S/ {{ total_general }}</span>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if matricula %}
+    <div class="card mb-3">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-semibold">{{ matricula.curso.nombre }}</div>
+          <div class="text-muted small">
+            {{ matricula.get_tipo_horario_display }} • Inscripción: {{ matricula.fecha_inscripcion|date:"d/m/Y" }}
+          </div>
+        </div>
+        <div class="fw-bold">Total pagado en este curso: S/ {{ total_curso }}</div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if alumno %}
+
+    {# ======================= #}
+    {# ✅ CUADRO 1: MATRÍCULAS #}
+    {# ======================= #}
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white fw-semibold">
+        📚 Pagos de matrícula
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle text-center mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>Fecha / Registro</th>
+                <th>Curso</th>
+                <th>Concepto</th>
+                <th>Método</th>
+                <th>Monto</th>
+                <th>Asesora</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if pagos_matricula %}
+                {% for p in pagos_matricula %}
+                <tr>
+                  <td>
+                    {% if p.fecha_pago_real %}
+                      {{ p.fecha_pago_real|date:"d/m/Y" }}
+                    {% else %}
+                      —
+                    {% endif %}
+                    <br>
+                    <small class="text-muted">{{ p.creado_en|date:"d/m/Y H:i" }}</small>
+                  </td>
+
+                  <td>
+                    {% if p.matricula %}
+                      {{ p.matricula.curso.nombre }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+
+                  <td>{{ p.get_concepto_display }}</td>
+
+                  <td>
+                    {% if p.metodo_pago %}
+                      {{ p.get_metodo_pago_display }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+
+                  <td class="fw-semibold">S/ {{ p.monto }}</td>
+
+                  <td>
+                    {% if p.registrado_por %}
+                      {{ p.registrado_por.get_full_name|default:p.registrado_por.username }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="text-muted py-4">
+                    No hay pagos de matrícula registrados.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {# ============================ #}
+    {# ✅ CUADRO 2: SERVICIOS EXTRA  #}
+    {# ============================ #}
+    <div class="card">
+      <div class="card-header bg-success text-white fw-semibold">
+        🧾 Servicios adicionales
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle text-center mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>Fecha / Registro</th>
+                <th>Servicio</th>
+                <th>Concepto</th>
+                <th>Método</th>
+                <th>Monto</th>
+                <th>Asesora</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if pagos_servicios %}
+                {% for p in pagos_servicios %}
+                <tr>
+                  <td>
+                    {% if p.fecha_pago_real %}
+                      {{ p.fecha_pago_real|date:"d/m/Y" }}
+                    {% else %}
+                      —
+                    {% endif %}
+                    <br>
+                    <small class="text-muted">{{ p.creado_en|date:"d/m/Y H:i" }}</small>
+                  </td>
+
+                  <td>
+                    {{ p.detalle|default:"Servicio adicional" }}
+                  </td>
+
+                  <td>
+                    {% if p.concepto %}
+                      {{ p.get_concepto_display }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    {% if p.metodo_pago %}
+                      {{ p.get_metodo_pago_display }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+
+                  <td class="fw-semibold">S/ {{ p.monto }}</td>
+
+                  <td>
+                    {% if p.registrado_por %}
+                      {{ p.registrado_por.get_full_name|default:p.registrado_por.username }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="text-muted py-4">
+                    No hay servicios adicionales registrados.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  {% endif %}
+
+</div>
+</body>
+</html>

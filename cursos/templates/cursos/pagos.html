@@ -86,7 +86,7 @@
   {% endif %}
 
   {% if matricula %}
-    {% if matricula.saldo_pendiente > 0 %}
+    {% if saldo_con_reprogramaciones != None and saldo_con_reprogramaciones > 0 %}
       <div class="alert alert-danger shadow-soft">⚠ Alumno con pagos pendientes</div>
     {% else %}
       <div class="alert alert-success shadow-soft">✅ Alumno al día en sus pagos</div>
@@ -103,7 +103,7 @@
             </div>
           </div>
 
-          {% if matricula.saldo_pendiente > 0 %}
+          {% if saldo_con_reprogramaciones != None and saldo_con_reprogramaciones > 0 %}
             <span class="badge text-bg-danger">PENDIENTE</span>
           {% else %}
             <span class="badge text-bg-success">AL DÍA</span>
@@ -146,11 +146,89 @@
         </div>
 
         <div class="mt-3 d-flex justify-content-between">
-          <span class="fw-semibold">Saldo pendiente</span>
+          <span class="fw-semibold">Saldo pendiente (curso)</span>
           <span class="fw-bold text-danger">S/ {{ matricula.saldo_pendiente }}</span>
         </div>
+
+        {% if total_reprogramaciones_pendientes and total_reprogramaciones_pendientes > 0 %}
+        <div class="mt-2 d-flex justify-content-between">
+          <span class="fw-semibold">Reprogramaciones pendientes</span>
+          <span class="fw-bold text-danger">S/ {{ total_reprogramaciones_pendientes }}</span>
+        </div>
+        {% endif %}
+
+        {% if saldo_con_reprogramaciones != None %}
+        <div class="mt-2 d-flex justify-content-between">
+          <span class="fw-semibold">Saldo total (incluye reprogramaciones)</span>
+          <span class="fw-bold text-danger">S/ {{ saldo_con_reprogramaciones }}</span>
+        </div>
+        {% endif %}
       </div>
     </div>
+
+    <!-- ✅ Reprogramaciones pendientes -->
+    {% if reprogramaciones_pendientes %}
+    <div class="card card-rounded shadow-soft border-0 mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="h5 mb-0">🔁 Reprogramaciones pendientes</div>
+          <div class="text-muted small">Estas reprogramaciones requieren pago antes de aplicar el cambio.</div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle text-center">
+            <thead class="table-dark">
+              <tr>
+                <th>Clase</th>
+                <th>Fecha anterior</th>
+                <th>Nueva fecha</th>
+                <th>Monto</th>
+                <th style="width: 280px;">Pagar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in reprogramaciones_pendientes %}
+              <tr>
+                <td class="fw-semibold">#{{ r.clase.id }}</td>
+                <td>{{ r.fecha_anterior }}</td>
+                <td class="fw-semibold">{{ r.fecha_nueva }}</td>
+                <td class="fw-bold text-danger">S/ {{ r.monto }}</td>
+                <td>
+                  {% if r.id %}
+                  <form method="post"
+                        action="{% url 'pagar_reprogramacion_pagos' r.id %}"
+                        class="d-flex gap-2 justify-content-center align-items-center">
+                    {% csrf_token %}
+                    <input type="hidden" name="dni" value="{{ dni }}">
+                    <input type="hidden" name="matricula_id" value="{{ matricula.id }}">
+
+                    <select name="metodo_pago" class="form-select form-select-sm" style="width: 140px;" required>
+                      <option value="">Método</option>
+                      <option value="yape">Yape</option>
+                      <option value="plin">Plin</option>
+                      <option value="izipay">Izipay</option>
+                      <option value="interbank">Interbank</option>
+                      <option value="culqi">Culqi</option>
+                      <option value="efectivo">Efectivo</option>
+                    </select>
+
+                    <button type="submit" class="btn btn-sm btn-success fw-semibold">
+                      Pagar
+                    </button>
+                  </form>
+                  {% else %}
+                    <span class="text-danger">ID inválido</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+    {% endif %}
 
     <!-- Cuotas -->
     <div class="card card-rounded shadow-soft border-0">
@@ -168,7 +246,7 @@
                 <th>Monto</th>
                 <th>Pagado</th>
                 <th>Saldo</th>
-                <th style="width: 260px;">Registrar pago</th>
+                <th style="width: 360px;">Registrar pago</th>
               </tr>
             </thead>
             <tbody>
@@ -183,21 +261,37 @@
                     {% if cuota.esta_pagada %}
                       <span class="badge text-bg-success">Pagada</span>
                     {% else %}
+                      <!-- ✅ ESTE FORM ES PARA CUOTAS (NO reprogramaciones) -->
                       <form method="post"
                             action="{% url 'pagar_cuota' cuota.id %}"
-                            class="d-flex gap-2 justify-content-center">
+                            class="d-flex gap-2 justify-content-center align-items-center">
                         {% csrf_token %}
+
                         <input type="hidden" name="dni" value="{{ dni }}">
                         <input type="hidden" name="matricula_id" value="{{ matricula.id }}">
 
+                        <select name="metodo_pago"
+                                class="form-select form-select-sm"
+                                style="width: 120px;"
+                                required>
+                          <option value="">Método</option>
+                          <option value="yape">Yape</option>
+                          <option value="plin">Plin</option>
+                          <option value="izipay">Izipay</option>
+                          <option value="interbank">Interbank</option>
+                          <option value="culqi">Culqi</option>
+                          <option value="efectivo">Efectivo</option>
+                        </select>
+
                         <input type="number"
-                               name="monto"
-                               step="0.01"
-                               min="0.01"
-                               max="{{ cuota.saldo_cuota }}"
-                               class="form-control form-control-sm"
-                               style="width: 110px;"
-                               placeholder="Monto">
+                              name="monto"
+                              step="0.01"
+                              min="0.01"
+                              max="{{ cuota.saldo_cuota }}"
+                              class="form-control form-control-sm"
+                              style="width: 110px;"
+                              placeholder="Monto"
+                              required>
 
                         <button type="submit" class="btn btn-sm btn-success fw-semibold">
                           Pagar

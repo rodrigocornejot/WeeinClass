@@ -3,44 +3,17 @@ from django.db.models import Q
 from django.contrib.postgres.forms import SimpleArrayField
 from django.contrib.postgres.fields import ArrayField
 from .models import DAY_CHOICES
-from .models import Curso, Nota, Alumno, Matricula, Tarea, Pago
+from .models import Curso, Nota, Alumno, Matricula, Tarea, ServicioExtra, CategoriaServicio, VentaServicio, Pago
 from django.forms.widgets import DateInput, TimeInput
-
+from .models import Curso, CURSO_CHOICES 
 
 class CursoForm(forms.ModelForm):
-    # Hacemos que el campo nombre sea un CharField para ingresar el nombre del curso manualmente
-    nuevo_curso = forms.CharField(
-        max_length=100,
-        required=False,
-        label="Nuevo Curso",
-        widget=forms.TextInput(attrs={'placeholder': 'Escribe un nuevo curso'})
-    )
-    # Usamos el widget DateInput para mostrar el calendario
     fecha = forms.DateField(widget=DateInput(attrs={'type': 'date'}), required=True)
-
-    # Usamos el widget TimeInput para mostrar un reloj para la hora
     horario = forms.TimeField(widget=TimeInput(attrs={'type': 'time'}), required=True)
 
     class Meta:
         model = Curso
         fields = ['nombre', 'fecha', 'horario', 'duracion', 'profesor']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        cursos_existentes = Curso.objects.values_list('nombre', 'nombre')
-        self.fields['nombre'] = forms.ChoiceField(
-            choices=[('', 'Selecciona un curso')] + list(cursos_existentes),
-            required=False,
-        )
-    def clean(self):
-        cleaned_data = super().clean()
-        nombre_existente = cleaned_data.get('nombre')  # Esto es lo que el usuario escribe o selecciona
-        nuevo_nombre = cleaned_data.get('nuevo_curso')
-        # Si no se ingresa un nombre ni un curso nuevo, mostrar error
-        if not nombre_existente and not nuevo_nombre:
-            raise forms.ValidationError("Debes escribir el nombre de un curso")
-
-        return cleaned_data
 
 DAY_CHOICES = [
     ('lunes', 'Lunes'),
@@ -145,3 +118,23 @@ class PagoCuotaForm(forms.Form):
     monto = forms.DecimalField(min_value=0.01, decimal_places=2, max_digits=8)
     fecha_pago = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
     metodo_pago = forms.ChoiceField(choices=Pago.METODO_PAGO_CHOICES)
+
+class CategoriaServicioForm(forms.ModelForm):
+    class Meta:
+        model = CategoriaServicio
+        fields = ["nombre", "activo"]
+
+class ServicioForm(forms.ModelForm):
+    class Meta:
+        model = ServicioExtra
+        fields = ["nombre", "precio", "activo"]
+        widgets = {
+            "nombre": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ej: Manual PLC Nivel 1"}),
+            "precio": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "activo": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+class VentaServicioForm(forms.ModelForm):
+    class Meta:
+        model = VentaServicio
+        fields = ["servicio", "cantidad", "metodo_pago", "fecha_pago_real"]

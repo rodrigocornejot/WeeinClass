@@ -10,12 +10,22 @@ from django.db.models import Sum
 from decimal import Decimal
 
 CURSO_CHOICES = (
-    ('PLC NIVEL 1', 'PLC NIVEL 1'),
-    ('PLC NIVEL 2', 'PLC NIVEL 2'),
-    ('INSTRUMENTACION INDUSTRIAL', 'INSTRUMENTACION INDUSTRIAL'),
-    ('VARIADORES DE FRECUENCIA', 'VARIADORES DE FRECUENCIA'),
-    ('PLC LOGO! V8', 'PLC LOGO! V8'),
-    ('REDES INDUSTRIALES', 'REDES INDUSTRIALES'),
+    ("VDF", "VARIADORES DE FRECUENCIA"),
+    ("REDES", "REDES INDUSTRIALES"),
+    ("PLC1", "PLC NIVEL 1"),
+    ("PLC2", "PLC NIVEL 2"),
+    ("INST", "INSTRUMENTACION INDUSTRIAL"),
+    ("ELEC_LOGO", "AUTOMATIZACION PARA EL ARRANQUE DE MOTORES ELECTRICOS CON PLC LOGO V8!"),
+    ("LOGO", "AUTOMATIZACION INDUSTRIAL CON PLC LOGO V8!"),
+)
+
+MOTIVO_TRUNCO_CHOICES = (
+    ("horarios", "Horarios"),
+    ("economico", "Económico"),
+    ("salud", "Salud"),
+    ("viaje", "Viaje / Mudanza"),
+    ("insatisfaccion", "Insatisfacción"),
+    ("otro", "Otro"),
 )
 
 DAY_CHOICES = (
@@ -42,6 +52,7 @@ ESTADO_MATRICULA_CHOICES = (
     ('activa', 'Activa'),
     ('finalizada', 'Finalizada'),
     ('cancelada', 'Cancelada'),
+    ('truncado', 'Truncado'),
 )
 
 SEXO_CHOICES = [
@@ -55,7 +66,9 @@ TIPO_HORARIO_CHOICES = (
     ('personalizado', 'Personalizado'),
 )
 
+
 class Curso(models.Model):
+    codigo = models.CharField(max_length=20, unique=True)
     nombre = models.CharField(max_length=255, choices=CURSO_CHOICES)
     fecha = models.DateField()
     fecha_inicio = models.DateField(default=timezone.now)
@@ -69,7 +82,7 @@ class Curso(models.Model):
     )
 
     def __str__(self):
-        return dict(CURSO_CHOICES).get(self.nombre, self.nombre)
+        return self.get_nombre_display()
 
 class Alumno(models.Model):
     nombre = models.CharField(max_length=255)
@@ -145,6 +158,16 @@ class Matricula(models.Model):
 
     fecha_inscripcion = models.DateField(auto_now_add=True)
     certificado_pdf = models.FileField(upload_to="certificados/", null=True, blank=True)
+    registrada_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="matriculas_registradas"
+    )
+    fecha_baja = models.DateField(null=True, blank=True)
+    motivo_trunco = models.CharField(max_length=30, choices=MOTIVO_TRUNCO_CHOICES, null=True, blank=True)
+    razon_trunco = models.TextField(null=True, blank=True) 
 
     def save(self, *args, **kwargs):
     # Convertir fecha si viene como string
@@ -274,11 +297,19 @@ class Pago(models.Model):
         ('culqi', 'Culqi'),
         ('efectivo', 'Efectivo'),
     ]
-
+    alumno = models.ForeignKey(
+        "Alumno",
+        on_delete=models.CASCADE,
+        related_name="pagos_extra",
+        null=True,
+        blank=True,
+    )
     matricula = models.ForeignKey(
         Matricula,
         on_delete=models.CASCADE,
-        related_name='pagos'
+        related_name='pagos',
+        null=True,
+        blank=True,
     )
     cuota = models.ForeignKey('Cuota', on_delete=models.SET_NULL, null=True, blank=True, related_name='pagos')
 
@@ -286,7 +317,7 @@ class Pago(models.Model):
         max_digits=8,
         decimal_places=2
     )
-
+    creado_en = models.DateTimeField(default=timezone.now)
     fecha_pago_real = models.DateField(null=True, blank=True)
 
     metodo_pago = models.CharField(
@@ -309,8 +340,11 @@ class Pago(models.Model):
             ('anticipo', 'Anticipo'),
             ('cuota_1', 'Cuota 1'),
             ('cuota_2', 'Cuota 2'),
+            ('reprogramacion', 'Reprogramación'),
         ]
     )
+    
+    detalle = models.CharField(max_length=200, null=True, blank=True)
 
     registrado_por = models.ForeignKey(
         User,
@@ -324,7 +358,12 @@ class Pago(models.Model):
     )
 
     def __str__(self):
-        return f"{self.matricula.alumno.nombre} - {self.concepto} - S/ {self.monto}"
+        nombre = "—"
+        if self.matricula_id:
+            nombre = self.matricula.alumno.nombre
+        elif self.alumno_id:
+            nombre = self.alumno.nombre
+        return f"{nombre} - {self.concepto} - S/ {self.monto}"
 
 class Cuota(models.Model):
     matricula = models.ForeignKey(
@@ -378,3 +417,117 @@ class Certificado(models.Model):
 
     def __str__(self):
         return f"{self.codigo} - {self.matricula.alumno.nombre} - {self.matricula.curso.nombre}"
+    
+class Reprogramacion(models.Model):
+    SOLICITANTE_CHOICES = (
+        ("WEEIN", "Weein"),
+        ("ALUMNO", "Alumno"),
+    )
+
+    matricula = models.ForeignKey("Matricula", on_delete=models.CASCADE, related_name="reprogramaciones_hist")
+    clase = models.ForeignKey("Clase", on_delete=models.CASCADE, related_name="reprogramaciones_hist")
+
+    fecha_anterior = models.DateField()
+    fecha_nueva = models.DateField()
+
+    solicitante = models.CharField(max_length=10, choices=SOLICITANTE_CHOICES)
+    # quién lo registró (usuario logueado)
+    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Control de cobro
+    monto = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    pagado = models.BooleanField(default=False)
+    pagado_en = models.DateTimeField(null=True, blank=True)
+
+    creado_en = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.matricula_id} {self.solicitante} {self.fecha_anterior} -> {self.fecha_nueva}"
+
+class CategoriaServicio(models.Model):
+    nombre = models.CharField(max_length=80, unique=True)
+    activo = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.nombre
+
+
+class ServicioExtra(models.Model):
+    categoria = models.ForeignKey(
+        CategoriaServicio,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="servicios"
+    )
+    nombre = models.CharField(max_length=120)
+    descripcion = models.TextField(blank=True, null=True)
+    precio = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    activo = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.nombre} (S/ {self.precio})"
+
+
+class VentaServicio(models.Model):
+    alumno = models.ForeignKey("Alumno", on_delete=models.CASCADE, related_name="ventas_servicios")
+    matricula = models.ForeignKey("Matricula", on_delete=models.SET_NULL, null=True, blank=True, related_name="ventas_servicios")
+    servicio = models.ForeignKey(ServicioExtra, on_delete=models.PROTECT, related_name="ventas")
+
+    cantidad = models.PositiveIntegerField(default=1)
+    precio_unitario = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    total = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
+
+    metodo_pago = models.CharField(
+        max_length=30,
+        choices=[
+            ('plin', 'Plin'),
+            ('yape', 'Yape'),
+            ('izipay', 'Izipay'),
+            ('interbank', 'Interbank'),
+            ('culqi', 'Culqi'),
+            ('efectivo', 'Efectivo'),
+        ],
+        null=True,
+        blank=True
+    )
+    fecha_pago_real = models.DateField(null=True, blank=True)
+
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    creado_en = models.DateTimeField(default=timezone.now)
+
+    def save(self, *args, **kwargs):
+        if not self.precio_unitario or self.precio_unitario <= 0:
+            self.precio_unitario = self.servicio.precio
+        self.total = (self.precio_unitario * self.cantidad)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.alumno.nombre} - {self.servicio.nombre} - S/ {self.total}"
+    
+class EntregaKit(models.Model):
+    matricula = models.OneToOneField(
+        "Matricula",
+        on_delete=models.CASCADE,
+        related_name="kit"
+    )
+
+    manual_entregado = models.BooleanField(default=False)
+    manual_entregado_en = models.DateTimeField(null=True, blank=True)
+
+    video_enviado = models.BooleanField(default=False)
+    video_enviado_en = models.DateTimeField(null=True, blank=True)
+
+    actualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    creado_en = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Kit - Matricula #{self.matricula_id}"
