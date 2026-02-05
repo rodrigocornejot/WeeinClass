@@ -1916,38 +1916,23 @@ def wrap_center(text, font_name, font_size, max_width):
 
 @login_required
 def generar_certificado(request, matricula_id):
-
     matricula = get_object_or_404(Matricula, id=matricula_id)
-
     alumno = matricula.alumno
 
-    # ⚠️ Verificar correo
     if not alumno.correo:
-        messages.error(
-            request,
-            "❌ El alumno no tiene correo registrado."
-        )
+        messages.error(request, "❌ El alumno no tiene correo registrado.")
         return redirect("egresados")
 
-    # =========================
-    # 1. Generar PDF (tu lógica)
-    # =========================
+    force_regen = request.GET.get("regen") == "1"
 
-    pdf_path = emitir_certificado_si_corresponde(matricula)
-
-    if not pdf_path or not os.path.exists(pdf_path):
-        messages.error(
-            request,
-            "❌ No se pudo generar el certificado."
-        )
+    cert = verificar_y_generar_certificado(matricula, force_regen=force_regen)
+    if not cert or not cert.archivo_pdf:
+        messages.error(request, "❌ No se pudo generar el certificado (no cumple requisitos o faltan datos).")
         return redirect("egresados")
 
-    # =========================
-    # 2. Enviar correo
-    # =========================
+    pdf_path = cert.archivo_pdf.path  # ✅ ahora sí es un path real
 
     asunto = "🎓 Tu certificado - WeeinClass"
-
     mensaje = f"""
 Hola {alumno.nombre},
 
@@ -1970,25 +1955,16 @@ Equipo WeeinClass
         to=[alumno.correo],
     )
 
-    # Adjuntar PDF
     email.attach_file(pdf_path)
 
     try:
         email.send(fail_silently=False)
-
-        messages.success(
-            request,
-            f"✅ Certificado enviado a {alumno.correo}"
-        )
-
+        messages.success(request, f"✅ Certificado enviado a {alumno.correo}")
     except Exception as e:
-
-        messages.error(
-            request,
-            f"❌ Error enviando correo: {str(e)}"
-        )
+        messages.error(request, f"❌ Error enviando correo: {str(e)}")
 
     return redirect("egresados")
+
 @login_required
 def pagar_reprogramacion(request):
     reprog_id = (request.GET.get("reprogramacion_id") or "").strip()
