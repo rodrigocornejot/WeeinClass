@@ -229,7 +229,11 @@ def generar_pdf_certificado_bytes(matricula, codigo: str, fecha_emision):
     c.drawImage(ImageReader(base_img_path), 0, 0, width=W, height=H, mask="auto")
 
     alumno = (matricula.alumno.nombre or "").strip()
-    curso = (matricula.curso.nombre or "").strip().upper()
+    # ✅ Nombre completo del curso (no abreviado)
+    try:
+        curso = (matricula.curso.get_nombre_display() or "").strip()
+    except Exception:
+        curso = (matricula.curso.nombre or "").strip()
     fecha_txt = fecha_emision.strftime("%d de %B del %Y")  # ejemplo: 29 de enero del 2026
     # ReportLab no traduce meses a español por defecto; si quieres full español, dime y lo ajusto.
     # Por ahora usaremos formato corto para evitar raro:

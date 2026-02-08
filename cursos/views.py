@@ -2,7 +2,7 @@ import json
 import openpyxl
 import traceback
 import calendar
-
+from django.contrib.auth.models import User, Group
 from django.core.paginator import Paginator
 from rest_framework.generics import ListAPIView
 from rest_framework import viewsets
@@ -17,7 +17,7 @@ from django.contrib import messages
 from django import forms
 from .forms import CursoForm, MatriculaAdminForm, MatriculaForm, NotaForm, Pago, ServicioForm
 from django.db.models import Count, Avg, Q, Sum
-from .forms import AlumnoForm
+from .forms import AlumnoForm, UsuarioCreateForm, UsuarioUpdateForm
 from datetime import date, timedelta, datetime
 from django.contrib.auth.forms import AuthenticationForm
 from openpyxl.utils import get_column_letter
@@ -53,6 +53,9 @@ from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 from .models import ServicioExtra, CategoriaServicio, EntregaKit
 from django.core.mail import EmailMessage
+from math import ceil 
+from .decorators import solo_admin, solo_asesora, asesora_o_profesor
+from .forms_users import CrearUsuarioForm
 
 CURSO_COLORES = {
     "INST": "#00B8D9",   # celeste
@@ -177,114 +180,101 @@ def _norm(txt: str) -> str:
     txt = " ".join(txt.split())
     return txt
 
-def curso_codigo_y_sesiones(curso_nombre: str):
-
+def curso_codigo_y_sesiones(curso_nombre: str, curso_obj=None):
     n = _norm(curso_nombre)
 
-    # INSTRUMENTACION
+    # ✅ si ya te guardaron el "nombre" como código (VDF, INST, PLC1...)
+    if n in ("INST", "VDF", "PLC1", "PLC2", "REDES", "LOGO", "ELEC", "ELEC_LOGO", "PLC_LOGO"):
+        # sesiones
+        sesiones = CURSO_SESIONES.get(n, 6)
+        # PLC_LOGO lo tratamos como LOGO
+        if n == "PLC_LOGO":
+            return "LOGO", CURSO_SESIONES.get("LOGO", 5)
+        # ELEC_LOGO lo tratamos como ELEC (color rojo)
+        if n == "ELEC_LOGO":
+            return "ELEC", 5
+        return n if n != "ELEC_LOGO" else "ELEC", sesiones
+
+    # ✅ por nombre largo
     if "INSTRUMENTACION" in n:
         return "INST", 6
 
-    # VARIADORES
     if "VARIADORES" in n or "VDF" in n:
         return "VDF", 6
 
-    # PLC NIVEL 1
     if "PLC" in n and "NIVEL 1" in n:
         return "PLC1", 6
 
-    # PLC NIVEL 2
     if "PLC" in n and "NIVEL 2" in n:
         return "PLC2", 6
 
-    # REDES
     if "REDES" in n:
         return "REDES", 5
-
-    # ARRANQUE LOGO
     if "ARRANQUE" in n and "LOGO" in n:
         return "ELEC", 5
 
-    # INDUSTRIAL LOGO
-    if "INDUSTRIAL" in n and "LOGO" in n:
+    if "LOGO" in n:
+        # incluye PLC LOGO
         return "LOGO", 5
 
-    # ⚠️ FALLBACK
     print("⚠️ Curso no reconocido:", curso_nombre)
-    return "GEN", 6
+    return "INST", 6
 
-
-
+@login_required
+@asesora_o_profesor
 def calendario_matriculas(request):
+    start_str = (request.GET.get("start") or "")[:10]
+    end_str   = (request.GET.get("end") or "")[:10]
+
     clases = (
         Clase.objects
-        .select_related('curso')
-        .prefetch_related('matriculas__alumno')
-        .order_by('fecha')
+        .select_related("curso")
+        .prefetch_related("matriculas__alumno")
+        .order_by("fecha")
     )
+
+    try:
+        if start_str and end_str:
+            start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+            end_date   = datetime.strptime(end_str, "%Y-%m-%d").date()
+            clases = clases.filter(fecha__gte=start_date, fecha__lt=end_date)
+    except ValueError:
+        pass
 
     eventos = []
 
     for clase in clases:
-        # ✅ 1) nombre real (puede ser largo)
         nombre_curso = (clase.curso.nombre or "").strip()
 
-        # ✅ 2) tu función traduce a código (INST/PLC1/REDES/LOGO/ELEC/VDF/...)
-        codigo, _ = curso_codigo_y_sesiones(nombre_curso)
+        # ✅ usa curso_obj para que respete curso.codigo si existe
+        codigo, _ = curso_codigo_y_sesiones(nombre_curso, curso_obj=clase.curso)
 
-        # ✅ 3) color SIEMPRE por código
         color = CURSO_COLORES.get(codigo, "#0d6efd")
 
-        # ✅ No mandar eventos sin matrícula
+        # si no hay matrículas, no hay evento
         if not clase.matriculas.exists():
             continue
 
-        # ✅ No mostrar truncados/retirados
-        matriculas_visibles = clase.matriculas.exclude(estado__in=["truncado", "retirada"])
-        if not matriculas_visibles.exists():
-            continue
-
-        for matricula in matriculas_visibles:
-            asistencia = (
-                AsistenciaUnidad.objects
-                .select_related("unidad")
-                .filter(matricula=matricula, clase=clase)
-                .first()
-            )
-
-            sesion_num = asistencia.unidad.numero if asistencia else None
-            sesion_tema = asistencia.unidad.nombre_tema if asistencia else ""
-
-            # ✅ Título con sesión y tema
-            if sesion_num:
-                titulo = f"{codigo} - {matricula.alumno.nombre}"
-            else:
-                titulo = f"{codigo} - {matricula.alumno.nombre}"
-
+        for matricula in clase.matriculas.all():
             eventos.append({
                 "id": f"clase-{clase.id}-mat-{matricula.id}",
-                "title": titulo,
-                "start": clase.fecha.strftime('%Y-%m-%d'),
+                "title": f"{codigo} - {matricula.alumno.nombre}",
+                "start": clase.fecha.strftime("%Y-%m-%d"),
                 "color": color,
                 "textColor": "black",
+
+                # ✅ ESTO ES LO QUE TE FALTABA (para el click)
                 "extendedProps": {
                     "clase_id": clase.id,
                     "matricula_id": matricula.id,
-
-                    # ✅ Aquí manda el nombre completo para el modal/lectura humana
-                    "curso": nombre_curso,
-
-                    # ✅ Y aparte el código
-                    "curso_codigo": codigo,
-
+                    "curso": clase.curso.nombre,
                     "alumno": matricula.alumno.nombre,
-                    "tipo_horario": matricula.get_tipo_horario_display(),
-                    "sesion_num": sesion_num,
-                    "sesion_tema": sesion_tema,
                 }
             })
 
+    print("EVENTOS DEVUELTOS:", len(eventos))
     return JsonResponse(eventos, safe=False)
+
 
 
 # Formulario de login (puedes usar el AuthenticationForm de Django, pero aquí un ejemplo sencillo)
@@ -300,28 +290,42 @@ def mi_login_view(request):
             user = form.get_user()
             login(request, user)
 
+            grupos = list(user.groups.values_list("name", flat=True))
             print("Usuario autenticado:", user.username)
-            print("Grupos:", list(user.groups.values_list("name", flat=True)))
+            print("Grupos:", grupos)
 
-            # Redirigir según rol
-            if user.is_superuser or user.groups.filter(name='Administradores').exists():
-                print("Redirigiendo a: menu_admin")
+            # ✅ ADMIN (soporta ambos nombres)
+            if user.is_superuser or user.groups.filter(name__in=["Admin", "Administradores"]).exists():
+                print("Redirigiendo a: menu_admin (admin)")
                 return redirect("menu_admin")
-            elif user.groups.filter(name='Profesores').exists():
+
+            # ✅ ASESORA
+            if user.groups.filter(name="Asesora").exists():
+                print("Redirigiendo a: menu_admin (asesora)")
+                return redirect("menu_admin")
+
+            # ✅ PROFESOR (soporta ambos nombres)
+            if user.groups.filter(name__in=["Profesor", "Profesores"]).exists():
                 print("Redirigiendo a: menu_admin (profesor)")
                 return redirect("menu_admin")
-            elif user.groups.filter(name='Marketing').exists():
+
+            # ✅ MARKETING
+            if user.groups.filter(name="Marketing").exists():
                 print("Redirigiendo a: menu_admin (marketing)")
                 return redirect("menu_admin")
-            else:
-                print("Redirigiendo a: home")
-                return redirect("home")
+
+            # ✅ fallback (si no tiene grupo)
+            print("Redirigiendo a: menu_admin (fallback)")
+            return redirect("menu_admin")
+
         else:
             print("Formulario invalido")
             print(form.errors)
             return render(request, "registration/login.html", {"form": form})
+
     else:
         form = AuthenticationForm()
+
     return render(request, "registration/login.html", {"form": form})
 
 def es_profesor_o_recepcion(user):
@@ -359,24 +363,43 @@ def es_admin(user):
 
 @login_required
 def menu_admin(request):
-    grupo_usuario = request.user.groups.first()
+    user = request.user
 
-    if grupo_usuario:
-        if grupo_usuario.name == 'Profesores':
-            tareas = Tarea.objects.filter(area_asignada__nombre='Profesores')
-        elif grupo_usuario.name == 'Marketing':
-            pendientes = Tarea.objects.filter(area_asignada__nombre='Marketing')
-        else:
-            tareas = Tarea.objects.all()
+    es_admin = (
+        user.is_superuser
+        or user.groups.filter(name__in=["Admin", "Administradores"]).exists()
+    )
 
-    return render(request, 'menu_admin.html', {
-        'tareas': tareas,
-        'es_profesor': grupo_usuario.name == 'Profesores' if grupo_usuario else False,
-        'es_marketing': grupo_usuario.name == 'Marketing' if grupo_usuario else False,
+    es_profesor = user.groups.filter(name__in=["Profesor", "Profesores"]).exists()
+
+    es_asesora = user.groups.filter(name__in=["Asesora", "Recepcion", "Recepción"]).exists()
+
+    es_marketing = user.groups.filter(name="Marketing").exists()
+
+    # fallback
+    if not (es_admin or es_profesor or es_asesora or es_marketing):
+        es_asesora = True
+
+    print("🧪 DEBUG MENU_ADMIN")
+    print("user:", user.username)
+    print("is_superuser:", user.is_superuser)
+    print("groups:", list(user.groups.values_list("name", flat=True)))
+    print("flags:", {
+        "es_admin": es_admin,
+        "es_profesor": es_profesor,
+        "es_asesora": es_asesora,
+        "es_marketing": es_marketing,
     })
-    return render(request, 'cursos/menu_admin.html', context)
+
+    return render(request, "cursos/menu_admin.html", {
+        "es_admin": es_admin,
+        "es_profesor": es_profesor,
+        "es_asesora": es_asesora,
+        "es_marketing": es_marketing,
+    })
 
 @login_required
+@solo_asesora
 def crear_curso(request):
     if request.method == 'POST':
         print("Datos recibidos en POST:", request.POST)
@@ -403,10 +426,15 @@ def crear_curso(request):
             # ✅ Generar código base por nombre
             codigo_base = CODIGO_POR_CURSO.get(nombre)
 
-            # fallback si no está en el mapa
             if not codigo_base:
-                # ejemplo: "CURSO" + id (simple)
-                codigo_base = "CURSO"
+                codigo_base, _ = curso_codigo_y_sesiones(nombre)
+
+            # LOGO/PLC_LOGO y ELEC_LOGO/ELEC
+            if codigo_base == "PLC_LOGO":
+                codigo_base = "LOGO"
+            if codigo_base == "ELEC_LOGO":
+                codigo_base = "ELEC"
+
 
             # ✅ Asegurar código único: si existe, agregar sufijo -2, -3...
             codigo_final = codigo_base
@@ -489,8 +517,8 @@ def lista_matriculas(request):
         "cursos": cursos
     })
 
-@user_passes_test(es_profesor_o_recepcion)
 @login_required
+@asesora_o_profesor
 def registrar_asistencia_unidad(request):
     cursos = Curso.objects.all().order_by("nombre")
 
@@ -736,21 +764,19 @@ CURSO_SESIONES = {
 
     "REDES": 5,
     "LOGO": 5,
-    "ELEC_LOGO": 5,
+    "ELEC": 5,
 }
 
-
 def asegurar_unidades_curso(curso):
-    # ✅ 1) valor real guardado en DB (código si usas choices)
-    key_db = (curso.nombre or "").strip().upper()
+    # ✅ prioridad: el código real guardado en DB
+    codigo = (getattr(curso, "codigo", "") or "").strip().upper()
 
-    # ✅ 2) texto visible (label de choices)
-    try:
-        key_display = (curso.get_nombre_display() or "").strip().upper()
-    except Exception:
-        key_display = ""
+    # fallback: tratar de sacar el código por nombre
+    if not codigo:
+        nombre = (getattr(curso, "nombre", "") or "").strip()
+        codigo, _ = curso_codigo_y_sesiones(nombre, curso_obj=curso)
 
-    total = CURSO_SESIONES.get(curso.codigo, 6) or CURSO_SESIONES.get(key_display) or 6
+    total = CURSO_SESIONES.get(codigo, 6)
 
     existentes = list(UnidadCurso.objects.filter(curso=curso).order_by("numero"))
 
@@ -764,7 +790,7 @@ def asegurar_unidades_curso(curso):
             )
         return list(UnidadCurso.objects.filter(curso=curso).order_by("numero"))
 
-    # Si sobran, borrar las sobrantes (ej: REDES con 6 -> borrar 6)
+    # Si sobran, borrar las sobrantes
     if len(existentes) > total:
         UnidadCurso.objects.filter(curso=curso, numero__gt=total).delete()
 
@@ -784,6 +810,7 @@ def asegurar_unidades_curso(curso):
     return list(UnidadCurso.objects.filter(curso=curso).order_by("numero"))
 
 @login_required
+@solo_asesora
 def registrar_matricula(request):
     alumno = None
     dni = request.GET.get('dni') or request.POST.get('dni', '')
@@ -791,200 +818,212 @@ def registrar_matricula(request):
     if dni:
         alumno = Alumno.objects.filter(dni=dni).first()
 
-    if request.method == 'POST':
-        form = MatriculaForm(request.POST)
-
-        if not alumno:
-            form.add_error(None, 'No existe un alumno con ese DNI')
-
-        if form.is_valid() and alumno:
-            matricula = form.save(commit=False)
-            matricula.registrada_por = request.user
-            matricula.alumno = alumno
-
-            # ==============================
-            # 🔵 CÁLCULOS FINANCIEROS
-            # ==============================
-            precio_base = Decimal(matricula.costo_curso or 0)
-            descuento_pct = Decimal(matricula.porcentaje or 0)
-            anticipo = Decimal(matricula.primer_pago or 0)
-
-            descuento_monto = (precio_base * descuento_pct / Decimal('100')).quantize(Decimal('0.01'))
-            precio_final = (precio_base - descuento_monto).quantize(Decimal('0.01'))
-
-            matricula.precio_final = precio_final
-            matricula.saldo_pendiente = (precio_final - anticipo).quantize(Decimal('0.01'))
-
-            matricula.save()
-            EntregaKit.objects.get_or_create(matricula=matricula)
-            form.save_m2m()
-
-            # ==============================
-            # 🟣 CREAR CUOTAS (2) SI NO EXISTEN
-            # ==============================
-            saldo = matricula.saldo_pendiente
-
-            if saldo > 0 and not Cuota.objects.filter(matricula=matricula).exists():
-                monto_cuota = (saldo / Decimal('2')).quantize(Decimal('0.01'))
-                fecha_base = matricula.fecha_inicio or datetime.today().date()
-
-                Cuota.objects.create(
-                    matricula=matricula,
-                    numero=1,
-                    monto=monto_cuota,
-                    monto_pagado=Decimal('0.00'),
-                    fecha_vencimiento=fecha_base + timedelta(days=15),
-                    pagado=False,
-                )
-
-                Cuota.objects.create(
-                    matricula=matricula,
-                    numero=2,
-                    monto=monto_cuota,
-                    monto_pagado=Decimal('0.00'),
-                    fecha_vencimiento=fecha_base + timedelta(days=30),
-                    pagado=False,
-                )
-
-            # ==============================
-            # 🟢 GENERAR FECHAS DE CLASES SEGÚN MÓDULOS (5 o 6)
-            # ==============================
-            fecha_inicio = matricula.fecha_inicio
-            dias = form.cleaned_data.get('dias')  # lista de strings: ['lunes', 'miercoles', ...]
-            fechas_personalizadas = form.cleaned_data.get('fechas_personalizadas')
-
-            # 🔹 Total real según curso
-            TOTAL_SESIONES = SESIONES_POR_CURSO.get(
-                matricula.curso.nombre,
-                6
-            )
-
-            unidades = asegurar_unidades_curso(matricula.curso)
-
-            # ✅ total correcto según el mapa (no según lo que haya “sobrando” en BD)
-            total_unidades = CURSO_SESIONES.get(matricula.curso.nombre, 6)
-
-            # ✅ solo usar unidades 1..total_unidades
-            unidades = list(UnidadCurso.objects.filter(
-                curso=matricula.curso,
-                numero__lte=total_unidades
-            ).order_by("numero"))
-
-            fechas = []
-
-            # ==============================
-            # 🟢 HORARIO PERSONALIZADO
-            # ==============================
-            if fechas_personalizadas:
-                try:
-                    # ejemplo: "2026-01-15, 2026-01-20, 2026-02-10"
-                    for f in fechas_personalizadas.split(','):
-                        fechas.append(datetime.strptime(f.strip(), '%Y-%m-%d').date())
-                except ValueError:
-                    form.add_error(
-                        'fechas_personalizadas',
-                        'Formato incorrecto. Usa YYYY-MM-DD separados por coma.'
-                    )
-                    return render(request, 'cursos/registrar_matricula.html', {
-                        'form': form,
-                        'alumno': alumno,
-                        'dni': dni
-                    })
-
-                # ✅ quitar duplicados y ordenar
-                fechas = sorted(set(fechas))
-
-                # ✅ si mandan más fechas que módulos, solo toma las primeras N
-                fechas = fechas[:total_unidades]
-
-            # ==============================
-            # 🔵 HORARIO NORMAL (FULL / EXTENDIDA)
-            # ==============================
-            else:
-                if not dias:
-                    form.add_error('dias', 'Debe seleccionar al menos un día')
-                    return render(request, 'cursos/registrar_matricula.html', {
-                        'form': form,
-                        'alumno': alumno,
-                        'dni': dni
-                    })
-
-                if not fecha_inicio:
-                    form.add_error('fecha_inicio', 'Debe ingresar una fecha de inicio.')
-                    return render(request, 'cursos/registrar_matricula.html', {
-                        'form': form,
-                        'alumno': alumno,
-                        'dni': dni
-                    })
-
-                dias_map = {
-                    'lunes': 0, 'martes': 1, 'miercoles': 2, 'jueves': 3,
-                    'viernes': 4, 'sabado': 5, 'domingo': 6
-                }
-
-                # Ordenar días por weekday para construir fechas en orden real
-                dias_ordenados = sorted(dias, key=lambda d: dias_map[d])
-
-                # ✅ Crear EXACTAMENTE N fechas (N = módulos del curso)
-                dias_num = sorted({dias_map[d] for d in dias})
-
-                fecha_cursor = fecha_inicio
-
-                while len(fechas) < total_unidades:
-                    if fecha_cursor.weekday() in dias_num:
-                        fechas.append(fecha_cursor)
-
-                    fecha_cursor += timedelta(days=1)
-
-
-            fechas = sorted(fechas)
-
-            # ==============================
-            # 🟠 CREAR CLASES + ASISTENCIAS POR MÓDULO
-            # ==============================
-            # ✅ seguridad: si por alguna razón unidades está vacío, no romper
-            if not unidades:
-                unidades = list(UnidadCurso.objects.filter(curso=matricula.curso).order_by('numero'))
-            # Recalcular total_unidades real
-            total_unidades = min(len(unidades), len(fechas))
-
-            for idx in range(total_unidades):
-                fecha = fechas[idx]
-                unidad = unidades[idx]  # módulo correspondiente (1 con 1ra fecha, etc.)
-
-                # ✅ No duplicar clases por fecha/curso
-                clase, _ = Clase.objects.get_or_create(
-                    curso=matricula.curso,
-                    fecha=fecha
-                )
-                clase.matriculas.add(matricula)
-
-                # ✅ Crear asistencia ligada a esa clase y a ese módulo
-                AsistenciaUnidad.objects.get_or_create(
-                    matricula=matricula,
-                    unidad=unidad,
-                    clase=clase,
-                    defaults={"completado": False}
-                )
-
-            messages.success(request, "✅ Matrícula registrada, clases y asistencias creadas correctamente.")
-            return redirect('vista_calendario')
-
-        else:
-            print("❌ FORM INVALIDO")
-            print(form.errors)
-
-    else:
+    # =========================
+    # GET
+    # =========================
+    if request.method == "GET":
         form = MatriculaForm(initial={
             'dni': dni,
             'alumno_nombre': alumno.nombre if alumno else ''
         })
 
-    return render(request, 'cursos/registrar_matricula.html', {
-        'form': form,
-        'alumno': alumno,
-        'dni': dni
-    })
+        return render(request, 'cursos/registrar_matricula.html', {
+            'form': form,
+            'alumno': alumno,
+            'dni': dni
+        })
+
+    # =========================
+    # POST
+    # =========================
+    form = MatriculaForm(request.POST)
+
+    if not alumno:
+        form.add_error(None, 'No existe un alumno con ese DNI')
+
+    if not form.is_valid() or not alumno:
+        return render(request, 'cursos/registrar_matricula.html', {
+            'form': form,
+            'alumno': alumno,
+            'dni': dni
+        })
+
+    # =========================
+    # GUARDAR MATRÍCULA
+    # =========================
+    matricula = form.save(commit=False)
+    matricula.registrada_por = request.user
+    matricula.alumno = alumno
+
+    precio_base = Decimal(matricula.costo_curso or 0)
+    descuento_pct = Decimal(matricula.porcentaje or 0)
+    anticipo = Decimal(matricula.primer_pago or 0)
+
+    descuento_monto = (precio_base * descuento_pct / Decimal('100')).quantize(Decimal('0.01'))
+    precio_final = (precio_base - descuento_monto).quantize(Decimal('0.01'))
+
+    matricula.precio_final = precio_final
+    matricula.saldo_pendiente = (precio_final - anticipo).quantize(Decimal('0.01'))
+
+    matricula.save()
+    form.save_m2m()
+    EntregaKit.objects.get_or_create(matricula=matricula)
+
+    # =========================
+    # CUOTAS
+    # =========================
+    saldo = matricula.saldo_pendiente
+    if saldo > 0 and not Cuota.objects.filter(matricula=matricula).exists():
+        monto = (saldo / Decimal('2')).quantize(Decimal('0.01'))
+        base = matricula.fecha_inicio or datetime.today().date()
+
+        Cuota.objects.create(
+            matricula=matricula,
+            numero=1,
+            monto=monto,
+            monto_pagado=Decimal('0.00'),
+            fecha_vencimiento=base + timedelta(days=15),
+            pagado=False,
+        )
+        Cuota.objects.create(
+            matricula=matricula,
+            numero=2,
+            monto=monto,
+            monto_pagado=Decimal('0.00'),
+            fecha_vencimiento=base + timedelta(days=30),
+            pagado=False,
+        )
+
+    # =========================
+    # FECHAS + UNIDADES
+    # =========================
+    fecha_inicio = form.cleaned_data.get("fecha_inicio") or matricula.fecha_inicio
+    dias = form.cleaned_data.get("dias") or []
+    fechas_personalizadas = form.cleaned_data.get("fechas_personalizadas")
+
+    # ✅ codigo real del curso (INST/VDF/PLC1...)
+    nombre_curso = (matricula.curso.nombre or "").strip()
+    codigo, total_unidades = curso_codigo_y_sesiones(nombre_curso, curso_obj=matricula.curso)
+
+    # ✅ detectar Full Day
+    raw_tipo = (matricula.tipo_horario or "")
+    tipo = _norm(str(raw_tipo)).replace(" ", "_")  # FULL_DAY, FULLDAY, FULL-DAY, etc
+
+    es_full_day = (
+        tipo in ("FULL_DAY", "FULLDAY", "FULL-DAY")
+        or tipo.startswith("FULL")
+    )
+
+    print("✅ DEBUG tipo_horario RAW:", raw_tipo, "| NORMALIZADO:", tipo, "| es_full_day:", es_full_day)
+
+    sesiones_por_clase = 2 if es_full_day else 1
+    total_clases = ceil(total_unidades / sesiones_por_clase)  # FullDay 6/2 = 3
+
+    # ✅ unidades: si no existen, créalas
+    unidades = list(
+        UnidadCurso.objects.filter(curso=matricula.curso).order_by("numero")
+    )
+    if not unidades:
+        unidades = asegurar_unidades_curso(matricula.curso)
+
+    # recortar a total_unidades
+    unidades = [u for u in unidades if u.numero <= total_unidades]
+    unidades = unidades[:total_unidades]
+
+    fechas = []
+
+    if fechas_personalizadas:
+        try:
+            for f in fechas_personalizadas.split(","):
+                fechas.append(datetime.strptime(f.strip(), "%Y-%m-%d").date())
+        except ValueError:
+            form.add_error('fechas_personalizadas', 'Formato incorrecto. Usa YYYY-MM-DD separados por coma.')
+            return render(request, 'cursos/registrar_matricula.html', {
+                'form': form,
+                'alumno': alumno,
+                'dni': dni
+            })
+
+        fechas = sorted(set(fechas))[:total_clases]
+
+    else:
+        if not fecha_inicio:
+            form.add_error('fecha_inicio', 'Debe ingresar una fecha de inicio.')
+            return render(request, 'cursos/registrar_matricula.html', {
+                'form': form,
+                'alumno': alumno,
+                'dni': dni
+            })
+
+        # ✅ FULL DAY: 1 clase por semana (inicio, +7, +14)
+        if es_full_day:
+            fechas = [fecha_inicio + timedelta(days=7 * i) for i in range(total_clases)]
+        else:
+            if not dias:
+                form.add_error('dias', 'Debe seleccionar al menos un día')
+                return render(request, 'cursos/registrar_matricula.html', {
+                    'form': form,
+                    'alumno': alumno,
+                    'dni': dni
+                })
+
+            dias_map = {
+                'lunes': 0, 'martes': 1, 'miercoles': 2,
+                'jueves': 3, 'viernes': 4,
+                'sabado': 5, 'domingo': 6
+            }
+
+            dias_num = sorted({dias_map[d] for d in dias})
+            cursor = fecha_inicio
+
+            while len(fechas) < total_clases:
+                if cursor.weekday() in dias_num:
+                    fechas.append(cursor)
+                cursor += timedelta(days=1)
+
+    fechas = sorted(fechas)
+
+    print("✅ POST - CURSO:", nombre_curso, "CODIGO:", codigo)
+    print("✅ POST - FECHA_INICIO:", fecha_inicio)
+    print("✅ POST - DIAS:", dias)
+    print("✅ POST - FULL_DAY:", es_full_day, "sesiones_por_clase:", sesiones_por_clase)
+    print("✅ POST - total_unidades:", total_unidades, "total_clases:", total_clases)
+    print("✅ POST - FECHAS:", fechas)
+
+    if not fechas:
+        messages.error(request, "❌ No se generaron fechas de clases. Revisa fecha_inicio y días.")
+        return redirect("vista_calendario")
+
+    # =========================
+    # CREAR CLASES + ASISTENCIAS
+    # =========================
+    unidad_idx = 0
+
+    for fecha in fechas:
+        clase, _ = Clase.objects.get_or_create(
+            curso=matricula.curso,
+            fecha=fecha
+        )
+
+        # ✅ vincular matrícula a la clase
+        clase.matriculas.add(matricula)
+
+        # ✅ 1 o 2 asistencias por clase
+        for _ in range(sesiones_por_clase):
+            if unidad_idx >= len(unidades):
+                break
+
+            unidad = unidades[unidad_idx]
+            AsistenciaUnidad.objects.get_or_create(
+                matricula=matricula,
+                unidad=unidad,
+                clase=clase,
+                defaults={"completado": False}
+            )
+            unidad_idx += 1
+
+    messages.success(request, "✅ Matrícula registrada y clases creadas correctamente.")
+    return redirect("vista_calendario")
 
 @login_required
 def datos_dashboard(request):
@@ -1107,7 +1146,8 @@ def dashboard(request):
     return render(request, "cursos/dashboard.html", context)
 
 
-
+@login_required
+@solo_asesora
 def registrar_alumnos(request):
     if request.method == 'POST':
         nombre=request.POST.get('nombre')
@@ -1439,18 +1479,6 @@ def kanban_marketing(request):
     return render(request, "kanban/kanban_marketing.html")
 
 @login_required
-def menu_admin(request):
-    es_admin = request.user.groups.filter(name='Administradores').exists() or request.user.is_superuser
-    es_profesor = request.user.groups.filter(name='Profesores').exists()
-    es_marketing = request.user.groups.filter(name='Marketing').exists()
-
-    return render(request, 'cursos/menu_admin.html', {
-        'es_admin': es_admin,
-        'es_profesor': es_profesor,
-        'es_marketing': es_marketing,
-    })
-
-@login_required
 def actualizar_fecha_clase(request, clase_id):
 
     if request.method != "POST":
@@ -1663,6 +1691,7 @@ def eliminar_matricula(request, matricula_id):
     return redirect('lista_matriculas')
 
 @login_required
+@solo_asesora
 def pagina_pagos(request):
     dni = (request.GET.get("dni") or "").strip()
     matricula_id = (request.GET.get("matricula_id") or "").strip()
@@ -1850,6 +1879,8 @@ def pagar_cuota(request, cuota_id):
 
     return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={cuota.matricula.id}")
 
+@login_required
+@solo_asesora
 def egresados(request):
     todas = Matricula.objects.select_related("alumno", "curso")
     matriculas = [m for m in todas if puede_generar_certificado(m)]
@@ -2359,7 +2390,10 @@ def editar_servicio(request, servicio_id):
         return redirect("catalogo_servicios")
 
 def _es_admin(user):
-    return user.is_superuser or user.groups.filter(name="Administradores").exists()
+    return (
+        user.is_superuser
+        or user.groups.filter(name__in=["Admin", "Administradores"]).exists()
+    )
 
 @login_required
 def servicios_listar_crear(request):
@@ -2652,3 +2686,87 @@ def alumnos_no_terminaron(request):
     qs = qs.filter(fecha_inicio__isnull=False, fecha_inicio__lte=hoy)
 
     return render(request, "cursos/no_terminaron.html", {"matriculas": qs})
+
+@login_required
+def crear_usuario(request):
+    if not _es_admin(request.user):
+        messages.error(request, "No tienes permisos para crear usuarios.")
+        return redirect("menu_admin")
+
+    if request.method == "POST":
+        form = UsuarioCreateForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "✅ Usuario creado correctamente.")
+            return redirect("lista_usuarios")
+    else:
+        form = UsuarioCreateForm()
+
+    return render(request, "cursos/crear_usuario.html", {"form": form})
+
+@login_required
+def lista_usuarios(request):
+    if not _es_admin(request.user):
+        messages.error(request, "No tienes permisos para ver usuarios.")
+        return redirect("menu_admin")
+
+    q = (request.GET.get("q") or "").strip()
+
+    usuarios = User.objects.all().order_by("username")
+    if q:
+        usuarios = usuarios.filter(
+            username__icontains=q
+        ) | usuarios.filter(
+            first_name__icontains=q
+        ) | usuarios.filter(
+            last_name__icontains=q
+        ) | usuarios.filter(
+            email__icontains=q
+        )
+
+    return render(request, "cursos/lista_usuarios.html", {
+        "usuarios": usuarios,
+        "q": q
+    })
+
+@login_required
+def editar_usuario(request, user_id):
+    if not _es_admin(request.user):
+        messages.error(request, "No tienes permisos para editar usuarios.")
+        return redirect("menu_admin")
+
+    usuario = get_object_or_404(User, id=user_id)
+
+    if request.method == "POST":
+        form = UsuarioUpdateForm(request.POST, instance=usuario)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "✅ Usuario actualizado.")
+            return redirect("lista_usuarios")
+    else:
+        form = UsuarioUpdateForm(instance=usuario)
+
+    return render(request, "cursos/editar_usuario.html", {
+        "form": form,
+        "usuario": usuario
+    })
+
+@login_required
+def eliminar_usuario(request, user_id):
+    if not _es_admin(request.user):
+        messages.error(request, "No tienes permisos para eliminar usuarios.")
+        return redirect("menu_admin")
+
+    usuario = get_object_or_404(User, id=user_id)
+
+    # evita borrar tu propio usuario por accidente
+    if usuario.id == request.user.id:
+        messages.error(request, "No puedes eliminar tu propio usuario.")
+        return redirect("lista_usuarios")
+
+    if request.method == "POST":
+        usuario.delete()
+        messages.success(request, "🗑 Usuario eliminado.")
+        return redirect("lista_usuarios")
+
+    return render(request, "cursos/eliminar_usuario.html", {"usuario": usuario})

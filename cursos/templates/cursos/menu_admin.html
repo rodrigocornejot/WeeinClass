@@ -2,74 +2,42 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Menú Principal Admin</title>
+  <title>Menú Principal</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
   <style>
     body { background-color: #f6f7fb; }
-    .topbar {
-      background: #0b1f3a;
-      color: #fff;
-    }
-    .brand {
-      font-weight: 700;
-      letter-spacing: .2px;
-    }
-    .card-menu {
-      border: 0;
-      border-radius: 14px;
-      box-shadow: 0 10px 24px rgba(0,0,0,.08);
+    .topbar { background: #0b1f3a; color: #fff; }
+    .brand { font-weight: 700; letter-spacing: .2px; }
+
+    .card-menu{
+      border:0; border-radius:14px;
+      box-shadow:0 10px 24px rgba(0,0,0,.08);
       transition: transform .08s ease;
     }
-    .card-menu:hover { transform: translateY(-2px); }
-    .menu-btn {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      width: 100%;
-      padding: 14px 14px;
-      border-radius: 12px;
-      border: 1px solid #e9ecef;
-      background: #fff;
-      text-decoration: none;
-      color: #111827;
-      font-weight: 600;
+    .card-menu:hover{ transform: translateY(-2px); }
+
+    .menu-btn{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; width:100%; padding:14px;
+      border-radius:12px; border:1px solid #e9ecef;
+      background:#fff; text-decoration:none; color:#111827; font-weight:600;
     }
-    .menu-btn:hover {
-      background: #f8fafc;
-      border-color: #dde3ea;
-      color: #111827;
+    .menu-btn:hover{ background:#f8fafc; border-color:#dde3ea; color:#111827; }
+
+    .menu-icon{
+      width:36px; height:36px; border-radius:10px;
+      display:grid; place-items:center;
+      background:#eef2ff; color:#1e40af; font-size:18px;
+      flex:0 0 auto;
     }
-    .menu-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      display: grid;
-      place-items: center;
-      background: #eef2ff;
-      color: #1e40af;
-      font-size: 18px;
-      flex: 0 0 auto;
-    }
-    .menu-label { line-height: 1.1; }
-    .menu-desc {
-      font-size: .82rem;
-      color: #6b7280;
-      font-weight: 500;
-      margin-top: 4px;
-    }
-    .section-title {
-      font-weight: 800;
-      color: #0f172a;
-      margin-bottom: 6px;
-    }
-    .section-subtitle {
-      color: #6b7280;
-      margin-bottom: 18px;
-    }
+    .menu-desc{ font-size:.82rem; color:#6b7280; font-weight:500; margin-top:4px; }
+    .section-title{ font-weight:800; color:#0f172a; }
+    .section-subtitle{ color:#6b7280; }
   </style>
 </head>
+
 <body>
 
 <nav class="navbar navbar-expand-lg topbar">
@@ -77,14 +45,10 @@
     <a class="navbar-brand text-white brand" href="#">WeeinClass</a>
 
     <div class="dropdown ms-auto">
-      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
-              id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+      <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
         Hola, <strong>{{ user.username }}</strong>
       </button>
-      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-        <li><a class="dropdown-item" href="#">Ver perfil</a></li>
-        <li><a class="dropdown-item" href="#">Cambiar contraseña</a></li>
-        <li><hr class="dropdown-divider"></li>
+      <ul class="dropdown-menu dropdown-menu-end">
         <li>
           <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}
@@ -96,31 +60,28 @@
   </div>
 </nav>
 
-<div class="container py-4" style="max-width: 1100px;">
+<div class="container py-4" style="max-width:1100px;">
   <div class="mb-4">
-    <div class="section-title">Menú principal</div>
-    <div class="section-subtitle">Accesos rápidos según tu rol.</div>
+    <div class="section-title fs-3">Menú principal</div>
+    <div class="section-subtitle">Accesos rápidos según tu rol</div>
   </div>
 
-  <!-- Profesor -->
-  {% if es_profesor %}
+  <!-- ============ ADMIN ============ -->
+  {% if es_admin %}
   <div class="card card-menu mb-4">
     <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <div class="fw-bold">Panel Profesor</div>
-          <div class="text-muted small">Calendario y pendientes</div>
-        </div>
-      </div>
+      <div class="fw-bold mb-2">Panel Administración</div>
 
       <div class="row g-3">
+
+        <!-- 👤 Usuarios (solo Admin) -->
         <div class="col-md-6">
-          <a href="{% url 'vista_calendario' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">📅</div>
-              <div class="menu-label">
-                Ver Calendario
-                <div class="menu-desc">Clases y programación</div>
+          <a href="{% url 'crear_usuario' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">👤</div>
+              <div>
+                Crear Usuario
+                <div class="menu-desc">Admin / Asesora / Profesor / Marketing</div>
               </div>
             </div>
             <span class="text-muted">›</span>
@@ -128,13 +89,228 @@
         </div>
 
         <div class="col-md-6">
-          <a href="{% url 'kanban' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">🗂</div>
-              <div class="menu-label">
-                Lista de pendientes
-                <div class="menu-desc">Kanban y tareas</div>
+          <a href="{% url 'lista_usuarios' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">👥</div>
+              <div>
+                Usuarios del Sistema
+                <div class="menu-desc">Ver / Editar / Eliminar</div>
               </div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'vista_calendario' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📅</div>
+              <div>Calendario<div class="menu-desc">Matrículas y clases</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'registrar_alumnos' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">👨‍🎓</div>
+              <div>Registrar Alumno<div class="menu-desc">Alta de alumnos</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'crear_curso' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📚</div>
+              <div>Gestionar Cursos<div class="menu-desc">Cursos y unidades</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'registrar_matricula' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📝</div>
+              <div>Registrar Matrícula<div class="menu-desc">Inscripciones</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'lista_matriculas' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📜</div>
+              <div>Lista de Matrículas<div class="menu-desc">Control y estados</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'registrar_asistencia_unidad' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">✅</div>
+              <div>Registrar Asistencia<div class="menu-desc">Por unidades</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'pagina_pagos' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">💳</div>
+              <div>Pagos<div class="menu-desc">Cuotas y saldos</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'egresados' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">🎓</div>
+              <div>Egresados<div class="menu-desc">Certificados</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'dashboard' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📈</div>
+              <div>Dashboard<div class="menu-desc">Indicadores</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ============ ASESORA ============ -->
+  {% if es_asesora %}
+  <div class="card card-menu mb-4">
+    <div class="card-body">
+      <div class="fw-bold mb-2">Panel Asesora</div>
+
+      <div class="row g-3">
+
+        <div class="col-md-6">
+          <a href="{% url 'vista_calendario' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📅</div>
+              <div>Calendario<div class="menu-desc">Ver programación</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'registrar_alumnos' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">👨‍🎓</div>
+              <div>Registrar Alumno<div class="menu-desc">Alta de alumnos</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'registrar_matricula' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📝</div>
+              <div>Registrar Matrícula<div class="menu-desc">Inscripciones</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'lista_matriculas' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📜</div>
+              <div>Lista de Matrículas<div class="menu-desc">Ver matrículas</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'registrar_asistencia_unidad' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">✅</div>
+              <div>Registrar Asistencia<div class="menu-desc">Por unidades</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'pagina_pagos' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">💳</div>
+              <div>Registrar Pagos<div class="menu-desc">Cuotas y saldos</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'crear_curso' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📚</div>
+              <div>Gestionar Cursos<div class="menu-desc">Cursos</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'egresados' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">🎓</div>
+              <div>Egresados<div class="menu-desc">Certificados</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ============ PROFESOR ============ -->
+  {% if es_profesor %}
+  <div class="card card-menu mb-4">
+    <div class="card-body">
+      <div class="fw-bold mb-2">Panel Profesor</div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <a href="{% url 'vista_calendario' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">📅</div>
+              <div>Calendario<div class="menu-desc">Solo lectura</div></div>
+            </div>
+            <span class="text-muted">›</span>
+          </a>
+        </div>
+
+        <div class="col-md-6">
+          <a href="{% url 'registrar_asistencia_unidad' %}" class="menu-btn">
+            <div class="d-flex gap-3">
+              <div class="menu-icon">✅</div>
+              <div>Asistencia<div class="menu-desc">Registrar</div></div>
             </div>
             <span class="text-muted">›</span>
           </a>
@@ -144,236 +320,17 @@
   </div>
   {% endif %}
 
-  <!-- Admin -->
-  {% if es_admin %}
+  <!-- ============ MARKETING ============ -->
+  {% if es_marketing %}
   <div class="card card-menu mb-4">
     <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <div class="fw-bold">Panel Administración</div>
-          <div class="text-muted small">Gestión académica, pagos y reportes</div>
-        </div>
-      </div>
-
-      <div class="row g-3">
-        <div class="col-md-6">
-          <a href="{% url 'vista_calendario' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">📅</div>
-              <div class="menu-label">
-                Ver Calendario
-                <div class="menu-desc">Matrículas y clases</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'registrar_alumnos' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">👨‍🎓</div>
-              <div class="menu-label">
-                Registrar Alumno
-                <div class="menu-desc">Alta de alumnos</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'crear_curso' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">📚</div>
-              <div class="menu-label">
-                Gestionar Cursos
-                <div class="menu-desc">Cursos y unidades</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'registrar_matricula' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">📝</div>
-              <div class="menu-label">
-                Registrar Matrícula
-                <div class="menu-desc">Inscripciones</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'lista_matriculas' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">📜</div>
-              <div class="menu-label">
-                Gestionar Matrículas
-                <div class="menu-desc">Estados y control</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'registrar_asistencia_unidad' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">✅</div>
-              <div class="menu-label">
-                Registrar Asistencia
-                <div class="menu-desc">Por unidades del curso</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'registrar_nota' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">📊</div>
-              <div class="menu-label">
-                Registrar Notas
-                <div class="menu-desc">Evaluaciones</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'pagina_pagos' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">💳</div>
-              <div class="menu-label">
-                Gestión de Pagos
-                <div class="menu-desc">Cuotas y saldos</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <!-- ✅ NUEVO BOTÓN -->
-        <div class="col-md-6">
-          <a href="{% url 'historial_pagos' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">🧾</div>
-              <div class="menu-label">
-                Historial de Pagos
-                <div class="menu-desc">Movimientos por DNI</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <!-- ✅ Reporte de Caja -->
-        <div class="col-md-6">
-          <a href="{% url 'reporte_caja' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">📒</div>
-              <div class="menu-label">
-                Reporte de Caja
-                <div class="menu-desc">Cuadre diario, semanal y mensual</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-
-        <!-- ✅ Servicios Adicionales -->
-        <div class="col-md-6">
-          <a href="{% url 'catalogo_servicios' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">🧩</div>
-              <div class="menu-label">
-                Servicios Adicionales
-                <div class="menu-desc">Ventas extras por alumno</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'servicios_gestion' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">🧩</div>
-              <div class="menu-label">
-                Gestionar Servicios
-                <div class="menu-desc">Catálogo: crear/editar</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'dashboard' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">📈</div>
-              <div class="menu-label">
-                Dashboard y Reportes
-                <div class="menu-desc">Indicadores</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'egresados' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">🎓</div>
-              <div class="menu-label">
-                Ver Egresados
-                <div class="menu-desc">Certificados generados</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-        <div class="col-md-6">
-          <a href="{% url 'kanban' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
-              <div class="menu-icon">🗂</div>
-              <div class="menu-label">
-                Lista de pendientes
-                <div class="menu-desc">Kanban</div>
-              </div>
-            </div>
-            <span class="text-muted">›</span>
-          </a>
-        </div>
-
-      </div>
-    </div>
-  </div>
-  {% elif es_marketing %}
-  <!-- Marketing -->
-  <div class="card card-menu">
-    <div class="card-body">
-      <div class="fw-bold mb-1">Panel Marketing</div>
-      <div class="text-muted small mb-3">Acceso a pendientes</div>
-
+      <div class="fw-bold mb-2">Panel Marketing</div>
       <div class="row g-3">
         <div class="col-md-6">
           <a href="{% url 'kanban' %}" class="menu-btn">
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex gap-3">
               <div class="menu-icon">🗂</div>
-              <div class="menu-label">
-                Lista de pendientes
-                <div class="menu-desc">Kanban y tareas</div>
-              </div>
+              <div>Kanban<div class="menu-desc">Pendientes</div></div>
             </div>
             <span class="text-muted">›</span>
           </a>

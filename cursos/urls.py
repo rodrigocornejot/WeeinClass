@@ -36,7 +36,9 @@ from .views import (
 
     , servicios_listar_crear, servicios_editar, servicios_toggle_activo, toggle_kit_matricula
 
-    , reporte_caja, marcar_truncado
+    , reporte_caja, marcar_truncado,
+
+    crear_usuario, lista_usuarios, editar_usuario, eliminar_usuario
 )
 
 def crear_usuario_admin(request):
@@ -119,4 +121,8 @@ urlpatterns = [
     path("reporte-caja/", reporte_caja, name="reporte_caja"),
     path("datos-dashboard/", datos_dashboard, name="datos_dashboard"),
     path("matriculas/<int:matricula_id>/truncado/", marcar_truncado, name="marcar_truncado"),
+    path("usuarios/crear/", crear_usuario, name="crear_usuario"),
+    path("usuarios/", lista_usuarios, name="lista_usuarios"),
+    path("usuarios/<int:user_id>/editar/", editar_usuario, name="editar_usuario"),
+    path("usuarios/<int:user_id>/eliminar/", eliminar_usuario, name="eliminar_usuario"),
 ]

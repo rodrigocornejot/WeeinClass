@@ -6,7 +6,8 @@ from .models import DAY_CHOICES
 from .models import Curso, Nota, Alumno, Matricula, Tarea, ServicioExtra, CategoriaServicio, VentaServicio, Pago
 from django.forms.widgets import DateInput, TimeInput
 from .models import Curso, CURSO_CHOICES 
-
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User, Group
 class CursoForm(forms.ModelForm):
     fecha = forms.DateField(widget=DateInput(attrs={'type': 'date'}), required=True)
     horario = forms.TimeField(widget=TimeInput(attrs={'type': 'time'}), required=True)
@@ -138,3 +139,90 @@ class VentaServicioForm(forms.ModelForm):
     class Meta:
         model = VentaServicio
         fields = ["servicio", "cantidad", "metodo_pago", "fecha_pago_real"]
+
+ROLES = (
+    ("Admin", "Admin"),
+    ("Asesora", "Asesora"),
+    ("Profesor", "Profesor"),
+    ("Marketing", "Marketing"),
+)
+
+class UsuarioCreateForm(UserCreationForm):
+    first_name = forms.CharField(required=False, label="Nombres")
+    last_name = forms.CharField(required=False, label="Apellidos")
+    email = forms.EmailField(required=False, label="Correo")
+    rol = forms.ChoiceField(choices=ROLES, label="Rol")
+
+    class Meta:
+        model = User
+        fields = ("username", "first_name", "last_name", "email", "password1", "password2")
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.first_name = self.cleaned_data.get("first_name", "")
+        user.last_name = self.cleaned_data.get("last_name", "")
+        user.email = self.cleaned_data.get("email", "")
+        if commit:
+            user.save()
+            self._asignar_grupo(user)
+        return user
+
+    def _asignar_grupo(self, user: User):
+        rol = self.cleaned_data.get("rol")
+        if not rol:
+            return
+        # asegura el grupo
+        g, _ = Group.objects.get_or_create(name=rol)
+        user.groups.clear()
+        user.groups.add(g)
+        user.save()
+
+
+class UsuarioUpdateForm(forms.ModelForm):
+    rol = forms.ChoiceField(choices=ROLES, label="Rol")
+    password1 = forms.CharField(
+        required=False, label="Nueva contraseña",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"})
+    )
+    password2 = forms.CharField(
+        required=False, label="Confirmar nueva contraseña",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"})
+    )
+
+    class Meta:
+        model = User
+        fields = ("username", "first_name", "last_name", "email", "is_active")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # rol actual
+        if self.instance and self.instance.pk:
+            g = self.instance.groups.first()
+            if g:
+                self.fields["rol"].initial = g.name
+
+    def clean(self):
+        cleaned = super().clean()
+        p1 = cleaned.get("password1")
+        p2 = cleaned.get("password2")
+        if (p1 or p2) and (p1 != p2):
+            raise forms.ValidationError("Las contraseñas no coinciden.")
+        return cleaned
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+
+        # password opcional
+        p1 = self.cleaned_data.get("password1")
+        if p1:
+            user.set_password(p1)
+
+        if commit:
+            user.save()
+            # asignar rol
+            rol = self.cleaned_data.get("rol")
+            g, _ = Group.objects.get_or_create(name=rol)
+            user.groups.clear()
+            user.groups.add(g)
+            user.save()
+        return user
