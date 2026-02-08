@@ -91,23 +91,13 @@ load_dotenv()
 env = environ.Env()
 environ.Env.read_env()
 
-IS_PRODUCTION = os.getenv("RENDER", None) == "true"
-
-if IS_PRODUCTION:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=os.getenv("DATABASE_URL")
-        )
-    }
-
-else:
-    # Usar SQLite solo en desarrollo
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
+}
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
