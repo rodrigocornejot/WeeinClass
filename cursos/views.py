@@ -345,7 +345,7 @@ def es_profesor(user):
     return user.is_superuser or user.groups.filter(name='Profesores').exists()
 
 @login_required
-@user_passes_test(es_profesor)
+@asesora_o_profesor
 def vista_calendario(request):
     cursos = Curso.objects.all()
 
