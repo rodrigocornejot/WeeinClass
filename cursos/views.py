@@ -54,7 +54,7 @@ from django.http import HttpResponse
 from .models import ServicioExtra, CategoriaServicio, EntregaKit
 from django.core.mail import EmailMessage
 from math import ceil 
-from .decorators import solo_admin, solo_asesora, asesora_o_profesor, roles_requeridos
+from .decorators import solo_admin, solo_asesora, asesora_o_profesor, en_grupo_403
 from .forms_users import CrearUsuarioForm
 
 CURSO_COLORES = {
@@ -350,7 +350,7 @@ def vista_calendario(request):
     cursos = Curso.objects.all()
 
     # Crear una lista con los nombres de los cursos y sus colores
-    cursos_colores = [(curso.nombre, CURSO_COLORES.get(curso.nombre, '#000000')) for curso in cursos]
+    cursos_colores = [(curso.nombre, CURSO_COLORES.get(curso.codigo, '#000000')) for curso in cursos]
 
     # Pasar la lista de cursos con sus colores al contexto de la plantilla
     context = {
@@ -767,48 +767,6 @@ CURSO_SESIONES = {
     "ELEC": 5,
 }
 
-def asegurar_unidades_curso(curso):
-    # ✅ prioridad: el código real guardado en DB
-    codigo = (getattr(curso, "codigo", "") or "").strip().upper()
-
-    # fallback: tratar de sacar el código por nombre
-    if not codigo:
-        nombre = (getattr(curso, "nombre", "") or "").strip()
-        codigo, _ = curso_codigo_y_sesiones(nombre, curso_obj=curso)
-
-    total = CURSO_SESIONES.get(codigo, 6)
-
-    existentes = list(UnidadCurso.objects.filter(curso=curso).order_by("numero"))
-
-    # Si no hay nada, crear EXACTAMENTE total
-    if not existentes:
-        for i in range(1, total + 1):
-            UnidadCurso.objects.create(
-                curso=curso,
-                numero=i,
-                nombre_tema=f"SESIÓN {i}"
-            )
-        return list(UnidadCurso.objects.filter(curso=curso).order_by("numero"))
-
-    # Si sobran, borrar las sobrantes
-    if len(existentes) > total:
-        UnidadCurso.objects.filter(curso=curso, numero__gt=total).delete()
-
-    # Si faltan, crear las faltantes
-    if len(existentes) < total:
-        existentes_nums = set(
-            UnidadCurso.objects.filter(curso=curso).values_list("numero", flat=True)
-        )
-        for i in range(1, total + 1):
-            if i not in existentes_nums:
-                UnidadCurso.objects.create(
-                    curso=curso,
-                    numero=i,
-                    nombre_tema=f"SESIÓN {i}"
-                )
-
-    return list(UnidadCurso.objects.filter(curso=curso).order_by("numero"))
-
 @login_required
 @solo_asesora
 def registrar_matricula(request):
@@ -1146,7 +1104,7 @@ def dashboard(request):
     return render(request, "cursos/dashboard.html", context)
 
 
-@roles_requeridos('Administradores', 'Asesora')
+@solo_asesora
 def registrar_alumnos(request):
     if request.method == 'POST':
         nombre=request.POST.get('nombre')
@@ -2094,8 +2052,15 @@ def pagar_reprogramacion_pagos(request, reprog_id):
     return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
 @transaction.atomic
-def asegurar_unidades_curso(curso, total=6):
-    # 🔹 eliminar duplicados por numero (deja solo 1)
+def asegurar_unidades_curso(curso):
+    codigo = (getattr(curso, "codigo", "") or "").strip().upper()
+
+    if not codigo:
+        nombre = (getattr(curso, "nombre", "") or "").strip()
+        codigo, _ = curso_codigo_y_sesiones(nombre, curso_obj=curso)
+
+    total = CURSO_SESIONES.get(codigo, 6)
+
     unidades = UnidadCurso.objects.filter(curso=curso).order_by("numero", "id")
 
     vistos = set()
@@ -2105,7 +2070,6 @@ def asegurar_unidades_curso(curso, total=6):
         else:
             vistos.add(u.numero)
 
-    # 🔹 crear faltantes
     for n in range(1, total + 1):
         UnidadCurso.objects.get_or_create(
             curso=curso,
@@ -2113,7 +2077,6 @@ def asegurar_unidades_curso(curso, total=6):
             defaults={"nombre_tema": f"SESIÓN {n}"}
         )
 
-    # 🔹 eliminar sobrantes
     UnidadCurso.objects.filter(curso=curso, numero__gt=total).delete()
 
     return list(UnidadCurso.objects.filter(curso=curso).order_by("numero"))
@@ -2378,15 +2341,16 @@ def catalogo_servicios(request):
     })
 
 
-@login_required
 def editar_servicio(request, servicio_id):
     servicio = get_object_or_404(ServicioExtra, id=servicio_id)
-    form = ServicioExtra(request.POST or None, instance=servicio)
+    form = ServicioForm(request.POST or None, instance=servicio)
 
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, "✅ Servicio actualizado.")
         return redirect("catalogo_servicios")
+
+    return render(request, "cursos/servicio_editar.html", {"form": form, "servicio": servicio})
 
 def _es_admin(user):
     return (
