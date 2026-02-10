@@ -756,6 +756,32 @@ def detalle_matricula(request, matricula_id, fecha):
         print("❌ Error:", e)
         return JsonResponse({"error": "Error interno"}, status=500)
 
+TEMAS_POR_CODIGO = {
+    "VDF": [
+        "SINAMICS",
+        "DELTA",
+        "SCHNEIDER",
+        "ABB",
+        "DANFOSS",
+        "POWERFLEX",
+    ],
+    "INST": [
+        "INTRODUCCION",
+        "TEMPERATURA",
+        "PRESION",
+        "NIVEL",
+        "CAUDAL",
+        "VALVULAS",
+    ],
+    "REDES": [
+        "DP",
+        "RTU",
+        "TCP",
+        "PN",
+        "ETH/IP",
+    ],
+}
+
 CURSO_SESIONES = {
     "INST": 6,
     "PLC1": 6,
@@ -2061,8 +2087,11 @@ def asegurar_unidades_curso(curso):
 
     total = CURSO_SESIONES.get(codigo, 6)
 
-    unidades = UnidadCurso.objects.filter(curso=curso).order_by("numero", "id")
+    # Temas del curso (si no hay, cae a "Sesión X")
+    temas = TEMAS_POR_CODIGO.get(codigo, [])
 
+    # Limpiar duplicados por numero
+    unidades = UnidadCurso.objects.filter(curso=curso).order_by("numero", "id")
     vistos = set()
     for u in unidades:
         if u.numero in vistos:
@@ -2070,13 +2099,27 @@ def asegurar_unidades_curso(curso):
         else:
             vistos.add(u.numero)
 
+    # Crear/actualizar unidades con nombre correcto
     for n in range(1, total + 1):
-        UnidadCurso.objects.get_or_create(
+        tema = temas[n - 1] if (n - 1) < len(temas) else None
+
+        if tema:
+            nombre_tema = f"Sesión {n} - {tema}"
+        else:
+            nombre_tema = f"Sesión {n}"
+
+        obj, created = UnidadCurso.objects.get_or_create(
             curso=curso,
             numero=n,
-            defaults={"nombre_tema": f"SESIÓN {n}"}
+            defaults={"nombre_tema": nombre_tema}
         )
 
+        # ✅ si ya existía, actualizarlo también
+        if not created and obj.nombre_tema != nombre_tema:
+            obj.nombre_tema = nombre_tema
+            obj.save(update_fields=["nombre_tema"])
+
+    # borrar sobrantes
     UnidadCurso.objects.filter(curso=curso, numero__gt=total).delete()
 
     return list(UnidadCurso.objects.filter(curso=curso).order_by("numero"))
