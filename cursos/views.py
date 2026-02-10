@@ -54,7 +54,7 @@ from django.http import HttpResponse
 from .models import ServicioExtra, CategoriaServicio, EntregaKit
 from django.core.mail import EmailMessage
 from math import ceil 
-from .decorators import solo_admin, solo_asesora, asesora_o_profesor
+from .decorators import solo_admin, solo_asesora, asesora_o_profesor, roles_requeridos
 from .forms_users import CrearUsuarioForm
 
 CURSO_COLORES = {
@@ -1146,8 +1146,7 @@ def dashboard(request):
     return render(request, "cursos/dashboard.html", context)
 
 
-@login_required
-@solo_asesora
+@roles_requeridos('Administradores', 'Asesora')
 def registrar_alumnos(request):
     if request.method == 'POST':
         nombre=request.POST.get('nombre')
