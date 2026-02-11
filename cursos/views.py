@@ -808,37 +808,40 @@ def registrar_matricula(request):
     # GET
     # =========================
     if request.method == "GET":
-        form = MatriculaForm(initial={
-            'dni': dni,
-            'alumno_nombre': alumno.nombre if alumno else ''
-        })
+        form = MatriculaForm()
         return render(request, 'cursos/registrar_matricula.html', {
             'form': form,
             'alumno': alumno,
-            'dni': dni
+            'dni': dni,
+            # OJO: en tu vista que renderiza este template DEBES mandar esto:
+            # 'curso_sesiones_por_id': curso_sesiones_por_id
         })
 
     # =========================
     # POST
     # =========================
+    print("✅ LLEGO POST registrar_matricula")
+    print("POST keys:", list(request.POST.keys())[:80])
+
     form = MatriculaForm(request.POST)
 
     if not alumno:
         form.add_error(None, 'No existe un alumno con ese DNI')
 
+    print("✅ FORM VALID?:", form.is_valid())
     if not form.is_valid() or not alumno:
-        # IMPORTANTE: así ves errores en la misma página
+        print("❌ FORM ERRORS:", form.errors)
+        print("❌ FORM NON_FIELD:", form.non_field_errors())
         return render(request, 'cursos/registrar_matricula.html', {
             'form': form,
             'alumno': alumno,
-            'dni': dni
+            'dni': dni,
+            # 'curso_sesiones_por_id': curso_sesiones_por_id
         })
 
     try:
         with transaction.atomic():
-            # =========================
-            # GUARDAR MATRÍCULA
-            # =========================
+
             matricula = form.save(commit=False)
             matricula.registrada_por = request.user
             matricula.alumno = alumno
@@ -898,27 +901,42 @@ def registrar_matricula(request):
             sesiones_por_clase = 2 if es_full_day else 1
             total_clases = ceil(total_unidades / sesiones_por_clase)
 
-            # Unidades
             unidades = list(UnidadCurso.objects.filter(curso=matricula.curso).order_by("numero"))
             if not unidades:
                 unidades = asegurar_unidades_curso(matricula.curso)
-            unidades = [u for u in unidades if u.numero <= total_unidades]
 
+            unidades = [u for u in unidades if u.numero <= total_unidades]
             fechas = []
 
             # =========================
-            # PERSONALIZADO (inputs sesion_1, sesion_2...)
+            # PERSONALIZADO (sesion_1..sesion_N)
             # =========================
             if tipo == "personalizado":
+                faltan = []
                 for i in range(1, total_unidades + 1):
-                    f = request.POST.get(f"sesion_{i}")
-                    if f:
+                    f = request.POST.get(f"sesion_{i}", "").strip()
+                    if not f:
+                        faltan.append(i)
+                        continue
+                    try:
                         fechas.append(datetime.strptime(f, "%Y-%m-%d").date())
+                    except ValueError:
+                        form.add_error(None, f"Formato inválido en sesión {i}. Usa YYYY-MM-DD.")
+                        return render(request, 'cursos/registrar_matricula.html', {
+                            'form': form, 'alumno': alumno, 'dni': dni,
+                        })
 
+                if faltan:
+                    form.add_error(None, f"Faltan fechas en sesiones: {', '.join(map(str, faltan))}")
+                    return render(request, 'cursos/registrar_matricula.html', {
+                        'form': form, 'alumno': alumno, 'dni': dni,
+                    })
+
+                # Para FullDay se recorta a total_clases
                 fechas = sorted(fechas)[:total_clases]
 
             # =========================
-            # NORMAL (con fecha_inicio + días)
+            # NORMAL
             # =========================
             else:
                 if not fecha_inicio:
@@ -938,24 +956,33 @@ def registrar_matricula(request):
 
                     dias_map = {
                         'lunes': 0, 'martes': 1, 'miercoles': 2,
-                        'jueves': 3, 'viernes': 4,
-                        'sabado': 5, 'domingo': 6
+                        'jueves': 3, 'viernes': 4, 'sabado': 5, 'domingo': 6
                     }
-                    dias_num = sorted({dias_map[d] for d in dias})
-                    cursor = fecha_inicio
 
+                    try:
+                        dias_num = sorted({dias_map[d] for d in dias})
+                    except KeyError as e:
+                        form.add_error('dias', f"Día inválido: {e}")
+                        return render(request, 'cursos/registrar_matricula.html', {
+                            'form': form, 'alumno': alumno, 'dni': dni
+                        })
+
+                    cursor = fecha_inicio
                     while len(fechas) < total_clases:
                         if cursor.weekday() in dias_num:
                             fechas.append(cursor)
                         cursor += timedelta(days=1)
 
+            print("✅ tipo:", tipo, "| es_full_day:", es_full_day)
+            print("✅ total_unidades:", total_unidades, "| total_clases:", total_clases)
+            print("✅ fechas:", fechas)
+
+            if not fechas:
+                raise ValueError("No se generaron fechas.")
+
             # =========================
             # CREAR CLASES + ASISTENCIAS
             # =========================
-            if not fechas:
-                messages.error(request, "❌ No se generaron fechas. Revisa sesiones/días.")
-                return redirect("registrar_matricula")
-
             unidad_idx = 0
 
             for fecha in fechas:
@@ -983,11 +1010,13 @@ def registrar_matricula(request):
 
     except Exception as e:
         print("❌ ERROR registrar_matricula:", repr(e))
-        messages.error(request, f"❌ Error en producción: {e}")
+        messages.error(request, f"❌ Error: {e}")
         return render(request, 'cursos/registrar_matricula.html', {
-            'form': form, 'alumno': alumno, 'dni': dni
+            'form': form,
+            'alumno': alumno,
+            'dni': dni,
         })
-
+    
 @login_required
 def datos_dashboard(request):
     curso_id = (request.GET.get("curso") or "").strip()

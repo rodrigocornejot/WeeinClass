@@ -34,6 +34,18 @@
     <input type="text" class="form-control" value="{% if alumno %}{{ alumno.nombre }}{% else %}No encontrado{% endif %}" readonly>
   </div>
 
+  <!-- ✅ ERRORES -->
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      <strong>Hay errores en el formulario:</strong>
+      <pre style="white-space:pre-wrap">{{ form.errors }}</pre>
+      {% if form.non_field_errors %}
+        <hr>
+        <pre style="white-space:pre-wrap">{{ form.non_field_errors }}</pre>
+      {% endif %}
+    </div>
+  {% endif %}
+
   <!-- 📝 FORMULARIO MATRÍCULA -->
   <form method="post">
     {% csrf_token %}
@@ -57,7 +69,7 @@
       {{ form.tipo_horario }}
     </div>
 
-    <!-- DÍAS (para no-personalizado) -->
+    <!-- DÍAS (no-personalizado) -->
     <div class="mb-3 hidden" id="dias_box">
       {{ form.dias.label_tag }}
       {{ form.dias }}
@@ -68,29 +80,28 @@
       <div class="alert alert-info">
         Selecciona la fecha de cada sesión (según el curso: 5 o 6).
       </div>
-
       <div id="sesiones_container" class="row g-2"></div>
     </div>
 
-    <!-- FECHA INICIO (para no-personalizado) -->
+    <!-- FECHA INICIO (no-personalizado) -->
     <div class="mb-3" id="fecha_inicio_box">
       {{ form.fecha_inicio.label_tag }}
       {{ form.fecha_inicio }}
     </div>
 
-    <!-- COSTOS -->
-    <div class="row">
+    <!-- COSTOS (✅ usar fields del form) -->
+    <div class="row mt-2">
       <div class="col-md-4">
-        <label>Costo</label>
-        <input type="number" name="costo_curso" class="form-control">
+        {{ form.costo_curso.label_tag }}
+        {{ form.costo_curso }}
       </div>
       <div class="col-md-4">
-        <label>Primer pago</label>
-        <input type="number" name="primer_pago" class="form-control">
+        {{ form.primer_pago.label_tag }}
+        {{ form.primer_pago }}
       </div>
       <div class="col-md-4">
-        <label>Porcentaje</label>
-        <input type="number" name="porcentaje" class="form-control">
+        {{ form.porcentaje.label_tag }}
+        {{ form.porcentaje }}
       </div>
     </div>
 
@@ -99,7 +110,7 @@
     </div>
   </form>
 </div>
-  
+
 {{ curso_sesiones_por_id|json_script:"curso-sesiones-data" }}
 
 <script>
@@ -130,10 +141,17 @@ function renderSesionesPersonalizadas(n) {
 function toggleUI() {
   const tipo = ($('#id_tipo_horario').val() || '').toLowerCase();
   const esPersonalizado = (tipo === 'personalizado');
+  const esFull = (tipo.startsWith('full'));
+  const esExtendida = (tipo === 'extendida');
 
   $('#personalizado_box').toggleClass('hidden', !esPersonalizado);
-  $('#dias_box').toggleClass('hidden', esPersonalizado);
+  $('#dias_box').toggleClass('hidden', esPersonalizado || esFull);
   $('#fecha_inicio_box').toggleClass('hidden', esPersonalizado);
+
+  // Si no es personalizado y es extendida => sí necesita días
+  if (!esPersonalizado) {
+    $('#dias_box').toggleClass('hidden', !(esExtendida));
+  }
 
   if (esPersonalizado) {
     renderSesionesPersonalizadas(getSesionesCursoSeleccionado());
@@ -150,7 +168,6 @@ $('#id_curso').on('change', function(){
 
 $(document).ready(toggleUI);
 </script>
-
 
 </body>
 </html>
