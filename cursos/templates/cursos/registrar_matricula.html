@@ -70,13 +70,13 @@
       {{ form.tipo_horario }}
     </div>
 
-    <!-- FECHA INICIO -->
+    <!-- FECHA INICIO (solo si NO personaliza) -->
     <div class="mb-3" id="fecha_inicio_box">
       {{ form.fecha_inicio.label_tag }}
       {{ form.fecha_inicio }}
     </div>
 
-    <!-- DÍAS -->
+    <!-- DÍAS (solo si NO personaliza, y según reglas que tú definas) -->
     <div class="mb-3" id="dias_box">
       {{ form.dias.label_tag }}
       {{ form.dias }}
@@ -84,7 +84,14 @@
 
     <!-- PERSONALIZAR -->
     <div class="form-check mb-3">
-      {{ form.personalizar_fechas }}
+      <!-- mantener check si backend lo manda -->
+      <input
+        type="checkbox"
+        name="personalizar_fechas"
+        id="id_personalizar_fechas"
+        class="form-check-input"
+        {% if personalizar_post %}checked{% endif %}
+      >
       <label class="form-check-label" for="id_personalizar_fechas">
         📌 Personalizar fechas de clases
       </label>
@@ -120,7 +127,12 @@
   </form>
 </div>
 
+<!-- ✅ para no perder valores cuando el POST falla -->
+{{ sesiones_post|default:"[]"|json_script:"sesiones-post-data" }}
+
 <script>
+const SESIONES_POST = JSON.parse(document.getElementById("sesiones-post-data").textContent);
+
 function clasesPorTipo() {
   const tipo = ($('#id_tipo_horario').val() || '').toLowerCase();
   if (tipo.startsWith('full')) return 3;
@@ -133,10 +145,12 @@ function renderClases(n) {
   $c.empty();
 
   for (let i = 1; i <= n; i++) {
+    const val = (SESIONES_POST[i-1] || "");
     $c.append(`
       <div class="col-12 col-md-6">
         <label class="form-label">Clase ${i}</label>
-        <input type="date" class="form-control" name="clase_${i}" required>
+        <!-- IMPORTANTE: name = sesion_i para que tu VIEW lo lea -->
+        <input type="date" class="form-control" name="sesion_${i}" value="${val}" required>
       </div>
     `);
   }
@@ -150,11 +164,13 @@ function toggleUI() {
   const esExtendida = (tipo === 'extendida');
   const aplica = esFull || esExtendida;
 
-  // si no aplica, ocultamos todo extra
+  // Si no aplica, ocultar cajas extra
   $('#dias_box').toggle(aplica);
+
+  // Si personaliza => mostrar fechas personalizadas
   $('#personalizado_box').toggleClass('hidden', !(aplica && personalizar));
 
-  // si personalizas igual necesitamos fecha_inicio? no, porque ya das fechas
+  // Si personaliza => ocultar fecha_inicio (porque ya pondrás fechas)
   $('#fecha_inicio_box').toggle(!personalizar);
 
   if (aplica && personalizar) {

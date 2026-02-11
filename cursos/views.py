@@ -814,6 +814,34 @@ def registrar_matricula(request):
 
     form = MatriculaForm(request.POST)
 
+    tipo = (request.POST.get("tipo_horario") or "").strip().lower()
+    personalizar = request.POST.get("personalizar_fechas") in ("on", "true", "1")
+
+    # cuántas CLASES se piden para personalizar (Full=3, Extendida=6)
+    def clases_por_tipo(tipo_horario: str) -> int:
+        t = (tipo_horario or "").lower()
+        if t.startswith("full"):
+            return 3
+        if t == "extendida":
+            return 6
+        return 0
+
+    n_clases = clases_por_tipo(tipo) if personalizar else 0
+
+    sesiones_post = []
+    for i in range(1, n_clases + 1):
+        sesiones_post.append(request.POST.get(f"sesion_{i}") or "")
+
+    # ✅ si no es válido, re-render pero manteniendo lo que escribiste
+    if not form.is_valid() or not alumno:
+        return render(request, "cursos/registrar_matricula.html", {
+            "form": form,
+            "alumno": alumno,
+            "dni": dni,
+            "sesiones_post": sesiones_post,     # 👈 esto es lo clave
+            "personalizar_post": personalizar,  # 👈 para re-chequear el checkbox
+        })
+
     if not alumno:
         form.add_error(None, 'No existe un alumno con ese DNI')
 
