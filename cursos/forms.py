@@ -58,14 +58,16 @@ class MatriculaForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
 
-        tipo = cleaned_data.get('tipo_horario')
-        dias = cleaned_data.get('dias')
+        tipo = (cleaned_data.get('tipo_horario') or '').strip().lower()
+        dias = cleaned_data.get('dias') or []
 
-        # 🔥 FULL Y EXTENDIDA EXIGEN DÍAS
+        # ✅ Si es personalizado, NO pedimos días
+        if tipo == 'personalizado':
+            return cleaned_data
+
+        # ✅ FULL y EXTENDIDA sí exigen días (solo si NO es personalizado)
         if tipo in ['full', 'extendida'] and not dias:
-            raise forms.ValidationError(
-                "Debes ingresar al menos un día de estudio."
-            )
+            raise forms.ValidationError("Debes ingresar al menos un día de estudio.")
 
         return cleaned_data
 
