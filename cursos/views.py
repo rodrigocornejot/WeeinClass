@@ -903,13 +903,15 @@ def registrar_matricula(request):
             nombre_curso = (matricula.curso.nombre or "").strip()
             codigo, total_unidades = curso_codigo_y_sesiones(nombre_curso, curso_obj=matricula.curso)
 
-            # ✅ clases: Full Day = 3 clases, Extendida = 6 clases
-            if modalidad == "full":
+            tipo_horario = (matricula.tipo_horario or "").strip().lower()  # full_day / extendida
+
+            if tipo_horario.startswith("full"):
                 total_clases = 3
                 sesiones_por_clase = ceil(total_unidades / total_clases)  # 6→2 por clase, 5→2/2/1
             else:
                 total_clases = 6
                 sesiones_por_clase = 1
+
 
             # Unidades
             unidades = list(UnidadCurso.objects.filter(curso=matricula.curso).order_by("numero"))
@@ -939,13 +941,17 @@ def registrar_matricula(request):
             # =========================
             else:
                 if not fecha_inicio:
-                    form.add_error('fecha_inicio', 'Debe ingresar una fecha de inicio.')
+                    form.add_error(None, f"Falta la fecha de la clase {i}.")
                     return render(request, 'cursos/registrar_matricula.html', {
-                        'form': form, 'alumno': alumno, 'dni': dni
+                        'form': form,
+                        'alumno': alumno,
+                        'dni': dni,
+                        'sesiones_post': sesiones_post,
+                        'personalizar_post': True,
                     })
 
-                if modalidad == "full":
-                    # 1 clase por semana
+
+                if tipo_horario.startswith("full"):
                     fechas = [fecha_inicio + timedelta(days=7 * i) for i in range(total_clases)]
                 else:
                     # extendida requiere días

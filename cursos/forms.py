@@ -40,7 +40,7 @@ class MatriculaForm(forms.ModelForm):
         fields = [
             'curso',
             'modalidad',        # presencial / virtual
-            'tipo_horario',     # full / extendida  ✅
+            'tipo_horario',     # full_day / extendida ✅
             'personalizar_fechas',
             'fecha_inicio',
             'costo_curso',
@@ -48,25 +48,21 @@ class MatriculaForm(forms.ModelForm):
             'porcentaje',
             'dias',
         ]
-        widgets = {
-            'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
-        }
+        widgets = {'fecha_inicio': forms.DateInput(attrs={'type': 'date'})}
 
-def clean(self):
-    cleaned = super().clean()
+    def clean(self):
+        cleaned = super().clean()
 
-    tipo = (cleaned.get("tipo_horario") or "").strip().lower()   # full_day / extendida
-    dias = cleaned.get("dias") or []
-    personalizar = cleaned.get("personalizar_fechas") is True
+        tipo = (cleaned.get("tipo_horario") or "").strip().lower()
+        dias = cleaned.get("dias") or []
+        personalizar = cleaned.get("personalizar_fechas") is True
 
-    if not personalizar:
-        if tipo in ("full_day", "fullday", "full day") and not dias:
-            raise forms.ValidationError("Debes seleccionar 3 días para Full Day.")
-        if tipo == "extendida" and not dias:
+        # ✅ Si NO personaliza: pedimos días solo para EXTENDIDA
+        if not personalizar and tipo == "extendida" and not dias:
             raise forms.ValidationError("Debes seleccionar días para Extendida.")
 
-    return cleaned
-
+        # ✅ Full Day no obliga días (si quieres obligarlo, dime)
+        return cleaned
     
 class MatriculaAdminForm(forms.ModelForm):
     class Meta:
