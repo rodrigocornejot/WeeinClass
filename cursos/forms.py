@@ -58,14 +58,26 @@ class MatriculaForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
 
+        # valor que llega del select (puede venir como full, extendida, personalizado, etc.)
         tipo = (cleaned_data.get('tipo_horario') or '').strip().lower()
-        dias = cleaned_data.get('dias') or []
+        print("🧪 DEBUG clean tipo_horario:", repr(tipo))
+       
 
-        # ✅ Si es personalizado, NO pedimos días
-        if tipo == 'personalizado':
+        dias = cleaned_data.get('dias') or []
+        print("🧪 DEBUG clean dias:", dias)
+        # ✅ Detectar personalizado por los inputs sesion_1..N (vienen en POST)
+        # OJO: self.data es el POST real (antes de cleaned_data)
+        tiene_sesiones = any(
+            (self.data.get(f"sesion_{i}") or "").strip()
+            for i in range(1, 15)  # suficiente (si algún día haces 10-12 sesiones)
+        )
+        print("🧪 DEBUG clean tiene_sesiones:", tiene_sesiones)
+
+        # ✅ Si hay sesiones, lo tratamos como PERSONALIZADO sí o sí
+        if tipo == 'personalizado' or tiene_sesiones:
             return cleaned_data
 
-        # ✅ FULL y EXTENDIDA sí exigen días (solo si NO es personalizado)
+        # ✅ FULL y EXTENDIDA exigen días (solo si NO es personalizado)
         if tipo in ['full', 'extendida'] and not dias:
             raise forms.ValidationError("Debes ingresar al menos un día de estudio.")
 
