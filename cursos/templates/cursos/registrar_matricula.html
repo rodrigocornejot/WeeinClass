@@ -31,7 +31,9 @@
   <!-- 📌 MOSTRAR ALUMNO -->
   <div class="mb-3">
     <label class="form-label">Alumno</label>
-    <input type="text" class="form-control" value="{% if alumno %}{{ alumno.nombre }}{% else %}No encontrado{% endif %}" readonly>
+    <input type="text" class="form-control"
+           value="{% if alumno %}{{ alumno.nombre }}{% else %}No encontrado{% endif %}"
+           readonly>
   </div>
 
   <!-- ✅ ERRORES -->
@@ -57,36 +59,42 @@
       {{ form.curso }}
     </div>
 
-    <!-- MODALIDAD -->
+    <!-- MODALIDAD (solo full y extendida) -->
     <div class="mb-3">
       {{ form.modalidad.label_tag }}
       {{ form.modalidad }}
     </div>
 
-    <!-- TIPO HORARIO -->
-    <div class="mb-3">
-      {{ form.tipo_horario.label_tag }}
-      {{ form.tipo_horario }}
+    <!-- FECHA INICIO (solo automático) -->
+    <div class="mb-3" id="fecha_inicio_box">
+      {{ form.fecha_inicio.label_tag }}
+      {{ form.fecha_inicio }}
     </div>
 
-    <!-- DÍAS (no-personalizado) -->
+    <!-- ✅ CHECKBOX PERSONALIZAR FECHAS -->
+    <div class="form-check mb-3">
+      {{ form.personalizar_fechas }}
+      <label class="form-check-label" for="id_personalizar_fechas">
+        📌 Personalizar fechas de clases
+      </label>
+    </div>
+
+    <!-- DÍAS (solo automático + extendida) -->
     <div class="mb-3 hidden" id="dias_box">
       {{ form.dias.label_tag }}
       {{ form.dias }}
     </div>
 
-    <!-- PERSONALIZADO (sesión 1..N) -->
+    <!-- PERSONALIZAR (inputs clase_1..clase_N) -->
     <div class="mb-3 hidden" id="personalizado_box">
       <div class="alert alert-info">
-        Selecciona la fecha de cada sesión (según el curso: 5 o 6).
+        Selecciona la fecha de cada clase:
+        <ul class="mb-0">
+          <li><b>Full Day</b>: 3 fechas</li>
+          <li><b>Extendida</b>: 6 fechas</li>
+        </ul>
       </div>
       <div id="sesiones_container" class="row g-2"></div>
-    </div>
-
-    <!-- FECHA INICIO (no-personalizado) -->
-    <div class="mb-3" id="fecha_inicio_box">
-      {{ form.fecha_inicio.label_tag }}
-      {{ form.fecha_inicio }}
     </div>
 
     <!-- COSTOS (✅ usar fields del form) -->
@@ -111,27 +119,22 @@
   </form>
 </div>
 
-{{ curso_sesiones_por_id|json_script:"curso-sesiones-data" }}
-
 <script>
-const CURSO_SESIONES_POR_ID = JSON.parse(
-  document.getElementById("curso-sesiones-data").textContent
-);
-
-function getSesionesCursoSeleccionado() {
-  const cursoId = $('#id_curso').val();
-  const n = CURSO_SESIONES_POR_ID[String(cursoId)];
-  return n ? parseInt(n) : 6;
+function totalClasesPorModalidad() {
+  const mod = ($('#id_modalidad').val() || '').toLowerCase();
+  if (mod === 'full') return 3;
+  if (mod === 'extendida') return 6;
+  return 0;
 }
 
-function renderSesionesPersonalizadas(n) {
+function renderClases(n) {
   const $c = $('#sesiones_container');
   $c.empty();
 
   for (let i = 1; i <= n; i++) {
     $c.append(`
       <div class="col-12 col-md-6">
-        <label class="form-label">Sesión ${i}</label>
+        <label class="form-label">Clase ${i}</label>
         <input type="date" class="form-control" name="sesion_${i}" required>
       </div>
     `);
@@ -139,33 +142,30 @@ function renderSesionesPersonalizadas(n) {
 }
 
 function toggleUI() {
-  const tipo = ($('#id_tipo_horario').val() || '').toLowerCase();
-  const esPersonalizado = (tipo === 'personalizado');
-  const esFull = (tipo.startsWith('full'));
-  const esExtendida = (tipo === 'extendida');
+  const mod = ($('#id_modalidad').val() || '').toLowerCase();
+  const personalizar = $('#id_personalizar_fechas').is(':checked');
 
-  $('#personalizado_box').toggleClass('hidden', !esPersonalizado);
-  $('#dias_box').toggleClass('hidden', esPersonalizado || esFull);
-  $('#fecha_inicio_box').toggleClass('hidden', esPersonalizado);
+  // Mostrar/Ocultar boxes
+  $('#personalizado_box').toggleClass('hidden', !personalizar);
 
-  // Si no es personalizado y es extendida => sí necesita días
-  if (!esPersonalizado) {
-    $('#dias_box').toggleClass('hidden', !(esExtendida));
-  }
+  // Días solo si NO personaliza y es extendida
+  const mostrarDias = (!personalizar && mod === 'extendida');
+  $('#dias_box').toggleClass('hidden', !mostrarDias);
 
-  if (esPersonalizado) {
-    renderSesionesPersonalizadas(getSesionesCursoSeleccionado());
+  // fecha_inicio solo si NO personaliza
+  $('#fecha_inicio_box').toggleClass('hidden', personalizar);
+
+  // Render inputs personalizados
+  if (personalizar) {
+    renderClases(totalClasesPorModalidad());
+  } else {
+    // si desmarcan personalizar, que no queden inputs required escondidos
+    $('#sesiones_container').empty();
   }
 }
 
-$('#id_tipo_horario').on('change', toggleUI);
-$('#id_curso').on('change', function(){
-  const tipo = ($('#id_tipo_horario').val() || '').toLowerCase();
-  if (tipo === 'personalizado') {
-    renderSesionesPersonalizadas(getSesionesCursoSeleccionado());
-  }
-});
-
+$('#id_modalidad').on('change', toggleUI);
+$('#id_personalizar_fechas').on('change', toggleUI);
 $(document).ready(toggleUI);
 </script>
 

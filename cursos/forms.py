@@ -27,10 +27,11 @@ DAY_CHOICES = [
 ]
 
 class MatriculaForm(forms.ModelForm):
+    # ✅ nuevo: checkbox para activar personalización
+    personalizar_fechas = forms.BooleanField(required=False, initial=False)
 
-    class Meta:
-        model = Matricula
-        fields = '__all__'
+    # ✅ ya no necesitamos fechas_personalizadas texto
+    # los inputs sesion_1..sesion_6 se leen directo desde request.POST
 
     dias = forms.MultipleChoiceField(
         choices=DAY_CHOICES,
@@ -42,46 +43,32 @@ class MatriculaForm(forms.ModelForm):
         model = Matricula
         fields = [
             'curso',
-            'modalidad',
-            'tipo_horario',
+            'modalidad',       # full / extendida
             'fecha_inicio',
             'costo_curso',
             'primer_pago',
             'porcentaje',
             'dias',
         ]
-
         widgets = {
             'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
         }
 
     def clean(self):
-        cleaned_data = super().clean()
+        cleaned = super().clean()
 
-        # valor que llega del select (puede venir como full, extendida, personalizado, etc.)
-        tipo = (cleaned_data.get('tipo_horario') or '').strip().lower()
-        print("🧪 DEBUG clean tipo_horario:", repr(tipo))
-       
+        modalidad = (cleaned.get("modalidad") or "").strip().lower()
+        dias = cleaned.get("dias") or []
+        personalizar = cleaned.get("personalizar_fechas") is True
 
-        dias = cleaned_data.get('dias') or []
-        print("🧪 DEBUG clean dias:", dias)
-        # ✅ Detectar personalizado por los inputs sesion_1..N (vienen en POST)
-        # OJO: self.data es el POST real (antes de cleaned_data)
-        tiene_sesiones = any(
-            (self.data.get(f"sesion_{i}") or "").strip()
-            for i in range(1, 15)  # suficiente (si algún día haces 10-12 sesiones)
-        )
-        print("🧪 DEBUG clean tiene_sesiones:", tiene_sesiones)
+        # ✅ si no personaliza, extendida necesita días
+        if not personalizar and modalidad == "extendida" and not dias:
+            raise forms.ValidationError("Debes ingresar al menos un día de estudio para Extendida.")
 
-        # ✅ Si hay sesiones, lo tratamos como PERSONALIZADO sí o sí
-        if tipo == 'personalizado' or tiene_sesiones:
-            return cleaned_data
+        # ✅ full day NO necesita días cuando es automático (porque es 1 clase por semana)
+        # pero si quieres que full day SI pida días, lo hacemos en la vista cuando personalizar=false (opcional)
 
-        # ✅ FULL y EXTENDIDA exigen días (solo si NO es personalizado)
-        if tipo in ['full', 'extendida'] and not dias:
-            raise forms.ValidationError("Debes ingresar al menos un día de estudio.")
-
-        return cleaned_data
+        return cleaned
 
 class MatriculaAdminForm(forms.ModelForm):
     class Meta:
