@@ -52,22 +52,21 @@ class MatriculaForm(forms.ModelForm):
             'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
         }
 
-    def clean(self):
-        cleaned = super().clean()
+def clean(self):
+    cleaned = super().clean()
 
-        tipo = (cleaned.get("tipo_horario") or "").strip().lower()
-        dias = cleaned.get("dias") or []
-        personalizar = cleaned.get("personalizar_fechas") is True
+    tipo = (cleaned.get("tipo_horario") or "").strip().lower()   # full_day / extendida
+    dias = cleaned.get("dias") or []
+    personalizar = cleaned.get("personalizar_fechas") is True
 
-        # ✅ FULL y EXTENDIDA: siempre deben elegir días (porque tú quieres 3 o 6 días exactos)
-        if tipo in ("full", "extendida") and not dias:
-            raise forms.ValidationError("Debes ingresar al menos un día de estudio.")
+    if not personalizar:
+        if tipo in ("full_day", "fullday", "full day") and not dias:
+            raise forms.ValidationError("Debes seleccionar 3 días para Full Day.")
+        if tipo == "extendida" and not dias:
+            raise forms.ValidationError("Debes seleccionar días para Extendida.")
 
-        # ✅ si NO personaliza, necesita fecha_inicio para calcular automático
-        if not personalizar and not cleaned.get("fecha_inicio"):
-            raise forms.ValidationError("Debe ingresar fecha de inicio.")
+    return cleaned
 
-        return cleaned
     
 class MatriculaAdminForm(forms.ModelForm):
     class Meta:
