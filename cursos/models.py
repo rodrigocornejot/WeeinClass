@@ -184,18 +184,14 @@ class Matricula(models.Model):
         return f"{self.alumno.nombre} - {self.curso.nombre} ({self.modalidad})"
 
     def clean(self):
-        """
-        Reglas:
-        - tipo_horario = full / extendida
-        - dias solo obligatorio si quieres generar por días (full o extendida) O si NO personalizas
-        """
-        # Si no viene tipo_horario aún, no validamos
-        tipo = (self.tipo_horario or "").strip().lower()
+        modalidad = (self.modalidad or "").lower()
+        dias = self.dias or []
+        personaliza = bool(self.fechas_personalizadas)
 
-        # Si vas a usar la nueva lógica: FULL = 3 clases, EXTENDIDA = 6 clases, ambos requieren días
-        # (porque tú quieres seleccionar qué días exactos serán las clases)
-        if tipo in ("full", "extendida") and not self.dias:
+        # Solo exigir días si es extendida y NO personaliza
+        if modalidad == "extendida" and not personaliza and not dias:
             raise ValidationError("Debes ingresar al menos un día de estudio.")
+
         
     def pagos_realizados(self):
         return self.pagos.aggregate(total=Sum('monto'))['total'] or 0
