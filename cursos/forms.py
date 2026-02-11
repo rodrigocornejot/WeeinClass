@@ -27,11 +27,7 @@ DAY_CHOICES = [
 ]
 
 class MatriculaForm(forms.ModelForm):
-    # ✅ nuevo: checkbox para activar personalización
     personalizar_fechas = forms.BooleanField(required=False, initial=False)
-
-    # ✅ ya no necesitamos fechas_personalizadas texto
-    # los inputs sesion_1..sesion_6 se leen directo desde request.POST
 
     dias = forms.MultipleChoiceField(
         choices=DAY_CHOICES,
@@ -43,7 +39,9 @@ class MatriculaForm(forms.ModelForm):
         model = Matricula
         fields = [
             'curso',
-            'modalidad',       # full / extendida
+            'modalidad',        # presencial / virtual
+            'tipo_horario',     # full / extendida  ✅
+            'personalizar_fechas',
             'fecha_inicio',
             'costo_curso',
             'primer_pago',
@@ -57,19 +55,20 @@ class MatriculaForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
 
-        modalidad = (cleaned.get("modalidad") or "").strip().lower()
+        tipo = (cleaned.get("tipo_horario") or "").strip().lower()
         dias = cleaned.get("dias") or []
         personalizar = cleaned.get("personalizar_fechas") is True
 
-        # ✅ si no personaliza, extendida necesita días
-        if not personalizar and modalidad == "extendida" and not dias:
-            raise forms.ValidationError("Debes ingresar al menos un día de estudio para Extendida.")
+        # ✅ FULL y EXTENDIDA: siempre deben elegir días (porque tú quieres 3 o 6 días exactos)
+        if tipo in ("full", "extendida") and not dias:
+            raise forms.ValidationError("Debes ingresar al menos un día de estudio.")
 
-        # ✅ full day NO necesita días cuando es automático (porque es 1 clase por semana)
-        # pero si quieres que full day SI pida días, lo hacemos en la vista cuando personalizar=false (opcional)
+        # ✅ si NO personaliza, necesita fecha_inicio para calcular automático
+        if not personalizar and not cleaned.get("fecha_inicio"):
+            raise forms.ValidationError("Debe ingresar fecha de inicio.")
 
         return cleaned
-
+    
 class MatriculaAdminForm(forms.ModelForm):
     class Meta:
         model = Matricula
