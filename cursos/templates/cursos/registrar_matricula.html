@@ -22,7 +22,7 @@
         <a href="{% url 'lista_matriculas' %}" class="btn btn-dark">📋 Ver matrículas</a>
     </div>
 
-    <!-- 🔍 BUSCAR POR DNI -->
+    <!-- BUSCAR DNI -->
     <form method="get" class="mb-4">
         <label class="form-label">DNI del alumno</label>
         <input type="text"
@@ -33,7 +33,7 @@
         <button class="btn btn-secondary mt-2">Buscar</button>
     </form>
 
-    <!-- 📌 MOSTRAR ALUMNO -->
+    <!-- MOSTRAR ALUMNO -->
     <div class="mb-3">
         <label class="form-label">Alumno</label>
         <input type="text"
@@ -42,7 +42,8 @@
                readonly>
     </div>
 
-    <!-- 📝 FORMULARIO MATRÍCULA -->
+
+    <!-- FORM -->
     <form method="post">
         {% csrf_token %}
         <input type="hidden" name="dni" value="{{ dni }}">
@@ -59,17 +60,25 @@
             {{ form.modalidad }}
         </div>
 
-        <!-- TIPO HORARIO -->
+        <!-- TIPO -->
         <div class="mb-3">
             {{ form.tipo_horario.label_tag }}
             {{ form.tipo_horario }}
         </div>
 
-        <!-- DÍAS -->
+        <!-- DIAS -->
         <div class="mb-3 hidden" id="dias_box">
             {{ form.dias.label_tag }}
             {{ form.dias }}
         </div>
+
+
+        <!-- PERSONALIZADO -->
+        <div id="contenedor-sesiones" class="hidden">
+            <h5 class="mt-3">📅 Fechas de Sesiones</h5>
+            <div id="sesiones"></div>
+        </div>
+
 
         <!-- FECHA INICIO -->
         <div class="mb-3">
@@ -77,36 +86,145 @@
             {{ form.fecha_inicio }}
         </div>
 
+
         <!-- COSTOS -->
         <div class="row">
+
             <div class="col-md-4">
                 <label>Costo</label>
                 <input type="number" name="costo_curso" class="form-control">
             </div>
+
             <div class="col-md-4">
                 <label>Primer pago</label>
                 <input type="number" name="primer_pago" class="form-control">
             </div>
+
             <div class="col-md-4">
                 <label>Porcentaje</label>
                 <input type="number" name="porcentaje" class="form-control">
             </div>
+
         </div>
+
 
         <div class="text-center mt-4">
             <button class="btn btn-success">Guardar Matrícula</button>
         </div>
+
     </form>
 </div>
 
+
 <script>
+
+// Cursos y sesiones
+const CURSOS_SESIONES = {
+    "INST": 6,
+    "VDF": 6,
+    "PLC": 6,
+    "ABB": 6,
+    "DELTA": 6,
+
+    "REDES": 5,
+    "LOGO": 5,
+};
+
+
+// Elementos
+const tipoHorario = document.getElementById("id_tipo_horario");
+const cursoSelect = document.getElementById("id_curso");
+
+const diasBox = document.getElementById("dias_box");
+const contenedor = document.getElementById("contenedor-sesiones");
+const sesionesDiv = document.getElementById("sesiones");
+
+
+// Mostrar dias
 function toggleDias() {
-    let tipo = $('#id_tipo_horario').val();
-    $('#dias_box').toggle(tipo === 'full' || tipo === 'extendida');
+
+    let tipo = tipoHorario.value;
+
+    diasBox.classList.toggle(
+        "hidden",
+        !(tipo === "full" || tipo === "extendida")
+    );
 }
 
-$('#id_tipo_horario').on('change', toggleDias);
-$(document).ready(toggleDias);
+
+// Limpiar
+function limpiarSesiones() {
+    sesionesDiv.innerHTML = "";
+}
+
+
+// Obtener codigo
+function obtenerCodigoCurso() {
+
+    let texto = cursoSelect.options[cursoSelect.selectedIndex].text;
+
+    return texto.split("-")[0].trim().toUpperCase();
+}
+
+
+// Crear inputs
+function crearSesiones(cantidad) {
+
+    limpiarSesiones();
+
+    for (let i = 1; i <= cantidad; i++) {
+
+        let div = document.createElement("div");
+        div.classList.add("mb-2");
+
+        div.innerHTML = `
+            <label>Sesión ${i}</label>
+            <input type="date"
+                   name="sesion_${i}"
+                   class="form-control"
+                   required>
+        `;
+
+        sesionesDiv.appendChild(div);
+    }
+}
+
+
+// Control principal
+function actualizarPersonalizado() {
+
+    let tipo = tipoHorario.value;
+
+    if (tipo !== "personalizado") {
+        contenedor.classList.add("hidden");
+        limpiarSesiones();
+        return;
+    }
+
+    let codigo = obtenerCodigoCurso();
+
+    let total = CURSOS_SESIONES[codigo] || 6;
+
+    crearSesiones(total);
+
+    contenedor.classList.remove("hidden");
+}
+
+
+// Eventos
+tipoHorario.addEventListener("change", () => {
+    toggleDias();
+    actualizarPersonalizado();
+});
+
+cursoSelect.addEventListener("change", actualizarPersonalizado);
+
+
+$(document).ready(function () {
+    toggleDias();
+    actualizarPersonalizado();
+});
+
 </script>
 
 </body>

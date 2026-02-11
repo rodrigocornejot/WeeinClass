@@ -104,10 +104,7 @@ urlpatterns = [
     path('pagar-cuota/<int:cuota_id>/', pagar_cuota, name='pagar_cuota'),
 
     path('egresados/', egresados, name='egresados'),
-    path(
-    "generar-certificado/<int:matricula_id>/",
-    generar_certificado,
-    name="generar_certificado"),
+    path("generar-certificado/<int:matricula_id>/", generar_certificado, name="generar_certificado"),
     path("pagar-reprogramacion/", pagar_reprogramacion, name="pagar_reprogramacion"),
     path("historial-pagos/", historial_pagos, name="historial_pagos"),
     path("pagar-reprogramacion-pagos/<int:reprog_id>/", pagar_reprogramacion_pagos, name="pagar_reprogramacion_pagos"),

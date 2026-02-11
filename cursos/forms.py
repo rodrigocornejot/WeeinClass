@@ -27,12 +27,6 @@ DAY_CHOICES = [
 ]
 
 class MatriculaForm(forms.ModelForm):
-    fechas_personalizadas = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={
-            'placeholder': 'Ej: 2026-01-15,2026-01-20,2026-02-10'
-        })
-    )
 
     class Meta:
         model = Matricula

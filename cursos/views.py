@@ -878,136 +878,148 @@ def registrar_matricula(request):
             pagado=False,
         )
 
-    # =========================
-    # FECHAS + UNIDADES
-    # =========================
-    fecha_inicio = form.cleaned_data.get("fecha_inicio") or matricula.fecha_inicio
-    dias = form.cleaned_data.get("dias") or []
-    fechas_personalizadas = form.cleaned_data.get("fechas_personalizadas")
+        # =========================
+        # FECHAS + UNIDADES
+        # =========================
 
-    # ✅ codigo real del curso (INST/VDF/PLC1...)
-    nombre_curso = (matricula.curso.nombre or "").strip()
-    codigo, total_unidades = curso_codigo_y_sesiones(nombre_curso, curso_obj=matricula.curso)
+        fecha_inicio = form.cleaned_data.get("fecha_inicio")
+        dias = form.cleaned_data.get("dias") or []
 
-    # ✅ detectar Full Day
-    raw_tipo = (matricula.tipo_horario or "")
-    tipo = _norm(str(raw_tipo)).replace(" ", "_")  # FULL_DAY, FULLDAY, FULL-DAY, etc
+        raw_tipo = matricula.tipo_horario or ""
+        tipo = raw_tipo.lower()
 
-    es_full_day = (
-        tipo in ("FULL_DAY", "FULLDAY", "FULL-DAY")
-        or tipo.startswith("FULL")
-    )
+        nombre_curso = (matricula.curso.nombre or "").strip()
+        codigo, total_unidades = curso_codigo_y_sesiones(nombre_curso, curso_obj=matricula.curso)
 
-    print("✅ DEBUG tipo_horario RAW:", raw_tipo, "| NORMALIZADO:", tipo, "| es_full_day:", es_full_day)
 
-    sesiones_por_clase = 2 if es_full_day else 1
-    total_clases = ceil(total_unidades / sesiones_por_clase)  # FullDay 6/2 = 3
+        # FULL DAY
+        es_full_day = tipo.startswith("full")
 
-    # ✅ unidades: si no existen, créalas
-    unidades = list(
-        UnidadCurso.objects.filter(curso=matricula.curso).order_by("numero")
-    )
-    if not unidades:
-        unidades = asegurar_unidades_curso(matricula.curso)
+        sesiones_por_clase = 2 if es_full_day else 1
+        total_clases = ceil(total_unidades / sesiones_por_clase)
 
-    # recortar a total_unidades
-    unidades = [u for u in unidades if u.numero <= total_unidades]
-    unidades = unidades[:total_unidades]
 
-    fechas = []
+        # Unidades
+        unidades = list(
+            UnidadCurso.objects.filter(curso=matricula.curso).order_by("numero")
+        )
 
-    if fechas_personalizadas:
-        try:
-            for f in fechas_personalizadas.split(","):
-                fechas.append(datetime.strptime(f.strip(), "%Y-%m-%d").date())
-        except ValueError:
-            form.add_error('fechas_personalizadas', 'Formato incorrecto. Usa YYYY-MM-DD separados por coma.')
-            return render(request, 'cursos/registrar_matricula.html', {
-                'form': form,
-                'alumno': alumno,
-                'dni': dni
-            })
+        if not unidades:
+            unidades = asegurar_unidades_curso(matricula.curso)
 
-        fechas = sorted(set(fechas))[:total_clases]
+        unidades = [u for u in unidades if u.numero <= total_unidades]
 
-    else:
-        if not fecha_inicio:
-            form.add_error('fecha_inicio', 'Debe ingresar una fecha de inicio.')
-            return render(request, 'cursos/registrar_matricula.html', {
-                'form': form,
-                'alumno': alumno,
-                'dni': dni
-            })
 
-        # ✅ FULL DAY: 1 clase por semana (inicio, +7, +14)
-        if es_full_day:
-            fechas = [fecha_inicio + timedelta(days=7 * i) for i in range(total_clases)]
+        fechas = []
+
+
+        # =========================
+        # PERSONALIZADO
+        # =========================
+        if tipo == "personalizado":
+
+            for i in range(1, total_unidades + 1):
+
+                f = request.POST.get(f"sesion_{i}")
+
+                if f:
+                    fechas.append(
+                        datetime.strptime(f, "%Y-%m-%d").date()
+                    )
+
+            fechas = sorted(fechas)[:total_clases]
+
+
+        # =========================
+        # NORMAL
+        # =========================
         else:
-            if not dias:
-                form.add_error('dias', 'Debe seleccionar al menos un día')
+
+            if not fecha_inicio:
+                form.add_error('fecha_inicio', 'Ingrese fecha de inicio')
                 return render(request, 'cursos/registrar_matricula.html', {
                     'form': form,
                     'alumno': alumno,
                     'dni': dni
                 })
 
-            dias_map = {
-                'lunes': 0, 'martes': 1, 'miercoles': 2,
-                'jueves': 3, 'viernes': 4,
-                'sabado': 5, 'domingo': 6
-            }
 
-            dias_num = sorted({dias_map[d] for d in dias})
-            cursor = fecha_inicio
+            if es_full_day:
 
-            while len(fechas) < total_clases:
-                if cursor.weekday() in dias_num:
-                    fechas.append(cursor)
-                cursor += timedelta(days=1)
+                fechas = [
+                    fecha_inicio + timedelta(days=7 * i)
+                    for i in range(total_clases)
+                ]
 
-    fechas = sorted(fechas)
 
-    print("✅ POST - CURSO:", nombre_curso, "CODIGO:", codigo)
-    print("✅ POST - FECHA_INICIO:", fecha_inicio)
-    print("✅ POST - DIAS:", dias)
-    print("✅ POST - FULL_DAY:", es_full_day, "sesiones_por_clase:", sesiones_por_clase)
-    print("✅ POST - total_unidades:", total_unidades, "total_clases:", total_clases)
-    print("✅ POST - FECHAS:", fechas)
+            else:
 
-    if not fechas:
-        messages.error(request, "❌ No se generaron fechas de clases. Revisa fecha_inicio y días.")
-        return redirect("vista_calendario")
+                if not dias:
+                    form.add_error('dias', 'Seleccione días')
+                    return render(request, 'cursos/registrar_matricula.html', {
+                        'form': form,
+                        'alumno': alumno,
+                        'dni': dni
+                    })
 
-    # =========================
-    # CREAR CLASES + ASISTENCIAS
-    # =========================
-    unidad_idx = 0
 
-    for fecha in fechas:
-        clase, _ = Clase.objects.get_or_create(
-            curso=matricula.curso,
-            fecha=fecha
-        )
+                dias_map = {
+                    'lunes': 0, 'martes': 1, 'miercoles': 2,
+                    'jueves': 3, 'viernes': 4,
+                    'sabado': 5, 'domingo': 6
+                }
 
-        # ✅ vincular matrícula a la clase
-        clase.matriculas.add(matricula)
+                dias_num = sorted({dias_map[d] for d in dias})
 
-        # ✅ 1 o 2 asistencias por clase
-        for _ in range(sesiones_por_clase):
-            if unidad_idx >= len(unidades):
-                break
+                cursor = fecha_inicio
 
-            unidad = unidades[unidad_idx]
-            AsistenciaUnidad.objects.get_or_create(
-                matricula=matricula,
-                unidad=unidad,
-                clase=clase,
-                defaults={"completado": False}
+                while len(fechas) < total_clases:
+
+                    if cursor.weekday() in dias_num:
+                        fechas.append(cursor)
+
+                    cursor += timedelta(days=1)
+
+
+
+        # =========================
+        # CREAR CLASES
+        # =========================
+
+        if not fechas:
+            messages.error(request, "No se generaron fechas.")
+            return redirect("vista_calendario")
+
+
+        unidad_idx = 0
+
+
+        for fecha in fechas:
+
+            clase, _ = Clase.objects.get_or_create(
+                curso=matricula.curso,
+                fecha=fecha
             )
-            unidad_idx += 1
 
-    messages.success(request, "✅ Matrícula registrada y clases creadas correctamente.")
-    return redirect("vista_calendario")
+            clase.matriculas.add(matricula)
+
+
+            for _ in range(sesiones_por_clase):
+
+                if unidad_idx >= len(unidades):
+                    break
+
+                unidad = unidades[unidad_idx]
+
+                AsistenciaUnidad.objects.get_or_create(
+                    matricula=matricula,
+                    unidad=unidad,
+                    clase=clase,
+                    defaults={"completado": False}
+                )
+
+                unidad_idx += 1
+
 
 @login_required
 def datos_dashboard(request):
