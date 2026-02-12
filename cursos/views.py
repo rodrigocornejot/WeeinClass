@@ -1835,6 +1835,7 @@ def pagar_cuota(request, cuota_id):
         registrado_por=request.user,
         metodo_pago=metodo_pago,
         fecha_pago_real=timezone.now().date(),
+        activo=True,
     )
 
     # ✅ actualizar cuota
