@@ -258,19 +258,21 @@ def calendario_matriculas(request):
             continue
 
         for matricula in clase.matriculas.all():
+            es_virtual = (matricula.modalidad or "").strip().lower() == "virtual"
+            sufijo = " - V" if es_virtual else ""
+
             eventos.append({
                 "id": f"clase-{clase.id}-mat-{matricula.id}",
-                "title": f"{codigo} - {matricula.alumno.nombre}",
+                "title": f"{codigo}{sufijo} - {matricula.alumno.nombre}",
                 "start": clase.fecha.strftime("%Y-%m-%d"),
                 "color": color,
                 "textColor": "black",
-
-                # ✅ ESTO ES LO QUE TE FALTABA (para el click)
                 "extendedProps": {
                     "clase_id": clase.id,
                     "matricula_id": matricula.id,
                     "curso": clase.curso.nombre,
                     "alumno": matricula.alumno.nombre,
+                    "modalidad": matricula.modalidad,  # opcional
                 }
             })
 
