@@ -339,6 +339,62 @@
     </div>
   </div>
   {% endif %}
+  <!-- 📒 Historial de Pagos -->
+<div class="col-md-6">
+  <a href="{% url 'historial_pagos' %}" class="menu-btn">
+    <div class="d-flex gap-3">
+      <div class="menu-icon">🧾</div>
+      <div>
+        Historial de Pagos
+        <div class="menu-desc">Ver pagos por alumno</div>
+      </div>
+    </div>
+    <span class="text-muted">›</span>
+  </a>
+</div>
+
+<!-- 💰 Cuadre de Caja / Reporte -->
+<div class="col-md-6">
+  <a href="{% url 'reporte_caja' %}" class="menu-btn">
+    <div class="d-flex gap-3">
+      <div class="menu-icon">💰</div>
+      <div>
+        Cuadre de Caja
+        <div class="menu-desc">Reporte por fechas y método</div>
+      </div>
+    </div>
+    <span class="text-muted">›</span>
+  </a>
+</div>
+
+<!-- 🛒 Venta de Servicios -->
+<div class="col-md-6">
+  <a href="{% url 'catalogo_servicios' %}" class="menu-btn">
+    <div class="d-flex gap-3">
+      <div class="menu-icon">🛒</div>
+      <div>
+        Venta de Servicios
+        <div class="menu-desc">Cobros sin matrícula</div>
+      </div>
+    </div>
+    <span class="text-muted">›</span>
+  </a>
+</div>
+
+<!-- 🧰 Gestión de Servicios (si existe la URL name) -->
+<div class="col-md-6">
+  <a href="{% url 'servicios_gestion' %}" class="menu-btn">
+    <div class="d-flex gap-3">
+      <div class="menu-icon">🧰</div>
+      <div>
+        Servicios (Gestión)
+        <div class="menu-desc">Crear / Editar / Activar</div>
+      </div>
+    </div>
+    <span class="text-muted">›</span>
+  </a>
+</div>
+
 
 </div>
 </body>
