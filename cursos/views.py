@@ -742,6 +742,25 @@ def detalle_matricula(request, matricula_id, fecha):
         sesion_num = asistencia.unidad.numero if asistencia else None
         sesion_tema = asistencia.unidad.nombre_tema if asistencia else ""
 
+        turno_val = ""  # "9-1" / "2-6" / "9-6"
+        fechas_personalizadas = matricula.fechas_personalizadas or []
+
+        for item in fechas_personalizadas:
+            if item.get("fecha") == fecha:  # fecha viene "YYYY-MM-DD"
+                turno_val = (item.get("horario") or "").strip()
+                break
+
+        HORARIO_MAP = {
+            "9-1": "9:00 – 1:00",
+            "2-6": "2:00 – 6:00",
+            "9-6": "9:00 – 6:00",
+        }
+        turno_label = HORARIO_MAP.get(turno_val, turno_val)
+
+        # fallback si no está guardado (por ejemplo, matrícula automática sin personalizar)
+        if not turno_label:
+            turno_label = matricula.get_tipo_horario_display()
+
         return JsonResponse({
             "nombre": matricula.alumno.nombre,
             "curso": matricula.curso.nombre,
@@ -811,7 +830,10 @@ def registrar_matricula(request):
         return render(request, 'cursos/registrar_matricula.html', {
             'form': form,
             'alumno': alumno,
-            'dni': dni
+            'dni': dni,
+            'sesiones_post': [],
+            'horarios_post': [],
+            'personalizar_post': False,
         })
 
     form = MatriculaForm(request.POST)
@@ -827,6 +849,9 @@ def registrar_matricula(request):
     if metodo_pago_anticipo and metodo_pago_anticipo not in metodos_validos:
         metodo_pago_anticipo = None
 
+    # =========================
+    # CUÁNTAS SESIONES (para personalizar)
+    # =========================
     def clases_por_tipo(tipo_horario: str) -> int:
         t = (tipo_horario or "").lower()
         if t.startswith("full"):
@@ -837,9 +862,14 @@ def registrar_matricula(request):
 
     n_clases = clases_por_tipo(tipo) if personalizar else 0
 
+    # =========================
+    # POST "MEMORY" para re-render si hay error
+    # =========================
     sesiones_post = []
+    horarios_post = []
     for i in range(1, n_clases + 1):
         sesiones_post.append(request.POST.get(f"sesion_{i}") or "")
+        horarios_post.append(request.POST.get(f"horario_{i}") or "")
 
     if not form.is_valid() or not alumno:
         return render(request, "cursos/registrar_matricula.html", {
@@ -847,6 +877,7 @@ def registrar_matricula(request):
             "alumno": alumno,
             "dni": dni,
             "sesiones_post": sesiones_post,
+            "horarios_post": horarios_post,
             "personalizar_post": personalizar,
         })
 
@@ -868,6 +899,56 @@ def registrar_matricula(request):
 
             matricula.precio_final = precio_final
             matricula.saldo_pendiente = (precio_final - anticipo).quantize(Decimal('0.01'))
+
+            # =========================
+            # FECHAS PERSONALIZADAS (GUARDAR fecha + horario)
+            # =========================
+            HORARIOS_VALIDOS = {"9-1", "2-6", "9-6"}
+
+            fechas = []
+            fechas_personalizadas_payload = []
+
+            if personalizar:
+                total_clases = clases_por_tipo(tipo)
+
+                for i in range(1, total_clases + 1):
+                    f = (request.POST.get(f"sesion_{i}") or "").strip()
+                    h = (request.POST.get(f"horario_{i}") or "").strip()
+
+                    if not f:
+                        form.add_error(None, f"Falta la fecha de la sesión {i}.")
+                    if not h or h not in HORARIOS_VALIDOS:
+                        form.add_error(None, f"Falta el horario válido de la sesión {i}.")
+
+                if form.errors:
+                    # re-render con lo que ya eligió
+                    return render(request, "cursos/registrar_matricula.html", {
+                        "form": form,
+                        "alumno": alumno,
+                        "dni": dni,
+                        "sesiones_post": sesiones_post,
+                        "horarios_post": horarios_post,
+                        "personalizar_post": personalizar,
+                    })
+
+                for i in range(1, total_clases + 1):
+                    f = request.POST.get(f"sesion_{i}")
+                    h = request.POST.get(f"horario_{i}")
+
+                    f_date = datetime.strptime(f, "%Y-%m-%d").date()
+                    fechas.append(f_date)
+                    fechas_personalizadas_payload.append({
+                        "fecha": f_date.strftime("%Y-%m-%d"),
+                        "horario": h
+                    })
+
+                # orden por fecha (y arrastra el horario junto)
+                fechas_personalizadas_payload = sorted(fechas_personalizadas_payload, key=lambda x: x["fecha"])
+                fechas = [datetime.strptime(x["fecha"], "%Y-%m-%d").date() for x in fechas_personalizadas_payload]
+
+                matricula.fechas_personalizadas = fechas_personalizadas_payload
+            else:
+                matricula.fechas_personalizadas = []  # limpio
 
             matricula.save()
             form.save_m2m()
@@ -945,22 +1026,38 @@ def registrar_matricula(request):
                 unidades = asegurar_unidades_curso(matricula.curso)
             unidades = [u for u in unidades if u.numero <= total_unidades]
 
-            fechas = []
-
-            if personalizar:
-                for i in range(1, total_clases + 1):
-                    f = request.POST.get(f"sesion_{i}")
-                    fechas.append(datetime.strptime(f, "%Y-%m-%d").date())
-            else:
+            # si NO personaliza, generamos fechas automático
+            if not personalizar:
                 if tipo_horario.startswith("full"):
+                    if not fecha_inicio:
+                        form.add_error(None, "Falta fecha de inicio.")
+                        return render(request, "cursos/registrar_matricula.html", {
+                            "form": form,
+                            "alumno": alumno,
+                            "dni": dni,
+                            "sesiones_post": [],
+                            "horarios_post": [],
+                            "personalizar_post": False,
+                        })
                     fechas = [fecha_inicio + timedelta(days=7 * i) for i in range(total_clases)]
                 else:
+                    if not fecha_inicio:
+                        form.add_error(None, "Falta fecha de inicio.")
+                        return render(request, "cursos/registrar_matricula.html", {
+                            "form": form,
+                            "alumno": alumno,
+                            "dni": dni,
+                            "sesiones_post": [],
+                            "horarios_post": [],
+                            "personalizar_post": False,
+                        })
+
                     dias_map = {
                         'lunes': 0, 'martes': 1, 'miercoles': 2,
                         'jueves': 3, 'viernes': 4,
                         'sabado': 5, 'domingo': 6
                     }
-                    dias_num = sorted({dias_map[d] for d in dias})
+                    dias_num = sorted({dias_map[d] for d in dias if d in dias_map})
                     cursor = fecha_inicio
                     while len(fechas) < total_clases:
                         if cursor.weekday() in dias_num:
@@ -992,7 +1089,10 @@ def registrar_matricula(request):
         return render(request, 'cursos/registrar_matricula.html', {
             'form': form,
             'alumno': alumno,
-            'dni': dni
+            'dni': dni,
+            'sesiones_post': sesiones_post,
+            'horarios_post': horarios_post,
+            'personalizar_post': personalizar,
         })
 
     

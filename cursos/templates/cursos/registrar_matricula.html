@@ -73,6 +73,25 @@
     }
     .hidden{ display:none; }
     .divider{ height:1px; background:var(--border); margin:18px 0; }
+
+    /* Tarjeta bonita para cada sesión */
+    .session-card{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 6px 14px rgba(15,23,42,.06);
+    }
+    .session-title{ font-weight:800; margin-bottom:10px; }
+    .btn-group .btn{
+      border-radius:12px !important;
+      padding:.45rem .8rem;
+      border-color:var(--border);
+    }
+    .btn-check:checked + .btn{
+      border-color:#93c5fd;
+      box-shadow:0 0 0 .2rem rgba(37,99,235,.12);
+    }
   </style>
 </head>
 
@@ -176,7 +195,7 @@
               <label class="form-check-label fw-semibold" for="id_personalizar_fechas">
                 📌 Personalizar fechas de clases
               </label>
-              <div class="form-text">Actívalo si deseas elegir manualmente las fechas de cada clase.</div>
+              <div class="form-text">Actívalo si deseas elegir manualmente las fechas y el horario de cada sesión.</div>
             </div>
 
           </div>
@@ -191,14 +210,14 @@
           <div class="col-12 col-md-6" id="dias_box">
             <label class="form-label fw-semibold">{{ form.dias.label }}</label>
             {{ form.dias }}
-            <div class="hint mt-1">Selecciona días si no personalizas fechas.</div>
+            <div class="hint mt-1">Selecciona días si NO personalizas fechas.</div>
           </div>
         </div>
 
         <!-- ✅ Caja fechas personalizadas (sin duplicados) -->
         <div class="mt-3 hidden" id="personalizado_box">
           <div class="alert alert-info mb-2" id="help_personalizado"></div>
-          <div id="sesiones_container" class="row g-2"></div>
+          <div id="sesiones_container" class="row g-3"></div>
         </div>
 
         <div class="divider"></div>
@@ -225,7 +244,7 @@
         </div>
 
         <!-- ✅ MÉTODO DE PAGO DEL ANTICIPO -->
-        <div class="row g-3 mt-1">
+        <div class="row g-3 mt-3">
           <div class="col-12 col-md-6">
             <label class="form-label fw-semibold">Método de pago (anticipo)</label>
 
@@ -255,9 +274,18 @@
 </div>
 
 {{ sesiones_post|default:"[]"|json_script:"sesiones-post-data" }}
+{{ horarios_post|default:"[]"|json_script:"horarios-post-data" }}
 
 <script>
-const SESIONES_POST = JSON.parse(document.getElementById("sesiones-post-data").textContent);
+const SESIONES_POST  = JSON.parse(document.getElementById("sesiones-post-data").textContent || "[]");
+const HORARIOS_POST  = JSON.parse(document.getElementById("horarios-post-data").textContent || "[]");
+
+// Horarios fijos (codes)
+const HORARIOS = [
+  { code: "9-1", label: "9:00 - 1:00" },
+  { code: "2-6", label: "2:00 - 6:00" },
+  { code: "9-6", label: "9:00 - 6:00" },
+];
 
 function totalClasesPorTipo() {
   const tipo = ($('#id_tipo_horario').val() || '').toLowerCase();
@@ -271,11 +299,34 @@ function renderClases(n) {
   $c.empty();
 
   for (let i = 1; i <= n; i++) {
-    const val = (SESIONES_POST[i-1] || "");
+    const fechaVal = (SESIONES_POST[i-1] || "");
+    const horarioVal = (HORARIOS_POST[i-1] || "");
+
+    // botones radio (uno solo)
+    const radiosHtml = HORARIOS.map(h => {
+      const id = `hor_${i}_${h.code.replaceAll(':','').replaceAll('-','_')}`;
+      const checked = (horarioVal === h.code) ? 'checked' : '';
+      return `
+        <input type="radio" class="btn-check" name="horario_${i}" id="${id}" value="${h.code}" autocomplete="off" ${checked} required>
+        <label class="btn btn-outline-primary" for="${id}">${h.label}</label>
+      `;
+    }).join("");
+
     $c.append(`
       <div class="col-12 col-md-6">
-        <label class="form-label fw-semibold">Clase ${i}</label>
-        <input type="date" class="form-control" name="sesion_${i}" value="${val}" required>
+        <div class="session-card">
+          <div class="session-title">Sesión ${i}</div>
+
+          <label class="form-label fw-semibold mb-1">Fecha</label>
+          <input type="date" class="form-control mb-3" name="sesion_${i}" value="${fechaVal}" required>
+
+          <label class="form-label fw-semibold mb-2">Horario</label>
+          <div class="btn-group w-100" role="group" aria-label="Horario sesión ${i}">
+            ${radiosHtml}
+          </div>
+
+          <div class="hint mt-2">El horario se guardará para mostrarlo en el modal de esta sesión.</div>
+        </div>
       </div>
     `);
   }
@@ -296,8 +347,8 @@ function toggleUI() {
   if (aplica && personalizar) {
     const n = totalClasesPorTipo();
     $('#help_personalizado').text(
-      esFull ? "Elige la fecha de cada clase (Full Day = 3 clases)." :
-      esExtendida ? "Elige la fecha de cada clase (Extendida = 6 clases)." :
+      esFull ? "Elige la fecha y el horario de cada sesión (Full Day = 3 sesiones)." :
+      esExtendida ? "Elige la fecha y el horario de cada sesión (Extendida = 6 sesiones)." :
       ""
     );
     renderClases(n);
