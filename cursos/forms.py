@@ -73,11 +73,6 @@ class MatriculaForm(forms.ModelForm):
         self.fields["primer_pago"].widget.attrs.setdefault("placeholder", "Ej: 200.00")
         self.fields["porcentaje"].widget.attrs.setdefault("placeholder", "Ej: 30")
 
-        # ✅ para que el checkboxlist de días salga bonito con bootstrap
-        # Django no pone class a cada input automáticamente, así que se lo metemos a cada opción.
-        for w in self.fields["dias"].widget.widgets:
-            w.attrs.update({"class": "form-check-input"})
-
     def clean(self):
         cleaned = super().clean()
 
