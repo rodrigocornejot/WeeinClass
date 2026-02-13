@@ -133,22 +133,54 @@
         {% csrf_token %}
         <input type="hidden" name="dni" value="{{ dni }}">
 
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <label class="form-label fw-semibold">{{ form.curso.label }}</label>
-            {{ form.curso }}
-          </div>
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-body p-4">
 
-          <div class="col-12 col-md-3">
-            <label class="form-label fw-semibold">{{ form.modalidad.label }}</label>
-            {{ form.modalidad }}
-          </div>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div>
+                <h5 class="mb-0">Datos del curso</h5>
+                <small class="text-muted">Selecciona el curso y el tipo de matrícula</small>
+              </div>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Matrícula</span>
+            </div>
 
-          <div class="col-12 col-md-3">
-            <label class="form-label fw-semibold">{{ form.tipo_horario.label }}</label>
-            {{ form.tipo_horario }}
+            <div class="row g-3">
+              <div class="col-12 col-lg-6">
+                <label class="form-label fw-semibold">{{ form.curso.label }}</label>
+                {{ form.curso }}
+                <div class="form-text">Elige el curso que llevará el alumno.</div>
+              </div>
+
+              <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label fw-semibold">{{ form.modalidad.label }}</label>
+                {{ form.modalidad }}
+              </div>
+
+              <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label fw-semibold">{{ form.tipo_horario.label }}</label>
+                {{ form.tipo_horario }}
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="form-check form-switch">
+              <input
+                type="checkbox"
+                name="personalizar_fechas"
+                id="id_personalizar_fechas"
+                class="form-check-input"
+                {% if personalizar_post %}checked{% endif %}
+              >
+              <label class="form-check-label fw-semibold" for="id_personalizar_fechas">
+                📌 Personalizar fechas de clases
+              </label>
+              <div class="form-text">Actívalo si deseas elegir manualmente las fechas de cada clase.</div>
+            </div>
+
           </div>
         </div>
+
 
         <div class="row g-3 mt-1">
           <div class="col-12 col-md-6" id="fecha_inicio_box">

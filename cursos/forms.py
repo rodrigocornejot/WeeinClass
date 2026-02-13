@@ -27,7 +27,11 @@ DAY_CHOICES = [
 ]
 
 class MatriculaForm(forms.ModelForm):
-    personalizar_fechas = forms.BooleanField(required=False, initial=False)
+    personalizar_fechas = forms.BooleanField(
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+    )
 
     dias = forms.MultipleChoiceField(
         choices=DAY_CHOICES,
@@ -48,7 +52,31 @@ class MatriculaForm(forms.ModelForm):
             'porcentaje',
             'dias',
         ]
-        widgets = {'fecha_inicio': forms.DateInput(attrs={'type': 'date'})}
+
+        widgets = {
+            "curso": forms.Select(attrs={"class": "form-select"}),
+            "modalidad": forms.Select(attrs={"class": "form-select"}),
+            "tipo_horario": forms.Select(attrs={"class": "form-select"}),
+
+            "fecha_inicio": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+
+            "costo_curso": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "primer_pago": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "porcentaje": forms.NumberInput(attrs={"class": "form-control", "min": "0", "max": "100"}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # ✅ placeholder y labels más limpios
+        self.fields["costo_curso"].widget.attrs.setdefault("placeholder", "Ej: 800.00")
+        self.fields["primer_pago"].widget.attrs.setdefault("placeholder", "Ej: 200.00")
+        self.fields["porcentaje"].widget.attrs.setdefault("placeholder", "Ej: 30")
+
+        # ✅ para que el checkboxlist de días salga bonito con bootstrap
+        # Django no pone class a cada input automáticamente, así que se lo metemos a cada opción.
+        for w in self.fields["dias"].widget.widgets:
+            w.attrs.update({"class": "form-check-input"})
 
     def clean(self):
         cleaned = super().clean()
