@@ -164,6 +164,7 @@
 
             <hr class="my-4">
 
+            <!-- ✅ SOLO UNO: switch personalizar -->
             <div class="form-check form-switch">
               <input
                 type="checkbox"
@@ -181,7 +182,6 @@
           </div>
         </div>
 
-
         <div class="row g-3 mt-1">
           <div class="col-12 col-md-6" id="fecha_inicio_box">
             <label class="form-label fw-semibold">{{ form.fecha_inicio.label }}</label>
@@ -195,17 +195,7 @@
           </div>
         </div>
 
-        <!-- Personalizar -->
-        <div class="mt-3">
-          <div class="form-check">
-            <input type="checkbox" name="personalizar_fechas" id="id_personalizar_fechas"
-                   class="form-check-input" {% if personalizar_post %}checked{% endif %}>
-            <label class="form-check-label fw-semibold" for="id_personalizar_fechas">
-              📌 Personalizar fechas de clases
-            </label>
-          </div>
-        </div>
-
+        <!-- ✅ Caja fechas personalizadas (sin duplicados) -->
         <div class="mt-3 hidden" id="personalizado_box">
           <div class="alert alert-info mb-2" id="help_personalizado"></div>
           <div id="sesiones_container" class="row g-2"></div>
@@ -238,15 +228,19 @@
         <div class="row g-3 mt-1">
           <div class="col-12 col-md-6">
             <label class="form-label fw-semibold">Método de pago (anticipo)</label>
+
+            {% with sel=request.POST.metodo_pago_anticipo %}
             <select name="metodo_pago_anticipo" class="form-select">
-              <option value="">— Seleccionar —</option>
-              <option value="plin">Plin</option>
-              <option value="yape">Yape</option>
-              <option value="izipay">Izipay</option>
-              <option value="interbank">Interbank</option>
-              <option value="culqi">Culqi</option>
-              <option value="efectivo">Efectivo</option>
+              <option value="" {% if not sel %}selected{% endif %}>— Seleccionar —</option>
+              <option value="plin" {% if sel == "plin" %}selected{% endif %}>Plin</option>
+              <option value="yape" {% if sel == "yape" %}selected{% endif %}>Yape</option>
+              <option value="izipay" {% if sel == "izipay" %}selected{% endif %}>Izipay</option>
+              <option value="interbank" {% if sel == "interbank" %}selected{% endif %}>Interbank</option>
+              <option value="culqi" {% if sel == "culqi" %}selected{% endif %}>Culqi</option>
+              <option value="efectivo" {% if sel == "efectivo" %}selected{% endif %}>Efectivo</option>
             </select>
+            {% endwith %}
+
             <div class="hint mt-1">Este método se guardará en el pago del anticipo.</div>
           </div>
         </div>
