@@ -165,6 +165,7 @@
                 <p><strong>Alumno:</strong> ${data.nombre}</p>
                 <p><strong>Turno:</strong> ${data.turno}</p>
                 <p><strong>Sesión:</strong> ${data.sesion_num ? ("S" + data.sesion_num + " - " + data.sesion_tema) : "No asignada"}</p>
+                <p><strong>Horario:</strong> ${data.horario ? data.horario : "—"}</p>
                 <p><strong>Saldo pendiente:</strong> S/ ${data.saldo}</p>
               `;
               new bootstrap.Modal(document.getElementById('eventoModal')).show();
