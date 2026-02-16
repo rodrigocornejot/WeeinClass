@@ -606,8 +606,8 @@ const HORARIOS = [
 
 function totalClasesPorTipo() {
   const tipo = ($('#id_tipo_horario').val() || '').toLowerCase();
-  if (tipo.startsWith('full')) return 3;     // Full Day
-  if (tipo === 'extendida') return 6;        // Extendida
+  if (tipo.startsWith('full')) return 3;
+  if (tipo === 'extendida') return 6;
   return 0;
 }
 
@@ -617,7 +617,7 @@ function renderClases(n) {
 
   for (let i = 1; i <= n; i++) {
     const fechaVal = (SESIONES_POST[i-1] || "");
-    const horarioVal = (HORARIOS_POST[i-1] || "9-1"); // default 9-1
+    const horarioVal = (HORARIOS_POST[i-1] || "9-1");
 
     const radios = HORARIOS.map(h => {
       const checked = (horarioVal === h.value) ? "checked" : "";
@@ -632,10 +632,7 @@ function renderClases(n) {
     $c.append(`
       <div class="col-12">
         <div class="mini-card">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="fw-bold">Clase ${i}</div>
-            <span class="badge text-bg-light border">Fecha + Horario</span>
-          </div>
+          <div class="fw-bold mb-2">Clase ${i}</div>
 
           <div class="row g-2 align-items-end">
             <div class="col-12 col-md-4">
@@ -648,7 +645,6 @@ function renderClases(n) {
               <div class="radio-row">
                 ${radios}
               </div>
-              <div class="hint mt-1">Se guardará para el modal de esa clase.</div>
             </div>
           </div>
         </div>
@@ -667,51 +663,43 @@ function toggleUI() {
 
   const n = totalClasesPorTipo();
 
-  // ===== FULL DAY =====
-  if (esFull) {
-    // Siempre ocultar días
-    $('#dias_box').hide();
-
-    // Mostrar fecha inicio
+  if (!aplica) {
     $('#fecha_inicio_box').show();
+    $('#dias_box').show();
+    $('#horario_general_box').hide();
+    $('#personalizado_box').addClass('hidden');
+    return;
+  }
 
-    // Mostrar bloque personalizado siempre
-    $('#personalizado_box').removeClass('hidden');
+  // 🔵 NO PERSONALIZA
+  if (!personalizar) {
+    $('#fecha_inicio_box').show();
+    $('#dias_box').toggle(esExtendida);
+    $('#horario_general_box').show();
+    $('#personalizado_box').addClass('hidden');
+    return;
+  }
 
+  // 🟢 PERSONALIZA
+  $('#fecha_inicio_box').hide();
+  $('#dias_box').hide();
+  $('#horario_general_box').hide();
+  $('#personalizado_box').removeClass('hidden');
+
+  if (esFull) {
     $('#help_personalizado').text(
-      "Selecciona el horario para cada clase (Full Day = 3 clases)."
+      "Elige fecha y horario (Full Day = 3 clases)."
     );
-
-    renderClases(n);
-    return;
+  } else {
+    $('#help_personalizado').text(
+      "Elige fecha y horario (Extendida = 6 clases)."
+    );
   }
 
-  // ===== EXTENDIDA =====
-  if (esExtendida) {
-    $('#fecha_inicio_box').toggle(!personalizar);
-    $('#dias_box').toggle(!personalizar);
-
-    $('#personalizado_box').toggleClass('hidden', !personalizar);
-
-    if (personalizar) {
-      $('#help_personalizado').text(
-        "Elige la fecha y el horario de cada clase (Extendida = 6 clases)."
-      );
-      renderClases(n);
-    }
-    return;
-  }
-
-  // ===== OTROS =====
-  $('#fecha_inicio_box').show();
-  $('#dias_box').show();
-  $('#personalizado_box').addClass('hidden');
+  renderClases(n);
 }
 
 $('#id_tipo_horario').on('change', toggleUI);
 $('#id_personalizar_fechas').on('change', toggleUI);
 $(document).ready(toggleUI);
 </script>
-
-</body>
-</html>
