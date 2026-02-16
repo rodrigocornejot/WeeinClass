@@ -736,28 +736,31 @@ def detalle_matricula(request, matricula_id, fecha):
             .first()
         )
 
-        asistencia = None
+        sesiones = []
+
         if clase:
-            asistencia = (
+            asistencias = (
                 AsistenciaUnidad.objects
                 .select_related("unidad")
                 .filter(matricula=matricula, clase=clase)
-                .first()
+                .order_by("unidad__numero")
             )
 
-        sesion_num = asistencia.unidad.numero if asistencia else None
-        sesion_tema = asistencia.unidad.nombre_tema if asistencia else ""
+            for a in asistencias:
+                sesiones.append({
+                    "numero": a.unidad.numero,
+                    "tema": a.unidad.nombre_tema
+                })
 
         return JsonResponse({
             "nombre": matricula.alumno.nombre,
             "curso": matricula.curso.nombre,
             "codigo": codigo,
             "turno": matricula.get_tipo_horario_display(),
-            "horario": horario,  # ✅ nuevo
+            "horario": horario,
             "saldo": float(matricula.saldo_pendiente),
             "fecha": fecha_dt.strftime("%d/%m/%Y"),
-            "sesion_num": sesion_num,
-            "sesion_tema": sesion_tema,
+            "sesiones": sesiones,   # 🔥 ahora enviamos lista
         })
 
     except Matricula.DoesNotExist:

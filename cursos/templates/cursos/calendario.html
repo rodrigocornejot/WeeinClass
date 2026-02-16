@@ -148,33 +148,62 @@
         events: "{% url 'calendario_matriculas' %}",
 
         /* CLICK -> DETALLE */
-        eventClick: function(info) {
-          const fecha = info.event.startStr;
-          const matriculaId = info.event.extendedProps.matricula_id;
+eventClick: function(info) {
+  const fecha = info.event.startStr;
+  const matriculaId = info.event.extendedProps.matricula_id;
 
-          if (!matriculaId) {
-            Swal.fire("Info", "Este evento no pertenece a una matrícula (solo curso).", "info");
-            return;
-          }
+  if (!matriculaId) {
+    Swal.fire("Info", "Este evento no pertenece a una matrícula (solo curso).", "info");
+    return;
+  }
 
-          fetch(`/cursos/detalle_matricula/${matriculaId}/${fecha}/`)
-            .then(res => res.json())
-            .then(data => {
-              document.getElementById('detalleEvento').innerHTML = `
-                <p><strong>Curso:</strong> ${data.codigo} - ${data.curso}</p>
-                <p><strong>Alumno:</strong> ${data.nombre}</p>
-                <p><strong>Turno:</strong> ${data.turno}</p>
-                <p><strong>Sesión:</strong> ${data.sesion_num ? ("S" + data.sesion_num + " - " + data.sesion_tema) : "No asignada"}</p>
-                <p><strong>Horario:</strong> ${data.horario ? data.horario : "—"}</p>
-                <p><strong>Saldo pendiente:</strong> S/ ${data.saldo}</p>
-              `;
-              new bootstrap.Modal(document.getElementById('eventoModal')).show();
-            })
-            .catch(() => {
-              document.getElementById('detalleEvento').innerHTML = '<p>Error al cargar datos.</p>';
-              new bootstrap.Modal(document.getElementById('eventoModal')).show();
-            });
-        },
+  fetch(`/cursos/detalle_matricula/${matriculaId}/${fecha}/`)
+    .then(res => res.json())
+    .then(data => {
+
+      let sesionesHTML = "No asignada";
+
+      if (data.sesiones && data.sesiones.length > 0) {
+        sesionesHTML = data.sesiones
+          .map(s => `<div>• S${s.numero} - ${s.tema}</div>`)
+          .join("");
+      }
+
+      document.getElementById('detalleEvento').innerHTML = `
+        <div class="mb-2">
+          <strong>Curso:</strong> ${data.codigo} - ${data.curso}
+        </div>
+
+        <div class="mb-2">
+          <strong>Alumno:</strong> ${data.nombre}
+        </div>
+
+        <div class="mb-2">
+          <strong>Turno:</strong> ${data.turno}
+        </div>
+
+        <div class="mb-2">
+          <strong>Sesiones del día:</strong>
+          <div class="mt-1">${sesionesHTML}</div>
+        </div>
+
+        <div class="mb-2">
+          <strong>Horario:</strong> ${data.horario ? data.horario : "—"}
+        </div>
+
+        <div class="mb-2 text-danger">
+          <strong>Saldo pendiente:</strong> S/ ${data.saldo}
+        </div>
+      `;
+
+      new bootstrap.Modal(document.getElementById('eventoModal')).show();
+    })
+    .catch(() => {
+      document.getElementById('detalleEvento').innerHTML = '<p>Error al cargar datos.</p>';
+      new bootstrap.Modal(document.getElementById('eventoModal')).show();
+    });
+},
+
 
         /* DRAG & DROP -> REPROGRAMAR */
         eventDrop: function(info) {
