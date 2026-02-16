@@ -356,22 +356,47 @@ function toggleUI() {
   const esExtendida = (tipo === 'extendida');
   const aplica = esFull || esExtendida;
 
-  // automático
-  $('#fecha_inicio_box').toggle(!personalizar);
-  $('#dias_box').toggle(aplica && (!personalizar));
+  const n = totalClasesPorTipo();
 
-  // personalizado
-  $('#personalizado_box').toggleClass('hidden', !(aplica && personalizar));
+  // ===== FULL DAY =====
+  if (esFull) {
+    // Siempre ocultar días
+    $('#dias_box').hide();
 
-  if (aplica && personalizar) {
-    const n = totalClasesPorTipo();
+    // Mostrar fecha inicio
+    $('#fecha_inicio_box').show();
+
+    // Mostrar bloque personalizado siempre
+    $('#personalizado_box').removeClass('hidden');
+
     $('#help_personalizado').text(
-      esFull ? "Elige la fecha y el horario de cada clase (Full Day = 3 clases)." :
-      esExtendida ? "Elige la fecha y el horario de cada clase (Extendida = 6 clases)." :
-      ""
+      "Selecciona el horario para cada clase (Full Day = 3 clases)."
     );
+
     renderClases(n);
+    return;
   }
+
+  // ===== EXTENDIDA =====
+  if (esExtendida) {
+    $('#fecha_inicio_box').toggle(!personalizar);
+    $('#dias_box').toggle(!personalizar);
+
+    $('#personalizado_box').toggleClass('hidden', !personalizar);
+
+    if (personalizar) {
+      $('#help_personalizado').text(
+        "Elige la fecha y el horario de cada clase (Extendida = 6 clases)."
+      );
+      renderClases(n);
+    }
+    return;
+  }
+
+  // ===== OTROS =====
+  $('#fecha_inicio_box').show();
+  $('#dias_box').show();
+  $('#personalizado_box').addClass('hidden');
 }
 
 $('#id_tipo_horario').on('change', toggleUI);
