@@ -18,7 +18,7 @@ from django import forms
 from .forms import CursoForm, MatriculaAdminForm, MatriculaForm, NotaForm, Pago, ServicioForm
 from django.db.models import Count, Avg, Q, Sum
 from .forms import AlumnoForm, UsuarioCreateForm, UsuarioUpdateForm
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, time
 from django.contrib.auth.forms import AuthenticationForm
 from openpyxl.utils import get_column_letter
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -807,6 +807,13 @@ CURSO_SESIONES = {
     "ELEC": 5,
 }
 
+HORARIO_MAP = {
+    "9-1": time(9, 0),
+    "2-6": time(14, 0),
+    "9-6": time(9, 0),
+}
+
+
 @login_required
 @solo_asesora
 def registrar_matricula(request):
@@ -1034,7 +1041,23 @@ def registrar_matricula(request):
                         cursor += timedelta(days=1)
 
                 # en automático, horario default "9-1"
-                fechas_data = [{"fecha": f.isoformat(), "horario": "9-1"} for f in fechas]
+                horario_general = (request.POST.get("horario_general") or "").strip()
+
+                if horario_general not in {"9-1", "2-6", "9-6"}:
+                    form.add_error(None, "Debe seleccionar un horario válido.")
+                    return render(request, "cursos/registrar_matricula.html", {
+                        "form": form,
+                        "alumno": alumno,
+                        "dni": dni,
+                        "sesiones_post": [],
+                        "horarios_post": [],
+                        "personalizar_post": False,
+                    })
+
+                fechas_data = [
+                    {"fecha": f.isoformat(), "horario": horario_general}
+                    for f in fechas
+                ]
 
             # guardar en JSON
             matricula.fechas_personalizadas = fechas_data
@@ -1119,8 +1142,22 @@ def registrar_matricula(request):
                 raise ValueError("No se generaron fechas para la matrícula.")
 
             unidad_idx = 0
-            for fecha in fechas:
-                clase, _ = Clase.objects.get_or_create(curso=matricula.curso, fecha=fecha)
+            for data in (matricula.fechas_personalizadas or []):
+                fecha = datetime.strptime(data["fecha"], "%Y-%m-%d").date()
+                codigo_horario = data.get("horario", "9-1")
+                hora_real = HORARIO_MAP.get(codigo_horario, time(9, 0))
+
+                clase, created = Clase.objects.get_or_create(
+                    curso=matricula.curso,
+                    fecha=fecha,
+                    defaults={"horario": hora_real}
+                )
+
+                # si ya existía pero sin horario correcto
+                if not created:
+                    clase.horario = hora_real
+                    clase.save()
+
                 clase.matriculas.add(matricula)
 
                 # Full reparte unidades por clase; Extendida 1 por clase
