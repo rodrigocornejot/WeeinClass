@@ -63,7 +63,6 @@ SEXO_CHOICES = [
 TIPO_HORARIO_CHOICES = (
     ('full', 'Full Day (3 semanas)'),
     ('extendida', 'Extendida (6 semanas)'),
-    ('personalizado', 'Personalizado'),
 )
 
 class Curso(models.Model):
