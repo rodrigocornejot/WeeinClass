@@ -945,20 +945,6 @@ def registrar_matricula(request):
             # total_clases real según el tipo guardado
             total_clases = 3 if tipo_horario.startswith("full") else 6
 
-            # =========================
-            # FECHAS + HORARIOS (guardar en JSON)
-            # =========================
-            fechas_data = []
-            for i, f in enumerate(fechas, start=1):
-                h = (request.POST.get(f"horario_{i}") or "9-1").strip()
-                if h not in HORARIOS_VALIDOS:
-                    h = "9-1"
-                fechas_data.append({
-                    "fecha": f.isoformat(),
-                    "horario": h
-                })
-
-
             # PERSONALIZADO
             if personalizar:
                 # 1) validar presencia y formato
