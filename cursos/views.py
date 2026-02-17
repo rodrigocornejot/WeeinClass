@@ -949,6 +949,8 @@ def registrar_matricula(request):
 
             # PERSONALIZADO
             if personalizar:
+                fechas_data = []
+
                 # 1) validar presencia y formato
                 for i in range(1, total_clases + 1):
                     f = request.POST.get(f"sesion_{i}")
