@@ -1460,7 +1460,7 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
 
     if fi and ff:
         matriculas = matriculas.filter(
-            fecha_inscripcion__date__range=[fi, ff]
+            fecha_inscripcion__range=[fi, ff]
         )
 
     alumnos_por_curso = (
@@ -1488,9 +1488,9 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
 
     if fi and ff:
         pagos = pagos.filter(
-            Q(fecha_pago_real__date__range=[fi, ff]) |
+            Q(fecha_pago_real__range=[fi, ff]) |
             Q(fecha_pago_real__isnull=True,
-              creado_en__date__range=[fi, ff])
+              creado_en__range=[fi, ff])
         )
 
     total_cobrado = pagos.aggregate(
