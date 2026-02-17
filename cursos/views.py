@@ -1491,7 +1491,7 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
         pagos = pagos.filter(
             Q(fecha_pago_real__range=[fi, ff]) |
             Q(fecha_pago_real__isnull=True,
-              creado_en__range=[fi, ff])
+              creado_en__date__range=[fi, ff])
         )
 
     total_cobrado = pagos.aggregate(
@@ -1558,10 +1558,7 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
         Pago.objects
         .filter(activo=True)
         .annotate(
-            fecha_base=Case(
-                When(fecha_pago_real__isnull=False, then=F("fecha_pago_real")),
-                default=F("creado_en")
-            )
+            mes=TruncMonth("fecha_base")
         )
         .values("mes")
         .annotate(total=Sum("monto"))
