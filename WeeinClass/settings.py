@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-v7r!ulf@1n=zdm6ab+=%v3)s8&$1zwl$rh2=hnv@xyzhr%7vy6'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = ['.herokuapp.com','127.0.0.1']
 
@@ -117,7 +117,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "https://weeinclass-production.up.railway.app",  # Producción
     "http://localhost:3000",
 ]
 
