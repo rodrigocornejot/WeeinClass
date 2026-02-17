@@ -16,7 +16,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django import forms
 from .forms import CursoForm, MatriculaAdminForm, MatriculaForm, NotaForm, Pago, ServicioForm
-from django.db.models import Count, Avg, Q, Sum
+from django.db.models import Count, Avg, Q, Sum, Case, When, F
 from django.db.models.functions import TruncMonth
 from .forms import AlumnoForm, UsuarioCreateForm, UsuarioUpdateForm
 from datetime import date, timedelta, datetime, time
@@ -1182,7 +1182,7 @@ def datos_dashboard(request):
     mes = request.GET.get("mes")
     anio = request.GET.get("anio")
 
-    hoy = datetime.now()
+    hoy = timezone.localtime()
 
     # ✅ Si no envían año, usar actual
     if not anio:
@@ -1557,7 +1557,12 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
     ingresos_por_mes_qs = (
         Pago.objects
         .filter(activo=True)
-        .annotate(mes=TruncMonth("creado_en"))  # ⚠️ cambia si tu campo se llama distinto
+        .annotate(
+            fecha_base=Case(
+                When(fecha_pago_real__isnull=False, then=F("fecha_pago_real")),
+                default=F("creado_en")
+            )
+        )
         .values("mes")
         .annotate(total=Sum("monto"))
         .order_by("mes")
