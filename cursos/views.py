@@ -812,6 +812,7 @@ HORARIO_MAP = {
     "9-1": time(9, 0),
     "2-6": time(14, 0),
     "9-6": time(9, 0),
+    "7-9": time(19, 0)
 }
 
 
@@ -1030,7 +1031,7 @@ def registrar_matricula(request):
                 # en automático, horario default "9-1"
                 horario_general = (request.POST.get("horario_general") or "").strip()
 
-                if horario_general not in {"9-1", "2-6", "9-6"}:
+                if horario_general not in {"9-1", "2-6", "9-6", "7-9"}:
                     form.add_error(None, "Debe seleccionar un horario válido.")
                     return render(request, "cursos/registrar_matricula.html", {
                         "form": form,
