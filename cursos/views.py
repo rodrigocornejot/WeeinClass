@@ -1180,6 +1180,24 @@ def datos_dashboard(request):
     periodo = (request.GET.get("periodo") or "mes").strip()
     mes = request.GET.get("mes")
     anio = request.GET.get("anio")
+
+    hoy = datetime.now()
+
+    # ✅ Si no envían año, usar actual
+    if not anio:
+        anio = hoy.year
+    else:
+        anio = int(anio)
+
+    # ✅ Si no envían mes y el periodo es mensual, usar actual
+    if periodo == "mes":
+        if not mes:
+            mes = hoy.month
+        else:
+            mes = int(mes)
+    else:
+        mes = None
+
     data = calcular_dashboard_data(
         curso_id=curso_id or None,
         periodo=periodo,
@@ -1195,8 +1213,6 @@ def datos_dashboard(request):
         "deuda_total": data["deuda_total"],
         "alumnos_con_deuda": data["alumnos_con_deuda"],
         "por_metodo": data.get("por_metodo", []),
-
-        # ✅ nuevo
         "truncados": data["truncados"],
         "tasa_desercion": data["tasa_desercion"],
     })
@@ -1388,36 +1404,64 @@ def registrar_alumnos(request):
     return render(request, 'cursos/registrar_alumnos.html')
 
 def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
-    fi, ff = rango_periodo(periodo)
 
-    if mes not in [None, ""] and anio not in [None, ""]:
-        try:
-            mes = int(mes)
-            anio = int(anio)
+    hoy = now().date()
 
-            from calendar import monthrange
-            ultimo_dia = monthrange(anio, mes)[1]
+    # =========================
+    # 1️⃣ DEFINIR RANGO
+    # =========================
+    fi = None
+    ff = None
 
-            fi = date(anio, mes, 1)
-            ff = date(anio, mes, ultimo_dia)
+    # Convertir a enteros si vienen
+    try:
+        mes = int(mes) if mes not in [None, ""] else None
+    except:
+        mes = None
 
-            print("DEBUG FILTRO:", fi, ff)  # ← solo para probar en Heroku logs
+    try:
+        anio = int(anio) if anio not in [None, ""] else hoy.year
+    except:
+        anio = hoy.year
 
-        except Exception as e:
-            print("ERROR CON MES/AÑO:", e)
+    # 🔹 PERIODO MENSUAL
+    if periodo == "mes":
+        if not mes:
+            mes = hoy.month
 
+        ultimo_dia = monthrange(anio, mes)[1]
+        fi = date(anio, mes, 1)
+        ff = date(anio, mes, ultimo_dia)
 
+    # 🔹 PERIODO ANUAL
+    elif periodo == "anio":
+        fi = date(anio, 1, 1)
+        ff = date(anio, 12, 31)
+
+    # 🔹 PERIODO SEMANAL
+    elif periodo == "semana":
+        inicio_semana = hoy - timedelta(days=hoy.weekday())
+        fin_semana = inicio_semana + timedelta(days=6)
+        fi = inicio_semana
+        ff = fin_semana
+
+    # =========================
+    # 2️⃣ CURSOS
+    # =========================
     cursos_qs = Curso.objects.all()
+
     if curso_id:
         cursos_qs = cursos_qs.filter(id=curso_id)
 
     # =========================
-    # A) Matrículas del periodo
+    # 3️⃣ MATRÍCULAS
     # =========================
     matriculas = Matricula.objects.filter(curso__in=cursos_qs)
 
     if fi and ff:
-        matriculas = matriculas.filter(fecha_inscripcion__range=[fi, ff])
+        matriculas = matriculas.filter(
+            fecha_inscripcion__date__range=[fi, ff]
+        )
 
     alumnos_por_curso = (
         matriculas
@@ -1432,40 +1476,60 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
     ]
 
     # =========================
-    # B) Pagos del periodo
+    # 4️⃣ PAGOS
     # =========================
     pagos = Pago.objects.filter(activo=True)
 
     if curso_id:
-        pagos = pagos.filter(Q(matricula__curso_id=curso_id) | Q(matricula__isnull=True))
+        pagos = pagos.filter(
+            Q(matricula__curso_id=curso_id) |
+            Q(matricula__isnull=True)
+        )
 
     if fi and ff:
         pagos = pagos.filter(
-            Q(fecha_pago_real__range=[fi, ff]) |
-            Q(fecha_pago_real__isnull=True, creado_en__date__range=[fi, ff])
+            Q(fecha_pago_real__date__range=[fi, ff]) |
+            Q(fecha_pago_real__isnull=True,
+              creado_en__date__range=[fi, ff])
         )
 
-    total_cobrado = pagos.aggregate(t=Sum("monto"))["t"] or Decimal("0.00")
+    total_cobrado = pagos.aggregate(
+        t=Sum("monto")
+    )["t"] or Decimal("0.00")
+
     operaciones = pagos.count()
-    ticket_promedio = (total_cobrado / operaciones) if operaciones else Decimal("0.00")
+
+    ticket_promedio = (
+        total_cobrado / operaciones
+        if operaciones else Decimal("0.00")
+    )
 
     # =========================
-    # C) Deuda del periodo
+    # 5️⃣ DEUDA
     # =========================
-    deuda_total = matriculas.aggregate(t=Sum("saldo_pendiente"))["t"] or Decimal("0.00")
-    alumnos_con_deuda = matriculas.filter(saldo_pendiente__gt=0).count()
+    deuda_total = matriculas.aggregate(
+        t=Sum("saldo_pendiente")
+    )["t"] or Decimal("0.00")
+
+    alumnos_con_deuda = matriculas.filter(
+        saldo_pendiente__gt=0
+    ).count()
 
     # =========================
-    # D) Cobros por método
+    # 6️⃣ POR MÉTODO
     # =========================
     por_metodo_qs = (
         pagos
         .values("metodo_pago")
-        .annotate(total=Sum("monto"), ops=Count("id"))
+        .annotate(
+            total=Sum("monto"),
+            ops=Count("id")
+        )
         .order_by("-total")
     )
 
     metodo_map = dict(getattr(Pago, "METODO_PAGO_CHOICES", []))
+
     por_metodo = []
     for x in por_metodo_qs:
         key = x["metodo_pago"] or "—"
@@ -1476,15 +1540,22 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
         })
 
     # =========================
-    # E) Truncados
+    # 7️⃣ ESTADOS
     # =========================
     truncados = matriculas.filter(estado="truncado").count()
     activas = matriculas.filter(estado="activa").count()
     finalizadas = matriculas.filter(estado="finalizada").count()
 
     total_estado = truncados + activas + finalizadas
-    tasa_desercion = (truncados * 100 / total_estado) if total_estado else 0
 
+    tasa_desercion = (
+        (truncados * 100 / total_estado)
+        if total_estado else 0
+    )
+
+    # =========================
+    # 8️⃣ RETORNO
+    # =========================
     return {
         "periodo": periodo,
         "fi": fi,
@@ -2351,7 +2422,7 @@ from django.db.models import Sum, Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
-
+from calendar import monthrange
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 
