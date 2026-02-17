@@ -16,7 +16,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django import forms
 from .forms import CursoForm, MatriculaAdminForm, MatriculaForm, NotaForm, Pago, ServicioForm
-from django.db.models import Count, Avg, Q, Sum, Case, When, F
+from django.db.models import Count, Avg, Q, Sum, Case, When, F, DateField
 from django.db.models.functions import TruncMonth
 from .forms import AlumnoForm, UsuarioCreateForm, UsuarioUpdateForm
 from datetime import date, timedelta, datetime, time
@@ -1562,7 +1562,7 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
             fecha_base=Case(
                 When(fecha_pago_real__isnull=False, then=F("fecha_pago_real")),
                 default=F("creado_en"),
-                output_field=forms.DateField()
+                output_field=DateField()
             )
         )
         .annotate(mes=TruncMonth("fecha_base"))
