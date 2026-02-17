@@ -848,7 +848,7 @@ def registrar_matricula(request):
     personalizar = request.POST.get("personalizar_fechas") in ("on", "true", "1")
 
     # ✅ horarios válidos (tú dijiste que siempre serán estos 3)
-    HORARIOS_VALIDOS = {"9-1", "2-6", "9-6"}
+    HORARIOS_VALIDOS = {"9-1", "2-6", "7-9" "9-6"}
 
     # =========================
     # MÉTODO DE PAGO ANTICIPO
