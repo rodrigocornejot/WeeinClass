@@ -1557,13 +1557,19 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
     ingresos_por_mes_qs = (
         Pago.objects
         .filter(activo=True)
-        .annotate(mes=TruncMonth("creado_en"))
+        .annotate(mes=TruncMonth("creado_en"))  # ⚠️ cambia si tu campo se llama distinto
         .values("mes")
         .annotate(total=Sum("monto"))
         .order_by("mes")
     )
 
-    ingresos_por_mes = []
+    ingresos_por_mes = [
+        {
+            "mes": x["mes"].strftime("%Y-%m") if x["mes"] else "",
+            "total": float(x["total"] or 0)
+        }
+        for x in ingresos_por_mes_qs
+    ]
 
     for item in ingresos_por_mes_qs:
         if item["mes"]:
