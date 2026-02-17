@@ -1178,10 +1178,13 @@ def registrar_matricula(request):
 def datos_dashboard(request):
     curso_id = (request.GET.get("curso") or "").strip()
     periodo = (request.GET.get("periodo") or "mes").strip()
-
+    mes = request.GET.get("mes")
+    anio = request.GET.get("anio")
     data = calcular_dashboard_data(
         curso_id=curso_id or None,
-        periodo=periodo
+        periodo=periodo,
+        mes=mes,
+        anio=anio
     )
 
     return JsonResponse({
@@ -1299,9 +1302,10 @@ def dashboard(request):
     # ✅ PASAMOS MES Y AÑO A TU FUNCIÓN
     # ===============================
     data = calcular_dashboard_data(
+        curso_id=None,
         periodo="mes",
-        mes=mes,
-        anio=anio
+        mes=None,
+        anio=None
     )
 
     context = {
@@ -1386,8 +1390,7 @@ def registrar_alumnos(request):
 def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
     fi, ff = rango_periodo(periodo)
 
-    # ✅ Si vienen mes y año, sobreescribimos el rango
-    if mes and anio:
+    if mes not in [None, ""] and anio not in [None, ""]:
         try:
             mes = int(mes)
             anio = int(anio)
@@ -1397,8 +1400,12 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
 
             fi = date(anio, mes, 1)
             ff = date(anio, mes, ultimo_dia)
-        except:
-            pass
+
+            print("DEBUG FILTRO:", fi, ff)  # ← solo para probar en Heroku logs
+
+        except Exception as e:
+            print("ERROR CON MES/AÑO:", e)
+
 
     cursos_qs = Curso.objects.all()
     if curso_id:
