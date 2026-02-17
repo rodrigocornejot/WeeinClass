@@ -17,6 +17,7 @@ from django.contrib import messages
 from django import forms
 from .forms import CursoForm, MatriculaAdminForm, MatriculaForm, NotaForm, Pago, ServicioForm
 from django.db.models import Count, Avg, Q, Sum
+from django.db.models.functions import TruncMonth
 from .forms import AlumnoForm, UsuarioCreateForm, UsuarioUpdateForm
 from datetime import date, timedelta, datetime, time
 from django.contrib.auth.forms import AuthenticationForm
@@ -1553,6 +1554,23 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
         if total_estado else 0
     )
 
+    ingresos_por_mes_qs = (
+        Pago.objects
+        .filter(activo=True)
+        .annotate(mes=TruncMonth("creado_en"))
+        .values("mes")
+        .annotate(total=Sum("monto"))
+        .order_by("mes")
+    )
+
+    ingresos_por_mes = []
+
+    for item in ingresos_por_mes_qs:
+        if item["mes"]:
+            ingresos_por_mes.append({
+                "mes": item["mes"].strftime("%Y-%m"),
+                "total": float(item["total"] or 0)
+            })
     # =========================
     # 8️⃣ RETORNO
     # =========================
@@ -1574,6 +1592,7 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
 
         "truncados": truncados,
         "tasa_desercion": f"{tasa_desercion:.2f}",
+        "ingresos_por_mes": ingresos_por_mes,
     }
 
 def kanban(request):

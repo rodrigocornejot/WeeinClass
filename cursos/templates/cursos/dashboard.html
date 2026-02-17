@@ -243,6 +243,13 @@
       </div>
     </div>
 
+    <div class="card mt-4">
+      <div class="card-body">
+        <h5 class="fw-bold">Ingresos por Mes</h5>
+        <canvas id="graficoIngresosMes"></canvas>
+      </div>
+    </div>
+
     <div class="col-md-5">
       <div class="card card-soft">
         <div class="card-body">
@@ -353,6 +360,33 @@ document.getElementById('filtros-form').addEventListener('submit', function(e) {
     })
     .catch(err => console.error("Error dashboard:", err));
 });
+
+fetch("/cursos/datos-dashboard/")
+  .then(response => response.json())
+  .then(data => {
+
+    const labels = data.ingresos_por_mes.map(i => i.mes);
+    const valores = data.ingresos_por_mes.map(i => i.total);
+
+    new Chart(document.getElementById("graficoIngresosMes"), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Ingresos",
+          data: valores,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true }
+        }
+      }
+    });
+
+  });
 
 </script>
 
