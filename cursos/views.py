@@ -1140,13 +1140,8 @@ def registrar_matricula(request):
                 clase, created = Clase.objects.get_or_create(
                     curso=matricula.curso,
                     fecha=fecha,
-                    defaults={"horario": hora_real}
+                    horario=hora_real,
                 )
-
-                # si ya existía pero sin horario correcto
-                if not created:
-                    clase.horario = hora_real
-                    clase.save()
 
                 clase.matriculas.add(matricula)
 
