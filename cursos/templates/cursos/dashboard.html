@@ -66,6 +66,37 @@
           <div class="form-text">Afecta alumnos por curso, deuda y cobros.</div>
         </div>
 
+              <!-- ✅ NUEVO -->
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Mes</label>
+          <select id="mes" name="mes" class="form-select">
+            <option value="">Actual</option>
+            <option value="1">Ene</option>
+            <option value="2">Feb</option>
+            <option value="3">Mar</option>
+            <option value="4">Abr</option>
+            <option value="5">May</option>
+            <option value="6">Jun</option>
+            <option value="7">Jul</option>
+            <option value="8">Ago</option>
+            <option value="9">Sep</option>
+            <option value="10">Oct</option>
+            <option value="11">Nov</option>
+            <option value="12">Dic</option>
+          </select>
+        </div>
+
+        <!-- ✅ NUEVO -->
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Año</label>
+          <select id="anio" name="anio" class="form-select">
+            <option value="">Actual</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+        </div>
+
         <div class="col-md-3">
           <button class="btn btn-primary w-100">Aplicar</button>
         </div>
@@ -203,7 +234,7 @@
       <div class="card card-soft">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="fw-bold">Alumnos por curso (según periodo)</div>
+            <div class="fw-bold">Alumnos matriculados por curso (según periodo)</div>
             <div class="muted small">Semanal / Mensual / Anual</div>
           </div>
           <canvas id="alumnosChart" height="120"></canvas>
@@ -290,7 +321,10 @@ function buildMetodosChart(labels, values){
     const curso = document.getElementById('curso').value;
     const periodo = document.getElementById('periodo').value;
 
-    const params = new URLSearchParams({ curso, periodo });
+    const mes = document.getElementById('mes')?.value;
+    const anio = document.getElementById('anio')?.value;
+
+    const params = new URLSearchParams({ curso, periodo, mes, anio });
 
     fetch(`/cursos/datos-dashboard/?${params.toString()}`)
       .then(r => r.json())

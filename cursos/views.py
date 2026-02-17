@@ -1234,10 +1234,29 @@ def export_dashboard_excel(request):
 @login_required
 def dashboard(request):
     hoy = timezone.localdate()
+
+    # ===============================
+    # ✅ FILTRO MES / AÑO
+    # ===============================
+    mes = request.GET.get("mes")
+    anio = request.GET.get("anio")
+
+    if mes:
+        mes = int(mes)
+    else:
+        mes = hoy.month
+
+    if anio:
+        anio = int(anio)
+    else:
+        anio = hoy.year
+
+    # ===============================
+    # ✅ TOP asesores (SIEMPRE mes actual)
+    # ===============================
     mes_actual = hoy.month
     anio_actual = hoy.year
 
-    # ✅ TOP asesores (mes actual, independiente del filtro)
     top_monto = (
         Pago.objects
         .filter(
@@ -1276,8 +1295,14 @@ def dashboard(request):
 
     cursos = Curso.objects.all()
 
-    # ✅ carga inicial: mes, sin filtro curso
-    data = calcular_dashboard_data(periodo="mes")
+    # ===============================
+    # ✅ PASAMOS MES Y AÑO A TU FUNCIÓN
+    # ===============================
+    data = calcular_dashboard_data(
+        periodo="mes",
+        mes=mes,
+        anio=anio
+    )
 
     context = {
         "top_monto": top_monto,
@@ -1291,7 +1316,13 @@ def dashboard(request):
         "deuda_total": data["deuda_total"],
         "alumnos_con_deuda": data["alumnos_con_deuda"],
         "periodo": data["periodo"],
+
+        # 🔥 NUEVO
+        "mes": mes,
+        "anio": anio,
+        "anios": range(2024, hoy.year + 2),
     }
+
     return render(request, "cursos/dashboard.html", context)
 
 
@@ -1352,8 +1383,22 @@ def registrar_alumnos(request):
 
     return render(request, 'cursos/registrar_alumnos.html')
 
-def calcular_dashboard_data(curso_id=None, periodo="mes"):
+def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
     fi, ff = rango_periodo(periodo)
+
+    # ✅ Si vienen mes y año, sobreescribimos el rango
+    if mes and anio:
+        try:
+            mes = int(mes)
+            anio = int(anio)
+
+            from calendar import monthrange
+            ultimo_dia = monthrange(anio, mes)[1]
+
+            fi = date(anio, mes, 1)
+            ff = date(anio, mes, ultimo_dia)
+        except:
+            pass
 
     cursos_qs = Curso.objects.all()
     if curso_id:
@@ -1367,7 +1412,6 @@ def calcular_dashboard_data(curso_id=None, periodo="mes"):
     if fi and ff:
         matriculas = matriculas.filter(fecha_inscripcion__range=[fi, ff])
 
-    # ✅ alumnos por curso (cuenta alumnos distintos por curso)
     alumnos_por_curso = (
         matriculas
         .values("curso__nombre")
@@ -1385,11 +1429,9 @@ def calcular_dashboard_data(curso_id=None, periodo="mes"):
     # =========================
     pagos = Pago.objects.filter(activo=True)
 
-    # ✅ filtro por curso si se selecciona (incluye servicios sin matrícula)
     if curso_id:
         pagos = pagos.filter(Q(matricula__curso_id=curso_id) | Q(matricula__isnull=True))
 
-    # ✅ rango de fechas: fecha_pago_real o fallback creado_en
     if fi and ff:
         pagos = pagos.filter(
             Q(fecha_pago_real__range=[fi, ff]) |
@@ -1427,7 +1469,7 @@ def calcular_dashboard_data(curso_id=None, periodo="mes"):
         })
 
     # =========================
-    # E) Truncados (nuevo)
+    # E) Truncados
     # =========================
     truncados = matriculas.filter(estado="truncado").count()
     activas = matriculas.filter(estado="activa").count()
@@ -1452,7 +1494,6 @@ def calcular_dashboard_data(curso_id=None, periodo="mes"):
 
         "por_metodo": por_metodo,
 
-        # ✅ nuevos
         "truncados": truncados,
         "tasa_desercion": f"{tasa_desercion:.2f}",
     }
