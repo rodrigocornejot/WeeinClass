@@ -1561,12 +1561,11 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
         .annotate(
             fecha_base=Case(
                 When(fecha_pago_real__isnull=False, then=F("fecha_pago_real")),
-                default=F("creado_en")
+                default=F("creado_en"),
+                output_field=forms.DateField()
             )
         )
-        .annotate(
-            mes=TruncMonth("fecha_base")
-        )
+        .annotate(mes=TruncMonth("fecha_base"))
         .values("mes")
         .annotate(total=Sum("monto"))
         .order_by("mes")
@@ -1579,6 +1578,7 @@ def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
         }
         for x in ingresos_por_mes_qs
     ]
+
 
     # =========================
     # 8️⃣ RETORNO
