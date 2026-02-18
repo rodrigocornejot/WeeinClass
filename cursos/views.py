@@ -1416,28 +1416,27 @@ def dashboard(request):
 @solo_asesora
 def registrar_alumnos(request):
     if request.method == 'POST':
-        nombre=request.POST.get('nombre')
-        dni=request.POST.get('dni')
-        telefono=request.POST.get('telefono')
-        correo=request.POST.get('correo')
+        nombre = request.POST.get('nombre')
+        dni = request.POST.get('dni')
+        telefono = request.POST.get('telefono')
+        correo = request.POST.get('correo')
 
-        grado_academico=request.POST.get('grado_academico')
-        carrera=request.POST.get('carrera')
-        trabajo=request.POST.get('trabajo')
-        referencia=request.POST.get('referencia')
+        grado_academico = request.POST.get('grado_academico')
+        carrera = request.POST.get('carrera')
+        trabajo = request.POST.get('trabajo')
+        referencia = request.POST.get('referencia')
 
         edad_raw = request.POST.get('edad')
         edad = int(edad_raw) if edad_raw else None
 
-        sexo=request.POST.get('sexo')
+        sexo = request.POST.get('sexo')
+        distrito = request.POST.get('distrito')
+        departamento = request.POST.get('departamento')
+        pais = request.POST.get('pais')
 
-        distrito=request.POST.get('distrito')
-        departamento=request.POST.get('departamento')
-        pais=request.POST.get('pais')
+        uso_imagen = request.POST.get('uso_imagen') == 'on'
 
-        uso_imagen=request.POST.get('uso_imagen') == 'on'
-        
-        # VALIDACIÓN DE CORREO ÚNICO
+        # VALIDACIONES
         if correo and Alumno.objects.filter(correo=correo).exists():
             return render(request, 'cursos/registrar_alumnos.html', {
                 'error': 'El correo ya está registrado'
@@ -1447,7 +1446,7 @@ def registrar_alumnos(request):
             return render(request, 'cursos/registrar_alumnos.html', {
                 'error': 'El DNI ya está registrado'
             })
-        
+
         Alumno.objects.create(
             nombre=nombre,
             dni=dni,
@@ -1465,14 +1464,15 @@ def registrar_alumnos(request):
             uso_imagen=uso_imagen
         )
 
-        messages.success(request, '✅ Alumno registrado correctamente')
+        messages.success(request, "✅ Alumno registrado correctamente.")
 
+        # 👇 MISMO TEMPLATE + redirect controlado
         return render(request, 'cursos/registrar_alumnos.html', {
-            'redirect_to': 'lista_alumnos'
+            'redirect_to': '/cursos/lista_alumnos/'
         })
 
-
     return render(request, 'cursos/registrar_alumnos.html')
+
 
 def calcular_dashboard_data(curso_id=None, periodo="mes", mes=None, anio=None):
 
