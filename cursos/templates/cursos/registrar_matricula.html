@@ -310,8 +310,12 @@ const HORARIOS = [
 
 function totalClasesPorTipo() {
   const tipo = ($('#id_tipo_horario').val() || '').toLowerCase();
+  const totalUnidades = parseInt(
+    document.getElementById("total-unidades")?.value || "0"
+  );
+
   if (tipo.startsWith('full')) return 3;
-  if (tipo === 'extendida') return 6;
+  if (tipo === 'extendida') return totalUnidades;
   return 0;
 }
 

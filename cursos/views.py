@@ -876,6 +876,7 @@ def registrar_matricula(request):
             'sesiones_post': [],
             'horarios_post': [],
             'personalizar_post': False,
+            'total_unidades': None, 
         })
 
     # =========================
