@@ -124,6 +124,8 @@ SESIONES_POR_CURSO = {
     "PLC2": 6,
     "REDES": 5,
     "VDF": 6,
+    "ELEC_LOGO": 5,
+    "LOGO": 5,
 }
 
 CURSO_CONFIG = {
@@ -981,12 +983,18 @@ def registrar_matricula(request):
             fecha_inicio = matricula.fecha_inicio
             dias = request.POST.getlist("dias")  # ✅ siempre seguro
 
-            # total_clases real según el tipo guardado
+            # 🔑 sesiones reales del curso
+            nombre_curso = (matricula.curso.nombre or "").strip()
+            codigo, total_unidades = curso_codigo_y_sesiones(
+                nombre_curso,
+                curso_obj=matricula.curso
+            )
+
+            # 🔑 clases según modalidad
             if tipo_horario.startswith("full"):
                 total_clases = 3
             else:
                 total_clases = total_unidades
-
 
             # PERSONALIZADO
             if personalizar:
@@ -1155,11 +1163,10 @@ def registrar_matricula(request):
             codigo, total_unidades = curso_codigo_y_sesiones(nombre_curso, curso_obj=matricula.curso)
 
             if tipo_horario.startswith("full"):
-                total_clases = 3
                 sesiones_por_clase = ceil(total_unidades / total_clases)
             else:
-                total_clases = total_unidades
                 sesiones_por_clase = 1
+
 
             unidades = list(UnidadCurso.objects.filter(curso=matricula.curso).order_by("numero"))
             if not unidades:
