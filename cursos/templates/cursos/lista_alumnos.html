@@ -72,6 +72,14 @@
                         <th>Correo</th>
                         <th>Teléfono</th>
                         <th>Distrito</th>
+                        <th>Departamento</th>
+                        <th>Pais</th>
+                        <th>Edad</th>
+                        <th>Sexo</th>
+                        <th>Grado academico</th>
+                        <th>Carrera</th>
+                        <th>Trabajo</th>
+                        <th>Referencia</th>
                         <th>Uso Imagen</th>
                         <th>Acciones</th>
                     </tr>
@@ -84,6 +92,14 @@
                         <td>{{ alumno.correo }}</td>
                         <td>{{ alumno.telefono }}</td>
                         <td>{{ alumno.distrito|default:"-" }}</td>
+                        <td>{{ alumno.departamento }}</td>
+                        <td>{{ alumno.pais }}</td>
+                        <td>{{ alumno.edad }}</td>
+                        <td>{{ alumno.sexo }}</td>                   
+                        <td>{{ alumno.grado_academico }}</td>
+                        <td>{{ alumno.carrera }}</td>
+                        <td>{{ alumno.trabajo }}</td>
+                        <td>{{ alumno.referencia }}</td>
 
                         <td class="text-center">
                             {% if alumno.uso_imagen %}
