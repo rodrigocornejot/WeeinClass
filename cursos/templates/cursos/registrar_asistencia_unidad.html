@@ -68,15 +68,20 @@
 </head>
 
 <body>
-  
-{% if messages %}
-  {% for message in messages %}
-    <div id="mensaje-exito"
-         class="alert alert-success text-center fw-bold mx-auto mt-4"
-         style="font-size:1.6rem; padding:24px; max-width:650px;">
-      {{ message }}
+{% if redirect_to %}
+  <div class="position-fixed top-50 start-50 translate-middle"
+       style="z-index:9999; width:420px;">
+    <div class="alert alert-success text-center shadow-lg p-4">
+      <h4 class="mb-2">✅ Asistencias guardadas</h4>
+      <p class="mb-0">Redirigiendo…</p>
     </div>
-  {% endfor %}
+  </div>
+
+  <script>
+    setTimeout(function () {
+      window.location.href = "{{ redirect_to }}";
+    }, 2500); // 2.5 segundos
+  </script>
 {% endif %}
 
 
