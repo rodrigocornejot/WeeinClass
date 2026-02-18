@@ -15,6 +15,15 @@
             ← Volver
         </a>
 
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
         <h3 class="mb-0 fw-bold">Lista de Alumnos</h3>
 
         <span class="badge bg-dark fs-6">
@@ -130,6 +139,7 @@
                 </tbody>
             </table>
         </div>
+
 
         <!-- PAGINACIÓN -->
         <nav>
