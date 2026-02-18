@@ -342,35 +342,32 @@ def es_profesor_o_recepcion(user):
 
 @login_required
 def lista_alumnos(request):
-    alumnos_list = Alumno.objects.all().order_by("nombre")
+    alumnos = Alumno.objects.all()  # 👈 SIEMPRE inicializa primero
 
-    # 🔎 BUSCADOR GLOBAL
     search = request.GET.get("search")
+    sexo = request.GET.get("sexo")
+    distrito = request.GET.get("distrito")
+    uso_imagen = request.GET.get("uso_imagen")
+
     if search:
         alumnos = alumnos.filter(
             Q(nombre__icontains=search) |
             Q(dni__icontains=search) |
-            Q(correo__icontains=search) |
-            Q(telefono__icontains=search)
+            Q(correo__icontains=search)
         )
 
-    # 🎯 FILTROS
-    sexo = request.GET.get("sexo")
     if sexo:
         alumnos = alumnos.filter(sexo=sexo)
 
-    distrito = request.GET.get("distrito")
     if distrito:
         alumnos = alumnos.filter(distrito__icontains=distrito)
 
-    uso_imagen = request.GET.get("uso_imagen")
-    if uso_imagen == "si":
-        alumnos = alumnos.filter(uso_imagen=True)
-    elif uso_imagen == "no":
-        alumnos = alumnos.filter(uso_imagen=False)
+    if uso_imagen in ["true", "false"]:
+        alumnos = alumnos.filter(uso_imagen=(uso_imagen == "true"))
+
 
     # 📄 PAGINACIÓN
-    paginator = Paginator(alumnos_list, 10)
+    paginator = Paginator(alumnos, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -1202,6 +1199,7 @@ def registrar_matricula(request):
 
     except Exception as e:
         print("❌ ERROR registrar_matricula:", repr(e))
+
         messages.error(request, f"❌ Error: {e}")
         return render(request, "cursos/registrar_matricula.html", {
             "form": form,
