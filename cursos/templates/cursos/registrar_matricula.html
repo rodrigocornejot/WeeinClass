@@ -304,6 +304,20 @@
 {{ horarios_post|default:"[]"|json_script:"horarios-post-data" }}
 
 <script>
+const CURSO_SESIONES = {
+  "REDES INDUSTRIALES": 5,
+  "AUTOMATIZACION PARA EL ARRANQUE DE MOTORES ELECTRICOS": 5,
+  "LOGO": 5,
+  "PLC LOGO": 5,
+
+  "INSTRUMENTACION": 6,
+  "VARIADORES": 6,
+  "PLC NIVEL 1": 6,
+  "PLC NIVEL 2": 6
+};
+</script>
+
+<script>
 const SESIONES_POST = JSON.parse(document.getElementById("sesiones-post-data").textContent);
 const HORARIOS_POST = JSON.parse(document.getElementById("horarios-post-data").textContent);
 
@@ -316,9 +330,17 @@ const HORARIOS = [
 
 function totalClasesPorTipo() {
   const tipo = ($('#id_tipo_horario').val() || '').toLowerCase();
-  const totalUnidades = parseInt(
-    document.getElementById("total-unidades")?.value || "0"
-  );
+  const cursoSelect = document.getElementById("id_curso");
+  const cursoTexto = cursoSelect?.options[cursoSelect.selectedIndex]?.text || "";
+
+  let totalUnidades = 6; // default
+
+  for (const key in CURSO_SESIONES) {
+    if (cursoTexto.toUpperCase().includes(key)) {
+      totalUnidades = CURSO_SESIONES[key];
+      break;
+    }
+  }
 
   if (tipo.startsWith('full')) return 3;
   if (tipo === 'extendida') return totalUnidades;
@@ -384,6 +406,7 @@ function toggleUI() {
     $('#personalizado_box').addClass('hidden');
     return;
   }
+  $('#id_curso').on('change', toggleUI);
 
   // 🔵 NO PERSONALIZA
   if (!personalizar) {
