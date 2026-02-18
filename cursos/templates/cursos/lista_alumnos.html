@@ -8,28 +8,70 @@
 <body class="bg-light">
 
 <div class="container mt-5">
-    <a href="{% url 'menu_admin' %}" class="btn btn-primary mb-3">
-        Volver al Menú Principal
-    </a>
 
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="{% url 'menu_admin' %}" class="btn btn-outline-primary">
+            ← Volver
+        </a>
+
+        <h3 class="mb-0 fw-bold">Lista de Alumnos</h3>
+
+        <span class="badge bg-dark fs-6">
+            Total: {{ total }}
+        </span>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="card shadow-sm p-4 mb-4">
+        <form method="GET" class="row g-3">
+
+            <div class="col-md-4">
+                <input type="text" name="search" value="{{ search }}"
+                       class="form-control"
+                       placeholder="🔍 Buscar por nombre, DNI, correo...">
+            </div>
+
+            <div class="col-md-2">
+                <select name="sexo" class="form-select">
+                    <option value="">Sexo</option>
+                    <option value="M" {% if sexo == "M" %}selected{% endif %}>Masculino</option>
+                    <option value="F" {% if sexo == "F" %}selected{% endif %}>Femenino</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <input type="text" name="distrito" value="{{ distrito }}"
+                       class="form-control"
+                       placeholder="Distrito">
+            </div>
+
+            <div class="col-md-2">
+                <select name="uso_imagen" class="form-select">
+                    <option value="">Uso Imagen</option>
+                    <option value="si" {% if uso_imagen == "si" %}selected{% endif %}>Sí</option>
+                    <option value="no" {% if uso_imagen == "no" %}selected{% endif %}>No</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-dark">Filtrar</button>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- TABLA -->
     <div class="card shadow p-4">
-        <h3 class="text-center mb-4">Lista de Alumnos</h3>
-
         <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle">
+            <table class="table table-hover align-middle">
                 <thead class="table-dark text-center">
                     <tr>
                         <th>Nombre</th>
                         <th>DNI</th>
                         <th>Correo</th>
                         <th>Teléfono</th>
-                        <th>Edad</th>
-                        <th>Sexo</th>
-                        <th>Carrera</th>
-                        <th>Trabajo</th>
                         <th>Distrito</th>
-                        <th>Departamento</th>
-                        <th>País</th>
                         <th>Uso Imagen</th>
                         <th>Acciones</th>
                     </tr>
@@ -37,29 +79,25 @@
                 <tbody>
                     {% for alumno in alumnos %}
                     <tr>
-                        <td>{{ alumno.nombre }}</td>
+                        <td class="fw-semibold">{{ alumno.nombre }}</td>
                         <td>{{ alumno.dni|default:"-" }}</td>
                         <td>{{ alumno.correo }}</td>
                         <td>{{ alumno.telefono }}</td>
-                        <td>{{ alumno.edad|default:"-" }}</td>
-                        <td>{{ alumno.get_sexo_display }}</td>
-                        <td>{{ alumno.carrera|default:"-" }}</td>
-                        <td>{{ alumno.trabajo|default:"-" }}</td>
                         <td>{{ alumno.distrito|default:"-" }}</td>
-                        <td>{{ alumno.departamento|default:"-" }}</td>
-                        <td>{{ alumno.pais }}</td>
+
                         <td class="text-center">
                             {% if alumno.uso_imagen %}
-                                ✅
+                                <span class="badge bg-success">Sí</span>
                             {% else %}
-                                ❌
+                                <span class="badge bg-danger">No</span>
                             {% endif %}
                         </td>
+
                         <td class="text-center">
-                            <a href="{% url 'editar_alumno' alumno.id %}" class="btn btn-warning btn-sm">
-                                Editar
-                            </a>
-                            <a href="{% url 'eliminar_alumno' alumno.id %}" 
+                            <a href="{% url 'editar_alumno' alumno.id %}"
+                               class="btn btn-warning btn-sm">Editar</a>
+
+                            <a href="{% url 'eliminar_alumno' alumno.id %}"
                                class="btn btn-danger btn-sm"
                                onclick="return confirm('¿Eliminar alumno?')">
                                 Eliminar
@@ -68,15 +106,48 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="13" class="text-center">
-                            No hay alumnos registrados
+                        <td colspan="7" class="text-center">
+                            No hay resultados
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <!-- PAGINACIÓN -->
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+
+                {% if alumnos.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ alumnos.previous_page_number }}&search={{ search }}&sexo={{ sexo }}&distrito={{ distrito }}&uso_imagen={{ uso_imagen }}">
+                            Anterior
+                        </a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        Página {{ alumnos.number }} de {{ alumnos.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if alumnos.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ alumnos.next_page_number }}&search={{ search }}&sexo={{ sexo }}&distrito={{ distrito }}&uso_imagen={{ uso_imagen }}">
+                            Siguiente
+                        </a>
+                    </li>
+                {% endif %}
+
+            </ul>
+        </nav>
+
     </div>
+
 </div>
 
 </body>

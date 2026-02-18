@@ -340,11 +340,50 @@ def es_profesor_o_recepcion(user):
         user.groups.filter(name__in=['Profesores', 'Recepcion']).exists()
     )
 
+@login_required
 def lista_alumnos(request):
-    alumnos = Alumno.objects.all()
-    return render(request, 'cursos/lista_alumnos.html', {
-        'alumnos': alumnos    
-    })
+    alumnos = Alumno.objects.all().order_by("nombre")
+
+    # 🔎 BUSCADOR GLOBAL
+    search = request.GET.get("search")
+    if search:
+        alumnos = alumnos.filter(
+            Q(nombre__icontains=search) |
+            Q(dni__icontains=search) |
+            Q(correo__icontains=search) |
+            Q(telefono__icontains=search)
+        )
+
+    # 🎯 FILTROS
+    sexo = request.GET.get("sexo")
+    if sexo:
+        alumnos = alumnos.filter(sexo=sexo)
+
+    distrito = request.GET.get("distrito")
+    if distrito:
+        alumnos = alumnos.filter(distrito__icontains=distrito)
+
+    uso_imagen = request.GET.get("uso_imagen")
+    if uso_imagen == "si":
+        alumnos = alumnos.filter(uso_imagen=True)
+    elif uso_imagen == "no":
+        alumnos = alumnos.filter(uso_imagen=False)
+
+    # 📄 PAGINACIÓN
+    paginator = Paginator(alumnos, 15)
+    page_number = request.GET.get("page")
+    alumnos = paginator.get_page(page_number)
+
+    context = {
+        "alumnos": alumnos,
+        "total": paginator.count,
+        "search": search,
+        "sexo": sexo,
+        "distrito": distrito,
+        "uso_imagen": uso_imagen,
+    }
+
+    return render(request, "cursos/lista_alumnos.html", context)
 
 def es_profesor(user):
     return user.is_superuser or user.groups.filter(name='Profesores').exists()
