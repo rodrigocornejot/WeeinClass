@@ -1466,10 +1466,11 @@ def registrar_alumnos(request):
 
         messages.success(request, "✅ Alumno registrado correctamente.")
 
-        # 👇 MISMO TEMPLATE + redirect controlado
-        return render(request, 'cursos/registrar_alumnos.html', {
-            'redirect_to': '/cursos/lista_alumnos/'
+        return render(request, "cursos/registrar_alumnos.html", {
+            "form": AlumnoForm(),
+            "redirect_to": "/cursos/lista_alumnos/"
         })
+
 
     return render(request, 'cursos/registrar_alumnos.html')
 

@@ -148,12 +148,21 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
 {% if redirect_to %}
-<script>
-  setTimeout(function () {
-    window.location.href = "{% url redirect_to %}";
-  }, 2500); // 2.5 segundos
-</script>
+  <div class="position-fixed top-50 start-50 translate-middle"
+       style="z-index:9999; width:420px;">
+    <div class="alert alert-success text-center shadow-lg p-4">
+      <h4 class="mb-2">✅ Alumno registrado correctamente</h4>
+      <p class="mb-0">Redirigiendo a la lista de alumnos…</p>
+    </div>
+  </div>
+
+  <script>
+    setTimeout(function () {
+      window.location.href = "{{ redirect_to }}";
+    }, 2500);
+  </script>
 {% endif %}
 
 </body>
