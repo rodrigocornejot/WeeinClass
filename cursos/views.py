@@ -213,6 +213,7 @@ def curso_codigo_y_sesiones(curso_nombre: str, curso_obj=None):
 
     if "REDES" in n:
         return "REDES", 5
+    
     if "ARRANQUE" in n and "LOGO" in n:
         return "ELEC", 5
 
@@ -981,7 +982,11 @@ def registrar_matricula(request):
             dias = request.POST.getlist("dias")  # ✅ siempre seguro
 
             # total_clases real según el tipo guardado
-            total_clases = 3 if tipo_horario.startswith("full") else 6
+            if tipo_horario.startswith("full"):
+                total_clases = 3
+            else:
+                total_clases = total_unidades
+
 
             # PERSONALIZADO
             if personalizar:
@@ -1153,7 +1158,7 @@ def registrar_matricula(request):
                 total_clases = 3
                 sesiones_por_clase = ceil(total_unidades / total_clases)
             else:
-                total_clases = 6
+                total_clases = total_unidades
                 sesiones_por_clase = 1
 
             unidades = list(UnidadCurso.objects.filter(curso=matricula.curso).order_by("numero"))
