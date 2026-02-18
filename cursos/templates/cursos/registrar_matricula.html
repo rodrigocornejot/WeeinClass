@@ -157,6 +157,12 @@
       <!-- Form matrícula -->
       <form method="post">
         {% csrf_token %}
+        <input
+          type="hidden"
+          id="total-unidades"
+          value="{{ total_unidades|default:6 }}"
+        >
+
         <input type="hidden" name="dni" value="{{ dni }}">
 
         <!-- Datos del curso -->
@@ -400,7 +406,7 @@ function toggleUI() {
     );
   } else {
     $('#help_personalizado').text(
-      "Elige fecha y horario (Extendida = 6 clases)."
+      "Elige fecha y horario (Extendida = ${n} clases)."
     );
   }
 

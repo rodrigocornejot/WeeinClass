@@ -860,6 +860,13 @@ HORARIO_MAP = {
 def registrar_matricula(request):
     alumno = None
     dni = request.GET.get('dni') or request.POST.get('dni', '')
+    nombre_curso = ""
+    if request.POST.get("curso"):
+        nombre_curso = request.POST.get("curso")
+    elif alumno and hasattr(form.instance, "curso") and form.instance.curso:
+        nombre_curso = form.instance.curso.nombre
+
+    _, total_unidades = curso_codigo_y_sesiones(nombre_curso)
 
     if dni:
         alumno = Alumno.objects.filter(dni=dni).first()
@@ -945,6 +952,7 @@ def registrar_matricula(request):
             "sesiones_post": sesiones_post,
             "horarios_post": horarios_post,
             "personalizar_post": personalizar,
+            "total_unidades": total_unidades
         })
 
     if not form.is_valid():
@@ -955,6 +963,7 @@ def registrar_matricula(request):
             "sesiones_post": sesiones_post,
             "horarios_post": horarios_post,
             "personalizar_post": personalizar,
+            "total_unidades": total_unidades
         })
 
     # =========================
@@ -1025,6 +1034,7 @@ def registrar_matricula(request):
                         "sesiones_post": sesiones_post,
                         "horarios_post": horarios_post,
                         "personalizar_post": True,
+                        "total_unidades": total_unidades
                     })
 
                 # 2) construir fechas_data
