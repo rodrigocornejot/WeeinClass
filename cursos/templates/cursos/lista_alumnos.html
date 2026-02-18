@@ -132,29 +132,35 @@
         </div>
 
         <!-- PAGINACIÓN -->
-        <nav class="mt-4">
+        <nav>
             <ul class="pagination justify-content-center">
 
-                {% if alumnos.has_previous %}
+                {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link"
-                           href="?page={{ alumnos.previous_page_number }}&search={{ search }}&sexo={{ sexo }}&distrito={{ distrito }}&uso_imagen={{ uso_imagen }}">
+                        <a class="page-link" href="?page=1">Primera</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
                             Anterior
                         </a>
                     </li>
                 {% endif %}
 
-                <li class="page-item disabled">
+                <li class="page-item active">
                     <span class="page-link">
-                        Página {{ alumnos.number }} de {{ alumnos.paginator.num_pages }}
+                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
                     </span>
                 </li>
 
-                {% if alumnos.has_next %}
+                {% if page_obj.has_next %}
                     <li class="page-item">
-                        <a class="page-link"
-                           href="?page={{ alumnos.next_page_number }}&search={{ search }}&sexo={{ sexo }}&distrito={{ distrito }}&uso_imagen={{ uso_imagen }}">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">
                             Siguiente
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">
+                            Última
                         </a>
                     </li>
                 {% endif %}
