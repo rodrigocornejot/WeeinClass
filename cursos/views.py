@@ -648,9 +648,16 @@ def registrar_asistencia_unidad(request):
                 for matricula in matriculas:
                     verificar_y_generar_certificado(matricula)
 
-                return redirect(
-                    f"/cursos/registrar_asistencia_unidad/?curso={curso_seleccionado.id}&fecha={fecha_seleccionada}"
-                )
+                return render(request, "cursos/registrar_asistencia_unidad.html", {
+                    "cursos": cursos,
+                    "curso_seleccionado": curso_seleccionado,
+                    "fecha_seleccionada": fecha_seleccionada,
+                    "clase": clase,
+                    "alumnos_unidades": alumnos_unidades,
+                    "unidades": unidades,
+                    "redirect_to": f"/cursos/registrar_asistencia_unidad/?curso={curso_seleccionado.id}&fecha={fecha_seleccionada}"
+                })
+
 
             # ---- GET: construir tabla ----
             for matricula in matriculas:

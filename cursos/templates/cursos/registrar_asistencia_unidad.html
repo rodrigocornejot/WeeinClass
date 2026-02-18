@@ -68,6 +68,15 @@
 </head>
 
 <body>
+  {% if messages %}
+    {% for message in messages %}
+      <div id="mensaje-exito" class="alert alert-success text-center fw-bold"
+          style="font-size:1.3rem; padding:20px;">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
 <div class="container py-4">
 
   <!-- Header -->
@@ -241,6 +250,14 @@
     });
   });
 </script>
+
+{% if redirect_to %}
+<script>
+  setTimeout(function () {
+    window.location.href = "{% url redirect_to %}";
+  }, 2500); // 2.5 segundos
+</script>
+{% endif %}
 
 </body>
 </html>
