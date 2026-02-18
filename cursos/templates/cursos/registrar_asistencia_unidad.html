@@ -68,14 +68,17 @@
 </head>
 
 <body>
-  {% if messages %}
-    {% for message in messages %}
-      <div id="mensaje-exito" class="alert alert-success text-center fw-bold"
-          style="font-size:1.3rem; padding:20px;">
-        {{ message }}
-      </div>
-    {% endfor %}
-  {% endif %}
+  
+{% if messages %}
+  {% for message in messages %}
+    <div id="mensaje-exito"
+         class="alert alert-success text-center fw-bold mx-auto mt-4"
+         style="font-size:1.6rem; padding:24px; max-width:650px;">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
 
 <div class="container py-4">
 

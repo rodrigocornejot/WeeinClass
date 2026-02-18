@@ -659,6 +659,7 @@ def registrar_asistencia_unidad(request):
                 })
 
 
+
             # ---- GET: construir tabla ----
             for matricula in matriculas:
                 unidades_info = []
