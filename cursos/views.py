@@ -342,7 +342,7 @@ def es_profesor_o_recepcion(user):
 
 @login_required
 def lista_alumnos(request):
-    alumnos = Alumno.objects.all().order_by("nombre")
+    alumnos_list = Alumno.objects.all().order_by("nombre")
 
     # 🔎 BUSCADOR GLOBAL
     search = request.GET.get("search")
@@ -370,12 +370,12 @@ def lista_alumnos(request):
         alumnos = alumnos.filter(uso_imagen=False)
 
     # 📄 PAGINACIÓN
-    paginator = Paginator(alumnos, 15)
+    paginator = Paginator(alumnos_list, 10)
     page_number = request.GET.get("page")
-    alumnos = paginator.get_page(page_number)
+    page_obj = paginator.get_page(page_number)
 
     context = {
-        "alumnos": alumnos,
+        "page_obj": page_obj,
         "total": paginator.count,
         "search": search,
         "sexo": sexo,

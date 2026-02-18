@@ -85,7 +85,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for alumno in alumnos %}
+                    {% for alumno in page_obj %}
                     <tr>
                         <td class="fw-semibold">{{ alumno.nombre }}</td>
                         <td>{{ alumno.dni|default:"-" }}</td>
