@@ -86,7 +86,8 @@ class Alumno(models.Model):
     nombre = models.CharField(max_length=255)
     dni = models.CharField(
         max_length=20,
-        unique=True
+        unique=True,
+        blank=True, null=True,
     )
     telefono = models.CharField(max_length=25)
     correo = models.EmailField(unique=True)
@@ -101,7 +102,8 @@ class Alumno(models.Model):
         max_length=1, 
         choices=SEXO_CHOICES,
         blank=True,
-        null=True
+        null=True,
+        verbose_name="Documento de identidad"
     )
 
     distrito = models.CharField(max_length=100, blank=True, null=True)

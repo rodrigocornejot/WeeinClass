@@ -799,6 +799,13 @@ def detalle_matricula(request, matricula_id, fecha):
                     "numero": a.unidad.numero,
                     "tema": a.unidad.nombre_tema
                 })
+        
+        if (
+            matricula.tipo_horario.lower().startswith("full")
+            and horario == "9-6"
+            and sesiones
+        ):
+            sesiones = repartir_horario_full_day(sesiones)
 
         return JsonResponse({
             "nombre": matricula.alumno.nombre,
@@ -3159,3 +3166,37 @@ def eliminar_usuario(request, user_id):
         return redirect("lista_usuarios")
 
     return render(request, "cursos/eliminar_usuario.html", {"usuario": usuario})
+
+def repartir_horario_full_day(sesiones, inicio=time(9, 0), fin=time(18, 0)):
+    """
+    sesiones: lista de sesiones del día
+    retorna la misma lista con horario_inicio y horario_fin
+    """
+
+    total_sesiones = len(sesiones)
+
+    if total_sesiones == 0:
+        return sesiones
+
+    # Full Day: 9–18 con 1h break
+    inicio_dt = datetime.combine(datetime.today(), inicio)
+    fin_dt = datetime.combine(datetime.today(), fin)
+
+    duracion_total = (fin_dt - inicio_dt).seconds // 3600  # 9 horas
+    horas_efectivas = duracion_total - 1  # 8 horas reales
+
+    horas_por_sesion = horas_efectivas // total_sesiones
+
+    hora_actual = inicio_dt
+
+    for i, sesion in enumerate(sesiones):
+        sesion["hora_inicio"] = hora_actual.time()
+
+        hora_actual += timedelta(hours=horas_por_sesion)
+        sesion["hora_fin"] = hora_actual.time()
+
+        # break SOLO después de la primera sesión
+        if i == 0:
+            hora_actual += timedelta(hours=1)
+
+    return sesiones

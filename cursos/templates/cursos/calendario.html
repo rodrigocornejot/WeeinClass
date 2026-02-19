@@ -164,9 +164,19 @@ eventClick: function(info) {
       let sesionesHTML = "No asignada";
 
       if (data.sesiones && data.sesiones.length > 0) {
-        sesionesHTML = data.sesiones
-          .map(s => `<div>• S${s.numero} - ${s.tema}</div>`)
-          .join("");
+        sesionesHTML = data.sesiones.map(s => {
+          if (s.hora_inicio && s.hora_fin) {
+            return `
+              <div>
+                • S${s.numero} - ${s.tema}
+                <small class="text-muted">
+                  (${s.hora_inicio} – ${s.hora_fin})
+                </small>
+              </div>
+            `;
+          }
+          return `<div>• S${s.numero} - ${s.tema}</div>`;
+        }).join("");
       }
 
       document.getElementById('detalleEvento').innerHTML = `
