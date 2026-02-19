@@ -159,7 +159,8 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # Solo si usas 'static/' 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 CSRF_TRUSTED_ORIGINS = [
-    '',
+    'https://weeinclass.herokuapp.com',
+    'http://localhost:8000',
 ]
 
 MEDIA_ROOT = BASE_DIR / "media"
