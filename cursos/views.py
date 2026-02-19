@@ -355,7 +355,7 @@ def lista_alumnos(request):
     if search:
         alumnos = alumnos.filter(
             Q(nombre__icontains=search) |
-            Q(documento_identidad__icontains=search) |
+            Q(dni__icontains=search) |
             Q(correo__icontains=search)
         )
 
@@ -867,7 +867,7 @@ HORARIO_MAP = {
 @solo_asesora
 def registrar_matricula(request):
     alumno = None
-    documento_identidad = request.GET.get('documento_identidad') or request.POST.get('documento_identidad', '')
+    dni = request.GET.get('dni') or request.POST.get('dni', '')
     nombre_curso = ""
     if request.POST.get("curso"):
         nombre_curso = request.POST.get("curso")
@@ -876,8 +876,8 @@ def registrar_matricula(request):
 
     _, total_unidades = curso_codigo_y_sesiones(nombre_curso)
 
-    if documento_identidad:
-        alumno = Alumno.objects.filter(documento_identidad=documento_identidad).first()
+    if dni:
+        alumno = Alumno.objects.filter(dni=dni).first()
 
     # =========================
     # GET
@@ -887,7 +887,7 @@ def registrar_matricula(request):
         return render(request, 'cursos/registrar_matricula.html', {
             'form': form,
             'alumno': alumno,
-            'documento_identidad': documento_identidad,
+            'dni': dni,
             'sesiones_post': [],
             'horarios_post': [],
             'personalizar_post': False,
@@ -956,7 +956,7 @@ def registrar_matricula(request):
         return render(request, "cursos/registrar_matricula.html", {
             "form": form,
             "alumno": alumno,
-            "documento_identidad": documento_identidad,
+            "dni": dni,
             "sesiones_post": sesiones_post,
             "horarios_post": horarios_post,
             "personalizar_post": personalizar,
@@ -967,7 +967,7 @@ def registrar_matricula(request):
         return render(request, "cursos/registrar_matricula.html", {
             "form": form,
             "alumno": alumno,
-            "documento_identidad": documento_identidad,
+            "dni": dni,
             "sesiones_post": sesiones_post,
             "horarios_post": horarios_post,
             "personalizar_post": personalizar,
@@ -1417,7 +1417,7 @@ def dashboard(request):
 def registrar_alumnos(request):
     if request.method == 'POST':
         nombre = request.POST.get('nombre')
-        documento_identidad = request.POST.get('documento_identidad')
+        dni = request.POST.get('dni')
         telefono = request.POST.get('telefono')
         correo = request.POST.get('correo')
 
@@ -1442,14 +1442,14 @@ def registrar_alumnos(request):
                 'error': 'El correo ya está registrado'
             })
 
-        if documento_identidad and Alumno.objects.filter(documento_identidad=documento_identidad).exists():
+        if dni and Alumno.objects.filter(dni=dni).exists():
             return render(request, 'cursos/registrar_alumnos.html', {
                 'error': 'El documento de identidad ya está registrado'
             })
 
         Alumno.objects.create(
             nombre=nombre,
-            documento_identidad=documento_identidad,
+            dni=dni,
             correo=correo,
             telefono=telefono,
             edad=edad,
