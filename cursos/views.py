@@ -1442,10 +1442,18 @@ def registrar_alumnos(request):
                 'error': 'El correo ya está registrado'
             })
 
-        if dni and Alumno.objects.filter(dni=dni).exists():
-            return render(request, 'cursos/registrar_alumnos.html', {
-                'error': 'El DNI ya está registrado'
-            })
+        if dni:
+            dni = dni.strip()
+
+            if not dni.isdigit():
+                return render(request, 'cursos/registrar_alumnos.html', {
+                    'error': 'El DNI solo debe contener números'
+                })
+
+            if len(dni) != 8:
+                return render(request, 'cursos/registrar_alumnos.html', {
+                    'error': 'El DNI debe tener exactamente 8 dígitos'
+                })
 
         Alumno.objects.create(
             nombre=nombre,
