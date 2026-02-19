@@ -17,5 +17,5 @@ class MatriculaAdmin(admin.ModelAdmin):
 
 @admin.register(Alumno)
 class AlumnoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'dni', 'telefono', 'correo', 'sexo', 'uso_imagen')
-    search_fields = ('nombre', 'dni', 'correo')
+    list_display = ('nombre', 'documento_identidad', 'telefono', 'correo', 'sexo', 'uso_imagen')
+    search_fields = ('nombre', 'documento_identidad', 'correo')

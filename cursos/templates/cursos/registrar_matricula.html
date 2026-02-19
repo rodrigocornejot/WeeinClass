@@ -122,15 +122,14 @@
 
     <div class="content">
 
-      <!-- Buscar DNI -->
       <div class="row g-3 align-items-end">
         <div class="col-12 col-md-8">
-          <label class="form-label fw-semibold">Buscar alumno por DNI</label>
+          <label class="form-label fw-semibold">Buscar alumno por su documento de identidad</label>
           <form method="get" class="d-flex gap-2">
-            <input type="text" name="dni" class="form-control" placeholder="Ingrese DNI" value="{{ dni }}">
+            <input type="text" name="documento_identidad" class="form-control" placeholder="Ingrese el documento de identidad" value="{{ documento_identidad }}">
             <button class="btn btn-primary px-4">Buscar</button>
           </form>
-          <div class="hint mt-2">Tip: primero busca el DNI, luego completa el formulario.</div>
+          <div class="hint mt-2">Primero busca el Documento de identidad, luego completa el formulario.</div>
         </div>
 
         <div class="col-12 col-md-4">
@@ -163,7 +162,7 @@
           value="{{ total_unidades|default:6 }}"
         >
 
-        <input type="hidden" name="dni" value="{{ dni }}">
+        <input type="hidden" name="documento_identidad" value="{{ documento_identidad }}">
 
         <!-- Datos del curso -->
         <div class="card shadow-sm border-0 mb-4">

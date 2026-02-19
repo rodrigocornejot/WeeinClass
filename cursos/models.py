@@ -84,11 +84,9 @@ class Curso(models.Model):
 
 class Alumno(models.Model):
     nombre = models.CharField(max_length=255)
-    dni = models.CharField(
-        max_length=8, 
-        unique=True,
-        null=True,
-        blank=True
+    documento_identidad = models.CharField(
+        max_length=20,
+        unique=True
     )
     telefono = models.CharField(max_length=25)
     correo = models.EmailField(unique=True)
@@ -300,6 +298,8 @@ class Pago(models.Model):
         ('interbank', 'Interbank'),
         ('culqi', 'Culqi'),
         ('efectivo', 'Efectivo'),
+        ('paypal', 'PayPal'),
+        ('bbva', 'BBVA'),
     ]
     alumno = models.ForeignKey(
         "Alumno",
@@ -333,6 +333,8 @@ class Pago(models.Model):
             ('interbank', 'Interbank'),
             ('culqi', 'Culqi'),
             ('efectivo', 'Efectivo'),
+            ('paypal', 'PayPal'),
+            ('bbva', 'BBVA'),
         ],
         null=True,
         blank=True
@@ -493,6 +495,8 @@ class VentaServicio(models.Model):
             ('interbank', 'Interbank'),
             ('culqi', 'Culqi'),
             ('efectivo', 'Efectivo'),
+            ('paypal', 'PayPal'),
+            ('bbva', 'BBVA'),
         ],
         null=True,
         blank=True

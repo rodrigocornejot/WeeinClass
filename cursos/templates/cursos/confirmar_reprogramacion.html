@@ -15,7 +15,7 @@
       </p>
 
       <div class="mb-3">
-        <div><strong>Alumno:</strong> {{ matricula.alumno.nombre }} (DNI: {{ matricula.alumno.dni }})</div>
+        <div><strong>Alumno:</strong> {{ matricula.alumno.nombre }} (Documento de identidad: {{ matricula.alumno.documento_identidad }})</div>
         <div><strong>Curso:</strong> {{ matricula.curso.nombre }}</div>
         <div><strong>Fecha anterior:</strong> {{ reprogramacion.fecha_anterior }}</div>
         <div><strong>Nueva fecha solicitada:</strong> {{ reprogramacion.fecha_nueva }}</div>
@@ -35,7 +35,7 @@
 
       <div class="mt-3">
         <a class="btn btn-outline-secondary w-100"
-           href="{% url 'pagina_pagos' %}?dni={{ matricula.alumno.dni }}&matricula_id={{ matricula.id }}">
+           href="{% url 'pagina_pagos' %}?documento_identidad={{ matricula.alumno.documento_identidad }}&matricula_id={{ matricula.id }}">
           Volver a Gestión de Pagos
         </a>
       </div>

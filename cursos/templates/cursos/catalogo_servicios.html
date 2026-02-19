@@ -11,7 +11,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
       <h3 class="mb-0">🧩 Servicios adicionales (Caja)</h3>
-      <div class="text-muted">Busca por DNI, cobra y se suma al historial para cuadre.</div>
+      <div class="text-muted">Busca por Documento de identidad, cobra y se suma al historial para cuadre.</div>
     </div>
     <div class="d-flex gap-2">
       <a href="{% url 'historial_pagos' %}" class="btn btn-outline-dark btn-sm">🧾 Historial</a>
@@ -23,8 +23,8 @@
     <div class="card-body">
       <form method="get" class="row g-2 align-items-end">
         <div class="col-md-4">
-          <label class="form-label fw-semibold">DNI</label>
-          <input name="dni" class="form-control" value="{{ dni }}" placeholder="Ej: 74326879" required>
+          <label class="form-label fw-semibold">Documento de identidad</label>
+          <input name="documento_identidad" class="form-control" value="{{ documento_identidad }}" placeholder="Ej: 74326879" required>
         </div>
         <div class="col-md-3">
           <button class="btn btn-primary w-100">Buscar</button>
@@ -33,13 +33,13 @@
     </div>
   </div>
 
-  {% if dni and not alumno %}
-    <div class="alert alert-warning">No se encontró alumno con DNI <strong>{{ dni }}</strong>.</div>
+  {% if documento_identidad and not alumno %}
+    <div class="alert alert-warning">No se encontró alumno con Documento de identidad <strong>{{ documento_identidad }}</strong>.</div>
   {% endif %}
 
   {% if alumno %}
     <div class="alert alert-info d-flex justify-content-between align-items-center">
-      <div>👤 <strong>{{ alumno.nombre }}</strong> (DNI: {{ alumno.dni }})</div>
+      <div>👤 <strong>{{ alumno.nombre }}</strong> (Documento de identidad: {{ alumno.documento_identidad }})</div>
       <span class="badge bg-success">Total servicios pagados: S/ {{ total_servicios }}</span>
     </div>
 
@@ -49,7 +49,7 @@
 
         <form method="post" class="row g-2 align-items-end">
           {% csrf_token %}
-          <input type="hidden" name="dni" value="{{ dni }}">
+          <input type="hidden" name="documento_identidad" value="{{ documento_identidad }}">
 
           <div class="col-md-5">
             <label class="form-label fw-semibold">Servicio</label>

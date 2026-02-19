@@ -16,7 +16,7 @@
 
     <div class="d-flex gap-2">
       {% if alumno %}
-        <a href="?dni={{ dni }}&matricula_id={{ matricula_id }}&export=1"
+        <a href="?documento_identidad={{ documento_identidad }}&matricula_id={{ matricula_id }}&export=1"
            class="btn btn-success btn-sm fw-semibold">
           ⬇ Exportar Excel
         </a>
@@ -32,9 +32,9 @@
     <div class="card-body">
       <form method="get" class="row g-3 align-items-end">
         <div class="col-md-4">
-          <label class="form-label fw-semibold">Buscar por DNI</label>
-          <input type="text" name="dni" class="form-control"
-                 value="{{ dni }}" placeholder="Ej: 74326879" required>
+          <label class="form-label fw-semibold">Buscar por Documento de identidad</label>
+          <input type="text" name="documento_identidad" class="form-control"
+                 value="{{ documento_identidad }}" placeholder="Ej: 74326879" required>
         </div>
 
         {% if matriculas and matriculas.count > 1 %}
@@ -58,15 +58,15 @@
     </div>
   </div>
 
-  {% if dni and not alumno %}
+  {% if documento_identidad and not alumno %}
     <div class="alert alert-warning">
-      No se encontró alumno con DNI <strong>{{ dni }}</strong>.
+      No se encontró alumno con Documento de identidad <strong>{{ documento_identidad }}</strong>.
     </div>
   {% endif %}
 
   {% if alumno %}
     <div class="alert alert-info d-flex justify-content-between align-items-center">
-      <div>👤 <strong>{{ alumno.nombre }}</strong> (DNI: {{ alumno.dni }})</div>
+      <div>👤 <strong>{{ alumno.nombre }}</strong> (Documento de identidad: {{ alumno.documento_identidad }})</div>
       <div class="d-flex gap-2">
         <span class="badge bg-dark">{{ matriculas.count }} curso(s)</span>
         <span class="badge bg-success">Total general pagado: S/ {{ total_general }}</span>

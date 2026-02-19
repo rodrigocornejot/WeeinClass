@@ -113,7 +113,7 @@ class NotaForm(forms.ModelForm):
 class AlumnoForm(forms.ModelForm):
     class Meta:
         model = Alumno
-        fields = ['nombre', 'correo', 'telefono', 'dni', 'grado_academico', 'carrera', 'trabajo', 'referencia',
+        fields = ['nombre', 'correo', 'telefono', 'documento_identidad', 'grado_academico', 'carrera', 'trabajo', 'referencia',
             'edad', 'sexo', 'distrito', 'departamento', 'pais', 'uso_imagen'
         ]
 

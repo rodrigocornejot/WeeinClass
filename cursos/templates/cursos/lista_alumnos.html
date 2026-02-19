@@ -38,7 +38,7 @@
             <div class="col-md-4">
                 <input type="text" name="search" value="{{ nombre|default:'' }}"
                        class="form-control"
-                       placeholder="🔍 Buscar por nombre, DNI, correo...">
+                       placeholder="🔍 Buscar por nombre, Documento de identidad, correo...">
             </div>
 
             <div class="col-md-2">
@@ -77,7 +77,7 @@
                 <thead class="table-dark text-center">
                     <tr>
                         <th>Nombre</th>
-                        <th>DNI</th>
+                        <th>Documento</th>
                         <th>Correo</th>
                         <th>Teléfono</th>
                         <th>Distrito</th>
@@ -97,7 +97,7 @@
                     {% for alumno in page_obj %}
                     <tr>
                         <td class="fw-semibold">{{ alumno.nombre }}</td>
-                        <td>{{ alumno.dni|default:"-" }}</td>
+                        <td>{{ alumno.documento_identidad|default:"-" }}</td>
                         <td>{{ alumno.correo }}</td>
                         <td>{{ alumno.telefono }}</td>
                         <td>{{ alumno.distrito|default:"-" }}</td>
