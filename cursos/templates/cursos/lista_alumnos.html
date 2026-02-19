@@ -97,7 +97,7 @@
                     {% for alumno in page_obj %}
                     <tr>
                         <td class="fw-semibold">{{ alumno.nombre }}</td>
-                        <td>{{ alumno.documento_identidad|default:"-" }}</td>
+                        <td>{{ alumno.dni|default:"-" }}</td>
                         <td>{{ alumno.correo }}</td>
                         <td>{{ alumno.telefono }}</td>
                         <td>{{ alumno.distrito|default:"-" }}</td>

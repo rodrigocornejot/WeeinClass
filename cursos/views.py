@@ -1038,7 +1038,7 @@ def registrar_matricula(request):
                     return render(request, "cursos/registrar_matricula.html", {
                         "form": form,
                         "alumno": alumno,
-                        "documento_identidad": documento_identidad,
+                        "dni": dni,
                         "sesiones_post": sesiones_post,
                         "horarios_post": horarios_post,
                         "personalizar_post": True,
@@ -1062,7 +1062,7 @@ def registrar_matricula(request):
                     return render(request, "cursos/registrar_matricula.html", {
                         "form": form,
                         "alumno": alumno,
-                        "documento_identidad": documento_identidad,
+                        "dni": dni,
                         "sesiones_post": [],
                         "horarios_post": [],
                         "personalizar_post": False,
@@ -1077,7 +1077,7 @@ def registrar_matricula(request):
                         return render(request, "cursos/registrar_matricula.html", {
                             "form": form,
                             "alumno": alumno,
-                            "documento_identidad": documento_identidad,
+                            "dni": dni,
                             "sesiones_post": [],
                             "horarios_post": [],
                             "personalizar_post": False,
@@ -1106,7 +1106,7 @@ def registrar_matricula(request):
                     return render(request, "cursos/registrar_matricula.html", {
                         "form": form,
                         "alumno": alumno,
-                        "documento_identidad": documento_identidad,
+                        "dni": dni,
                         "sesiones_post": [],
                         "horarios_post": [],
                         "personalizar_post": False,
@@ -1235,7 +1235,7 @@ def registrar_matricula(request):
         return render(request, "cursos/registrar_matricula.html", {
             "form": form,
             "alumno": alumno,
-            "documento_identidad": documento_identidad,
+            "dni": dni,
             "sesiones_post": sesiones_post,
             "horarios_post": horarios_post,
             "personalizar_post": personalizar,
@@ -2058,7 +2058,7 @@ def eliminar_matricula(request, matricula_id):
 @login_required
 @solo_asesora
 def pagina_pagos(request):
-    documento_identidad = (request.GET.get("documento_identidad") or "").strip()
+    dni = (request.GET.get("dni") or "").strip()
     matricula_id = (request.GET.get("matricula_id") or "").strip()
 
     alumno = None
@@ -2072,8 +2072,8 @@ def pagina_pagos(request):
     total_reprogramaciones_pendientes = Decimal("0.00")
     saldo_con_reprogramaciones = None
 
-    if documento_identidad:
-        alumno = Alumno.objects.filter(documento_identidad=documento_identidad).first()
+    if dni:
+        alumno = Alumno.objects.filter(dni=dni).first()
 
         if alumno:
             matriculas = Matricula.objects.filter(alumno=alumno).order_by("-fecha_inscripcion", "-id")
@@ -2125,7 +2125,7 @@ def pagina_pagos(request):
                 saldo_con_reprogramaciones = (matricula.saldo_pendiente or Decimal("0.00")) + total_reprogramaciones_pendientes
 
     return render(request, "cursos/pagos.html", {
-        "documento_identidad": documento_identidad,
+        "dni": dni,
         "alumno": alumno,
         "matriculas": matriculas,
         "matricula": matricula,
@@ -2172,23 +2172,23 @@ def pagar_cuota(request, cuota_id):
 
     cuota = get_object_or_404(Cuota, id=cuota_id)
 
-    documento_identidad = (request.POST.get("documento_identidad") or "").strip()
+    dni = (request.POST.get("dni") or "").strip()
     matricula_id = (request.POST.get("matricula_id") or "").strip()
 
     monto_str = (request.POST.get("monto") or "").strip()
     if not monto_str:
         messages.error(request, "Ingresa un monto.")
-        return redirect(f"/cursos/pagos/?documento_identidad={documento_identidad}&matricula_id={matricula_id}")
+        return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
     try:
         monto = Decimal(monto_str)
     except:
         messages.error(request, "Monto inválido.")
-        return redirect(f"/cursos/pagos/?documento_identidad={documento_identidad}&matricula_id={matricula_id}")
+        return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
     if monto <= 0:
         messages.error(request, "El monto debe ser mayor a 0.")
-        return redirect(f"/cursos/pagos/?documento_identidad={documento_identidad}&matricula_id={matricula_id}")
+        return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
     saldo_cuota = (cuota.monto - (cuota.monto_pagado or Decimal("0.00")))
     if monto > saldo_cuota:
@@ -2201,7 +2201,7 @@ def pagar_cuota(request, cuota_id):
     metodos_validos = dict(Pago.METODO_PAGO_CHOICES).keys()
     if metodo_pago not in metodos_validos:
         messages.error(request, "Selecciona un método de pago válido.")
-        return redirect(f"/cursos/pagos/?documento_identidad={documento_identidad}&matricula_id={matricula_id}")
+        return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
     # ✅ registrar el pago
     Pago.objects.create(
@@ -2670,7 +2670,7 @@ def exportar_historial_pagos_excel(request):
         titulo,
         columnas,
         filas,
-        filename=f"historial_pagos_{documento_identidad}_matricula_{matricula.id}.xlsx"
+        filename=f"historial_pagos_{dni}_matricula_{matricula.id}.xlsx"
     )
 
 @login_required
@@ -2679,7 +2679,7 @@ def catalogo_servicios(request):
         messages.error(request, "No tienes permisos para vender servicios.")
         return redirect("menu_admin")
 
-    documento_identidad = (request.GET.get("documento_identidad") or request.POST.get("documento_identidad") or "").strip()
+    dni = (request.GET.get("dni") or request.POST.get("dni") or "").strip()
 
     alumno = None
     servicios = ServicioExtra.objects.filter(activo=True).order_by("nombre")
@@ -2693,7 +2693,7 @@ def catalogo_servicios(request):
     except Exception:
         tiene_alumno = False
 
-    if documento_identidad:
+    if dni:
         alumno = Alumno.objects.filter(documento_identidad=documento_identidad).first()
         if alumno and tiene_alumno:
             compras = (
@@ -2705,7 +2705,7 @@ def catalogo_servicios(request):
             total_servicios = compras.aggregate(s=Sum("monto"))["s"] or Decimal("0.00")
 
     if request.method == "POST":
-        if not documento_identidad:
+        if not dni:
             messages.error(request, "Ingresa un Documento de identidad.")
             return redirect("catalogo_servicios")
 
