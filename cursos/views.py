@@ -2243,7 +2243,7 @@ def pagar_cuota(request, cuota_id):
     else:
         messages.success(request, "✅ Pago registrado correctamente.")
 
-    return redirect(f"/cursos/pagos/?documento_identidad={documento_identidad}&matricula_id={cuota.matricula.id}")
+    return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={cuota.matricula.id}")
 
 @login_required
 @solo_asesora
@@ -2375,7 +2375,7 @@ def pagar_reprogramacion(request):
     # ✅ Si ya está pagada, o no requiere cobro, no tiene sentido confirmar
     if reprog.pagado or (reprog.monto is not None and reprog.monto <= 0):
         messages.info(request, "Esta reprogramación no tiene cobro pendiente.")
-        return redirect(f"/cursos/pagos/?documento_identidad={matricula.alumno.documento_identidad}&matricula_id={matricula.id}")
+        return redirect(f"/cursos/pagos/?dni={matricula.alumno.dni}&matricula_id={matricula.id}")
 
     # ✅ SOLO CONFIRMACIÓN: aquí NO se cobra
     if request.method == "POST":
@@ -2399,7 +2399,7 @@ def pagar_reprogramacion(request):
             "⚠ Cobro pendiente por reprogramación registrado. Ve a Gestión de Pagos para pagarlo."
         )
 
-        return redirect(f"/cursos/pagos/?documento_identidad={matricula.alumno.documento_identidad}&matricula_id={matricula.id}")
+        return redirect(f"/cursos/pagos/?dni={matricula.alumno.dni}&matricula_id={matricula.id}")
 
     return render(request, "cursos/confirmar_reprogramacion.html", {
         "matricula": matricula,
@@ -2413,7 +2413,7 @@ def pagar_reprogramacion_pagos(request, reprog_id):
     matricula = reprog.matricula
     clase = reprog.clase
 
-    documento_identidad = (request.POST.get("documento_identidad") or matricula.alumno.documento_identidad).strip()
+    dni = (request.POST.get("dni") or matricula.alumno.dni).strip()
     matricula_id = (request.POST.get("matricula_id") or str(matricula.id)).strip()
 
     # ✅ validar método
@@ -2421,11 +2421,11 @@ def pagar_reprogramacion_pagos(request, reprog_id):
     metodos_validos = dict(Pago.METODO_PAGO_CHOICES).keys()
     if metodo_pago not in metodos_validos:
         messages.error(request, "Selecciona un método de pago válido.")
-        return redirect(f"/cursos/pagos/?documento_identidad={documento_identidad}&matricula_id={matricula_id}")
+        return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
     if reprog.pagado:
         messages.info(request, "Esta reprogramación ya fue pagada.")
-        return redirect(f"/cursos/pagos/?documento_identidad={documento_identidad}&matricula_id={matricula_id}")
+        return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
     if reprog.monto is None or reprog.monto <= 0:
         reprog.monto = Decimal("50.00")
@@ -2458,7 +2458,7 @@ def pagar_reprogramacion_pagos(request, reprog_id):
     except Exception as e:
         messages.error(request, f"❌ Error al pagar reprogramación: {e}")
 
-    return redirect(f"/cursos/pagos/?documento_identidad={documento_identidad}&matricula_id={matricula_id}")
+    return redirect(f"/cursos/pagos/?dni={dni}&matricula_id={matricula_id}")
 
 @transaction.atomic
 def asegurar_unidades_curso(curso):
@@ -2529,7 +2529,7 @@ from cursos.models import Alumno, Matricula, Pago
 
 @login_required
 def historial_pagos(request):
-    documento_identidad = (request.GET.get("documento_identidad") or "").strip()
+    dni = (request.GET.get("dni") or "").strip()
     matricula_id = (request.GET.get("matricula_id") or "").strip()
     export = (request.GET.get("export") or "").strip()
 
@@ -2544,8 +2544,8 @@ def historial_pagos(request):
     total_curso = Decimal("0.00")
     total_servicios = Decimal("0.00")
 
-    if documento_identidad:
-        alumno = Alumno.objects.filter(documento_identidad=documento_identidad).first()
+    if dni:
+        alumno = Alumno.objects.filter(dni=dni).first()
 
         if alumno:
 
@@ -2599,7 +2599,7 @@ def historial_pagos(request):
             total_general = total_curso + total_servicios
 
     return render(request, "cursos/historial_pagos.html", {
-        "documento_identidad": documento_identidad,
+        "dni": dni,
         "alumno": alumno,
         "matriculas": matriculas,
         "matricula": matricula,
@@ -2615,10 +2615,10 @@ def historial_pagos(request):
 
 @login_required
 def exportar_historial_pagos_excel(request):
-    documento_identidad = (request.GET.get("documento_identidad") or "").strip()
+    dni = (request.GET.get("dni") or "").strip()
     matricula_id = (request.GET.get("matricula_id") or "").strip()
 
-    if not documento_identidad:
+    if not dni:
         # export vacío (o puedes messages + redirect)
         return exportar_excel(
             "Historial de pagos (sin Documento de identidad)",
@@ -2627,13 +2627,13 @@ def exportar_historial_pagos_excel(request):
             filename="historial_pagos.xlsx"
         )
 
-    alumno = Alumno.objects.filter(documento_identidad=documento_identidad).first()
+    alumno = Alumno.objects.filter(dni=dni).first()
     if not alumno:
         return exportar_excel(
-            f"Historial de pagos - Documento de identidad {documento_identidad} (no encontrado)",
+            f"Historial de pagos - Documento de identidad {dni} (no encontrado)",
             ["Fecha", "Alumno", "Curso", "Concepto", "Método", "Monto", "Asesora"],
             [],
-            filename=f"historial_pagos_{documento_identidad}.xlsx"
+            filename=f"historial_pagos_{dni}.xlsx"
         )
 
     matriculas = Matricula.objects.filter(alumno=alumno).order_by("-fecha_inscripcion", "-id")
@@ -2664,7 +2664,7 @@ def exportar_historial_pagos_excel(request):
 
     columnas = ["Fecha", "Alumno", "Curso", "Concepto", "Método", "Monto", "Asesora"]
 
-    titulo = f"Historial de pagos - {alumno.nombre} (Documento de identidad: {documento_identidad}) - {matricula.curso.nombre}"
+    titulo = f"Historial de pagos - {alumno.nombre} (Documento de identidad: {dni}) - {matricula.curso.nombre}"
 
     return exportar_excel(
         titulo,
@@ -2694,7 +2694,7 @@ def catalogo_servicios(request):
         tiene_alumno = False
 
     if dni:
-        alumno = Alumno.objects.filter(documento_identidad=documento_identidad).first()
+        alumno = Alumno.objects.filter(dni=dni).first()
         if alumno and tiene_alumno:
             compras = (
                 Pago.objects
@@ -2709,14 +2709,14 @@ def catalogo_servicios(request):
             messages.error(request, "Ingresa un Documento de identidad.")
             return redirect("catalogo_servicios")
 
-        alumno = Alumno.objects.filter(documento_identidad=documento_identidad).first()
+        alumno = Alumno.objects.filter(dni=dni).first()
         if not alumno:
             messages.error(request, "No se encontró alumno con ese Documento de identidad.")
-            return redirect(f"{request.path}?documento_identidad={documento_identidad}")
+            return redirect(f"{request.path}?dni={dni}")
 
         if not tiene_alumno:
             messages.error(request, "Tu modelo Pago no tiene el campo alumno. Falta aplicar el cambio del modelo.")
-            return redirect(f"{request.path}?documento_identidad={documento_identidad}")
+            return redirect(f"{request.path}?dni={dni}")
 
         servicio_id = (request.POST.get("servicio_id") or "").strip()
         metodo_pago = (request.POST.get("metodo_pago") or "").strip().lower()
@@ -2724,7 +2724,7 @@ def catalogo_servicios(request):
 
         if not servicio_id:
             messages.error(request, "Selecciona un servicio.")
-            return redirect(f"{request.path}?documento_identidad={documento_identidad}")
+            return redirect(f"{request.path}?dni={dni}")
 
         try:
             cantidad = int(cantidad_str)
@@ -2732,12 +2732,12 @@ def catalogo_servicios(request):
                 raise ValueError()
         except Exception:
             messages.error(request, "Cantidad inválida.")
-            return redirect(f"{request.path}?documento_identidad={documento_identidad}")
+            return redirect(f"{request.path}?dni={dni}")
 
         metodos_validos = dict(Pago.METODO_PAGO_CHOICES).keys()
         if metodo_pago not in metodos_validos:
             messages.error(request, "Selecciona un método de pago válido.")
-            return redirect(f"{request.path}?documento_identidad={documento_identidad}")
+            return redirect(f"{request.path}?dni={dni}")
 
         servicio = get_object_or_404(ServicioExtra, id=servicio_id, activo=True)
         total = (servicio.precio * Decimal(cantidad)).quantize(Decimal("0.01"))
@@ -2756,10 +2756,10 @@ def catalogo_servicios(request):
         )
 
         messages.success(request, f"✅ Cobrado: {servicio.nombre} x{cantidad} (S/ {total}).")
-        return redirect(f"{request.path}?documento_identidad={documento_identidad}")
+        return redirect(f"{request.path}?dni={dni}")
 
     return render(request, "cursos/catalogo_servicios.html", {
-        "documento_identidad": documento_identidad,
+        "dni": dni,
         "alumno": alumno,
         "servicios": servicios,
         "compras": compras,
@@ -2948,13 +2948,13 @@ def reporte_caja(request):
         for p in pagos:
             # alumno
             alumno_nombre = "—"
-            alumno_documento_identidad = "—"
+            alumno_dni = "—"
             curso = "Servicio (sin curso)"
 
             if p.matricula_id:
                 if p.matricula.alumno:
                     alumno_nombre = p.matricula.alumno.nombre
-                    alumno_documento_identidad = p.matricula.alumno.documento_identidad
+                    alumno_dni = p.matricula.alumno.dni
                 if p.matricula.curso:
                     curso = p.matricula.curso.nombre
 
@@ -2969,7 +2969,7 @@ def reporte_caja(request):
             ws.append([
                 p.fecha_pago_real.strftime("%d/%m/%Y") if p.fecha_pago_real else "—",
                 p.creado_en.strftime("%d/%m/%Y %H:%M") if p.creado_en else "—",
-                f"{alumno_nombre} ({alumno_documento_identidad})" if alumno_nombre != "—" else "—",
+                f"{alumno_nombre} ({alumno_dni})" if alumno_nombre != "—" else "—",
                 curso,
                 p.get_concepto_display() if p.concepto else "—",
                 metodo_txt,

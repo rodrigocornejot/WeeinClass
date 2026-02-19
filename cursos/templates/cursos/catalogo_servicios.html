@@ -24,7 +24,7 @@
       <form method="get" class="row g-2 align-items-end">
         <div class="col-md-4">
           <label class="form-label fw-semibold">Documento de identidad</label>
-          <input name="documento_identidad" class="form-control" value="{{ documento_identidad }}" placeholder="Ej: 74326879" required>
+          <input name="dni" class="form-control" value="{{ dni }}" placeholder="Ej: 74326879" required>
         </div>
         <div class="col-md-3">
           <button class="btn btn-primary w-100">Buscar</button>
@@ -33,13 +33,13 @@
     </div>
   </div>
 
-  {% if documento_identidad and not alumno %}
-    <div class="alert alert-warning">No se encontró alumno con Documento de identidad <strong>{{ documento_identidad }}</strong>.</div>
+  {% if dni and not alumno %}
+    <div class="alert alert-warning">No se encontró alumno con Documento de identidad <strong>{{ dni }}</strong>.</div>
   {% endif %}
 
   {% if alumno %}
     <div class="alert alert-info d-flex justify-content-between align-items-center">
-      <div>👤 <strong>{{ alumno.nombre }}</strong> (Documento de identidad: {{ alumno.documento_identidad }})</div>
+      <div>👤 <strong>{{ alumno.nombre }}</strong> (Documento de identidad: {{ alumno.dni }})</div>
       <span class="badge bg-success">Total servicios pagados: S/ {{ total_servicios }}</span>
     </div>
 
@@ -49,7 +49,7 @@
 
         <form method="post" class="row g-2 align-items-end">
           {% csrf_token %}
-          <input type="hidden" name="documento_identidad" value="{{ documento_identidad }}">
+          <input type="hidden" name="dni" value="{{ dni }}">
 
           <div class="col-md-5">
             <label class="form-label fw-semibold">Servicio</label>
