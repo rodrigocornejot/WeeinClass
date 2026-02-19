@@ -159,7 +159,7 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # Solo si usas 'static/' 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://weeinclass.onrender.com',
+    '',
 ]
 
 MEDIA_ROOT = BASE_DIR / "media"
