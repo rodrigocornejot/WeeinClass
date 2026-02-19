@@ -255,13 +255,5 @@
   });
 </script>
 
-{% if redirect_to %}
-<script>
-  setTimeout(function () {
-    window.location.href = "{% url redirect_to %}";
-  }, 2500); // 2.5 segundos
-</script>
-{% endif %}
-
 </body>
 </html>
