@@ -169,7 +169,7 @@ eventClick: function(info) {
 
       if (data.sesiones && data.sesiones.length > 0) {
         sesionesHTML = data.sesiones.map(s => `
-          <div class="mb-2 d-flex align-items-center gap-2" data-fecha="${data.fecha}">
+          <div class="mb-2 d-flex align-items-center gap-2 sesion-row" data-asistencia-id="${s.id}">
             <strong>S${s.numero}</strong> - ${s.tema}
 
             <select class="form-select form-select-sm horario-select" style="width:110px">
@@ -320,10 +320,10 @@ eventClick: function(info) {
 
 
 document.addEventListener("click", function (e) {
-
   if (!e.target.classList.contains("guardar-horario")) return;
 
-  const row = e.target.closest(".d-flex");
+  const row = e.target.closest(".sesion-row");
+  const asistenciaId = row.dataset.asistenciaId;
   const horario = row.querySelector(".horario-select").value;
 
   fetch("/cursos/actualizar_horario_fecha/", {
@@ -333,26 +333,17 @@ document.addEventListener("click", function (e) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      matricula_id: window.currentMatriculaId,
-      fecha: window.currentFecha,
+      asistencia_id: asistenciaId,   // 👈 CLAVE
       horario: horario
     })
   })
   .then(r => r.json())
   .then(data => {
     if (data.ok) {
-      Swal.fire({
-        icon: "success",
-        title: "Horario actualizado",
-        timer: 1500,
-        showConfirmButton: false
-      });
+      Swal.fire("Listo", "Horario actualizado", "success");
     } else {
       Swal.fire("Error", data.msg || "No se pudo guardar", "error");
     }
-  })
-  .catch(() => {
-    Swal.fire("Error", "No se pudo conectar con el servidor", "error");
   });
 });
 
