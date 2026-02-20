@@ -15,12 +15,30 @@
     body { padding: 20px; background-color: #f1f1f1; }
     h1 { text-align: center; margin-bottom: 20px; }
     #calendario {
-      max-width: 900px;
+      max-width: 1400px;
+      width: 100%;
       margin: 0 auto;
       background-color: #ffffff;
       border-radius: 8px;
       padding: 10px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    /* Texto general */
+    .fc {
+      font-size: 16px;
+    }
+    /* Altura de cada día */
+    .fc-daygrid-day-frame {
+      min-height: 130px;
+    }
+    .fc-event {
+      font-size: 14px;
+      padding: 4px 6px;
+    }
+
+    /* Título del mes */
+    .fc-toolbar-title {
+      font-size: 1.8rem;
     }
     .fc-header-toolbar {
       background-color: #e9ecef;
@@ -87,10 +105,8 @@
     </ul>
   </div>
 
-  <div style="display:flex;">
-    <div style="flex:1;">
+  <div class="container-fluid px-4">
       <div id="calendario"></div>
-    </div>
   </div>
 
   <!-- Modal -->
