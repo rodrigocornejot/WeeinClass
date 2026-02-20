@@ -796,8 +796,11 @@ def detalle_matricula(request, matricula_id, fecha):
 
             for a in asistencias:
                 sesiones.append({
+                    "id": a.id,  # 🔑 CLAVE
                     "numero": a.unidad.numero,
-                    "tema": a.unidad.nombre_tema
+                    "tema": a.unidad.nombre_tema,
+                    "hora_inicio": _fmt(getattr(a, "hora_inicio", None)),
+                    "hora_fin": _fmt(getattr(a, "hora_fin", None)),
                 })
         
         if (
@@ -3167,6 +3170,9 @@ def eliminar_usuario(request, user_id):
 
     return render(request, "cursos/eliminar_usuario.html", {"usuario": usuario})
 
+def _fmt(t: time | None):
+    return t.strftime("%H:%M") if t else ""
+
 def repartir_horario_full_day(sesiones, inicio=time(9, 0), fin=time(18, 0)):
     """
     sesiones: lista de sesiones del día
@@ -3190,9 +3196,10 @@ def repartir_horario_full_day(sesiones, inicio=time(9, 0), fin=time(18, 0)):
     hora_actual = inicio_dt
 
     for i, sesion in enumerate(sesiones):
-        sesion["hora_inicio"] = hora_actual.time()
-
+        h_ini = hora_actual.time()
         hora_actual += timedelta(hours=horas_por_sesion)
+        h_fin = hora_actual.time()
+        sesion["hora_inicio"] = hora_actual.time()
         sesion["hora_fin"] = hora_actual.time()
 
         # break SOLO después de la primera sesión
@@ -3200,3 +3207,18 @@ def repartir_horario_full_day(sesiones, inicio=time(9, 0), fin=time(18, 0)):
             hora_actual += timedelta(hours=1)
 
     return sesiones
+
+@require_POST
+@login_required
+def actualizar_horas_sesion(request, sesion_id):
+    try:
+        data = json.loads(request.body)
+        sesion = get_object_or_404(AsistenciaUnidad, id=sesion_id)
+
+        sesion.hora_inicio = data.get("hora_inicio")
+        sesion.hora_fin = data.get("hora_fin")
+        sesion.save(update_fields=["hora_inicio", "hora_fin"])
+
+        return JsonResponse({"ok": True})
+    except Exception as e:
+        return JsonResponse({"ok": False, "msg": str(e)}, status=400)

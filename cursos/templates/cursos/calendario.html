@@ -164,19 +164,25 @@ eventClick: function(info) {
       let sesionesHTML = "No asignada";
 
       if (data.sesiones && data.sesiones.length > 0) {
-        sesionesHTML = data.sesiones.map(s => {
-          if (s.hora_inicio && s.hora_fin) {
-            return `
-              <div>
-                • S${s.numero} - ${s.tema}
-                <small class="text-muted">
-                  (${s.hora_inicio} – ${s.hora_fin})
-                </small>
-              </div>
-            `;
-          }
-          return `<div>• S${s.numero} - ${s.tema}</div>`;
-        }).join("");
+        sesionesHTML = data.sesiones.map(s => `
+          <div class="mb-2 d-flex align-items-center gap-2" data-sesion-id="${s.id}">
+            <strong>S${s.numero}</strong> - ${s.tema}
+
+            <input type="time"
+                  class="form-control form-control-sm hora-inicio"
+                  value="${s.hora_inicio || ''}"
+                  style="width:110px">
+
+            <span>–</span>
+
+            <input type="time"
+                  class="form-control form-control-sm hora-fin"
+                  value="${s.hora_fin || ''}"
+                  style="width:110px">
+
+            <button class="btn btn-sm btn-success guardar-hora">💾</button>
+          </div>
+        `).join("");
       }
 
       document.getElementById('detalleEvento').innerHTML = `
@@ -213,6 +219,8 @@ eventClick: function(info) {
       new bootstrap.Modal(document.getElementById('eventoModal')).show();
     });
 },
+
+
 
 
         /* DRAG & DROP -> REPROGRAMAR */
@@ -310,6 +318,38 @@ eventClick: function(info) {
         calendar.refetchEvents();
       }
     });
+
+
+document.addEventListener("click", function (e) {
+  if (!e.target.classList.contains("guardar-hora")) return;
+
+  const row = e.target.closest("[data-sesion-id]");
+  const sesionId = row.dataset.sesionId;
+
+  const horaInicio = row.querySelector(".hora-inicio").value;
+  const horaFin = row.querySelector(".hora-fin").value;
+
+  fetch(`/cursos/actualizar_horas_sesion/${sesionId}/`, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrfToken,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      hora_inicio: horaInicio,
+      hora_fin: horaFin
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.ok) {
+      Swal.fire("Guardado", "Horario actualizado ✅", "success");
+    } else {
+      Swal.fire("Error", res.msg || "No se pudo guardar", "error");
+    }
+  });
+});
+
   </script>
 
   <!-- SweetAlert2 + Bootstrap JS -->
