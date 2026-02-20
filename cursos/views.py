@@ -810,7 +810,7 @@ def detalle_matricula(request, matricula_id, fecha):
                     "id": a.id,  # 🔑 CLAVE
                     "numero": a.unidad.numero,
                     "tema": a.unidad.nombre_tema,
-                    "horario": horario
+                    "horario": a.horario or matricula.get_horario_default()
                 })
         
         if (
@@ -1241,7 +1241,10 @@ def registrar_matricula(request):
                         matricula=matricula,
                         unidad=unidad,
                         clase=clase,
-                        defaults={"completado": False}
+                        defaults={
+                            "completado": False,
+                            "horario": codigo_horario
+                            }
                     )
                     unidad_idx += 1
 
@@ -3233,27 +3236,22 @@ def actualizar_horas_sesion(request, sesion_id):
     except Exception as e:
         return JsonResponse({"ok": False, "msg": str(e)}, status=400)
 
-@csrf_exempt
 @require_POST
 @login_required
 def actualizar_horario_fecha(request):
     data = json.loads(request.body)
-    matricula = get_object_or_404(Matricula, id=data["matricula_id"])
 
-    fecha = data["fecha"]
-    nuevo_horario = data["horario"]
+    asistencia = get_object_or_404(
+        AsistenciaUnidad,
+        id=data["asistencia_id"]
+    )
 
-    if nuevo_horario not in {"9-1", "2-6", "9-6", "7-9"}:
+    horario = data["horario"]
+
+    if horario not in ["9-1", "2-6", "9-6", "7-9"]:
         return JsonResponse({"ok": False, "msg": "Horario inválido"}, status=400)
 
-    fechas = matricula.fechas_personalizadas or []
-
-    for item in fechas:
-        if item.get("fecha") == fecha:
-            item["horario"] = nuevo_horario
-            break
-
-    matricula.fechas_personalizadas = fechas
-    matricula.save(update_fields=["fechas_personalizadas"])
+    asistencia.horario = horario
+    asistencia.save(update_fields=["horario"])
 
     return JsonResponse({"ok": True})

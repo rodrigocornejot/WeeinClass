@@ -285,6 +285,17 @@ class AsistenciaUnidad(models.Model):
     clase = models.ForeignKey(Clase, on_delete=models.CASCADE, null=True, blank=True)
     completado = models.BooleanField(default=False)
     fecha = models.DateField(null=True, blank=True)  # 🔹 NUEVO
+    horario = models.CharField(
+        max_length=10,
+        choices=[
+            ("9-1", "9-1"),
+            ("2-6", "2-6"),
+            ("9-6", "9-6"),
+            ("7-9", "7-9"),
+        ],
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return f"{self.matricula.alumno.nombre} - {self.unidad} - {self.fecha}"
