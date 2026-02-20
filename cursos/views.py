@@ -775,9 +775,8 @@ def detalle_matricula(request, matricula_id, fecha):
         horario = ""
         for item in (matricula.fechas_personalizadas or []):
             if item.get("fecha") == fecha_dt.isoformat():
-                horario = item.get("horario") or ""
-                break
-
+                horario = item.get("horario")
+        
         clase = (
             Clase.objects
             .filter(curso=matricula.curso, fecha=fecha_dt, matriculas=matricula)
@@ -799,8 +798,7 @@ def detalle_matricula(request, matricula_id, fecha):
                     "id": a.id,  # 🔑 CLAVE
                     "numero": a.unidad.numero,
                     "tema": a.unidad.nombre_tema,
-                    "hora_inicio": _fmt(getattr(a, "hora_inicio", None)),
-                    "hora_fin": _fmt(getattr(a, "hora_fin", None)),
+                    "horario": item.get("horario")
                 })
         
         if (
@@ -3222,3 +3220,27 @@ def actualizar_horas_sesion(request, sesion_id):
         return JsonResponse({"ok": True})
     except Exception as e:
         return JsonResponse({"ok": False, "msg": str(e)}, status=400)
+    
+@require_POST
+@login_required
+def actualizar_horario_fecha(request):
+    data = json.loads(request.body)
+    matricula = get_object_or_404(Matricula, id=data["matricula_id"])
+
+    fecha = data["fecha"]
+    nuevo_horario = data["horario"]
+
+    if nuevo_horario not in {"9-1", "2-6", "9-6", "7-9"}:
+        return JsonResponse({"ok": False, "msg": "Horario inválido"}, status=400)
+
+    fechas = matricula.fechas_personalizadas or []
+
+    for item in fechas:
+        if item.get("fecha") == fecha:
+            item["horario"] = nuevo_horario
+            break
+
+    matricula.fechas_personalizadas = fechas
+    matricula.save(update_fields=["fechas_personalizadas"])
+
+    return JsonResponse({"ok": True})

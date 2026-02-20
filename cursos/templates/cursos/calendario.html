@@ -165,22 +165,17 @@ eventClick: function(info) {
 
       if (data.sesiones && data.sesiones.length > 0) {
         sesionesHTML = data.sesiones.map(s => `
-          <div class="mb-2 d-flex align-items-center gap-2" data-sesion-id="${s.id}">
+          <div class="mb-2 d-flex align-items-center gap-2" data-fecha="${data.fecha}">
             <strong>S${s.numero}</strong> - ${s.tema}
 
-            <input type="time"
-                  class="form-control form-control-sm hora-inicio"
-                  value="${s.hora_inicio || ''}"
-                  style="width:110px">
+            <select class="form-select form-select-sm horario-select" style="width:110px">
+              <option value="9-1" ${s.horario === "9-1" ? "selected" : ""}>9-1</option>
+              <option value="2-6" ${s.horario === "2-6" ? "selected" : ""}>2-6</option>
+              <option value="9-6" ${s.horario === "9-6" ? "selected" : ""}>9-6</option>
+              <option value="7-9" ${s.horario === "7-9" ? "selected" : ""}>7-9</option>
+            </select>
 
-            <span>–</span>
-
-            <input type="time"
-                  class="form-control form-control-sm hora-fin"
-                  value="${s.hora_fin || ''}"
-                  style="width:110px">
-
-            <button class="btn btn-sm btn-success guardar-hora">💾</button>
+            <button class="btn btn-sm btn-success guardar-horario">💾</button>
           </div>
         `).join("");
       }
@@ -321,29 +316,29 @@ eventClick: function(info) {
 
 
 document.addEventListener("click", function (e) {
-  if (!e.target.classList.contains("guardar-hora")) return;
+  if (!e.target.classList.contains("guardar-horario")) return;
 
-  const row = e.target.closest("[data-sesion-id]");
-  const sesionId = row.dataset.sesionId;
+  const row = e.target.closest("[data-fecha]");
+  const fecha = row.dataset.fecha;
+  const horario = row.querySelector(".horario-select").value;
+  const matriculaId = currentMatriculaId; // ya lo tienes en el modal
 
-  const horaInicio = row.querySelector(".hora-inicio").value;
-  const horaFin = row.querySelector(".hora-fin").value;
-
-  fetch(`/cursos/actualizar_horas_sesion/${sesionId}/`, {
+  fetch(`/cursos/actualizar_horario_fecha/`, {
     method: "POST",
     headers: {
       "X-CSRFToken": csrfToken,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      hora_inicio: horaInicio,
-      hora_fin: horaFin
+      matricula_id: matriculaId,
+      fecha: fecha,
+      horario: horario
     })
   })
   .then(r => r.json())
   .then(res => {
     if (res.ok) {
-      Swal.fire("Guardado", "Horario actualizado ✅", "success");
+      Swal.fire("Listo", "Horario actualizado ✅", "success");
     } else {
       Swal.fire("Error", res.msg || "No se pudo guardar", "error");
     }
