@@ -769,6 +769,18 @@ def detalle_matricula(request, matricula_id, fecha):
         matricula = Matricula.objects.select_related('alumno', 'curso').get(id=matricula_id)
         fecha_dt = datetime.strptime(fecha, "%Y-%m-%d").date()
 
+        # 🔑 PARTE 1: determinar horario final para esta fecha
+        fecha_str = fecha_dt.isoformat()
+
+        horario_fecha = None
+        for item in (matricula.fechas_personalizadas or []):
+            if item.get("fecha") == fecha_str:
+                horario_fecha = item.get("horario")
+                break
+
+        # si no hay horario especial para la fecha, usar el general
+        horario = horario_fecha or matricula.horario
+
         codigo, _ = curso_codigo_y_sesiones(matricula.curso.nombre)
 
         # ✅ horario desde JSON fechas_personalizadas
@@ -798,7 +810,7 @@ def detalle_matricula(request, matricula_id, fecha):
                     "id": a.id,  # 🔑 CLAVE
                     "numero": a.unidad.numero,
                     "tema": a.unidad.nombre_tema,
-                    "horario": item.get("horario")
+                    "horario": horario
                 })
         
         if (
