@@ -152,6 +152,10 @@ eventClick: function(info) {
   const fecha = info.event.startStr;
   const matriculaId = info.event.extendedProps.matricula_id;
 
+    // 👇 variables globales
+  window.currentMatriculaId = matriculaId;
+  window.currentFecha = fecha;
+
   if (!matriculaId) {
     Swal.fire("Info", "Este evento no pertenece a una matrícula (solo curso).", "info");
     return;
@@ -175,7 +179,7 @@ eventClick: function(info) {
               <option value="7-9" ${s.horario === "7-9" ? "selected" : ""}>7-9</option>
             </select>
 
-            <button class="btn btn-sm btn-success guardar-horario">💾</button>
+            <button type="button" class="btn btn-sm btn-success guardar-horario">💾</button>
           </div>
         `).join("");
       }
@@ -316,32 +320,39 @@ eventClick: function(info) {
 
 
 document.addEventListener("click", function (e) {
+
   if (!e.target.classList.contains("guardar-horario")) return;
 
-  const row = e.target.closest("[data-fecha]");
-  const fecha = row.dataset.fecha;
+  const row = e.target.closest(".d-flex");
   const horario = row.querySelector(".horario-select").value;
-  const matriculaId = currentMatriculaId; // ya lo tienes en el modal
 
-  fetch(`/cursos/actualizar_horario_fecha/`, {
+  fetch("/cursos/actualizar_horario_fecha/", {
     method: "POST",
     headers: {
       "X-CSRFToken": csrfToken,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      matricula_id: matriculaId,
-      fecha: fecha,
+      matricula_id: window.currentMatriculaId,
+      fecha: window.currentFecha,
       horario: horario
     })
   })
   .then(r => r.json())
-  .then(res => {
-    if (res.ok) {
-      Swal.fire("Listo", "Horario actualizado ✅", "success");
+  .then(data => {
+    if (data.ok) {
+      Swal.fire({
+        icon: "success",
+        title: "Horario actualizado",
+        timer: 1500,
+        showConfirmButton: false
+      });
     } else {
-      Swal.fire("Error", res.msg || "No se pudo guardar", "error");
+      Swal.fire("Error", data.msg || "No se pudo guardar", "error");
     }
+  })
+  .catch(() => {
+    Swal.fire("Error", "No se pudo conectar con el servidor", "error");
   });
 });
 
