@@ -3220,7 +3220,8 @@ def actualizar_horas_sesion(request, sesion_id):
         return JsonResponse({"ok": True})
     except Exception as e:
         return JsonResponse({"ok": False, "msg": str(e)}, status=400)
-    
+
+@csrf_exempt
 @require_POST
 @login_required
 def actualizar_horario_fecha(request):
