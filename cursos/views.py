@@ -810,7 +810,7 @@ def detalle_matricula(request, matricula_id, fecha):
                     "id": a.id,  # 🔑 CLAVE
                     "numero": a.unidad.numero,
                     "tema": a.unidad.nombre_tema,
-                    "horario": a.horario or matricula.horario()
+                    "horario": a.horario if a.horario else "—"
                 })
         
         if (
