@@ -186,7 +186,13 @@ eventClick: function(info) {
       if (data.sesiones && data.sesiones.length > 0) {
         sesionesHTML = data.sesiones.map(s => `
           <div class="mb-2 d-flex align-items-center gap-2 sesion-row" data-asistencia-id="${s.id}">
-            <strong>S${s.numero}</strong> - ${s.tema}
+            <select class="form-select form-select-sm sesion-select" style="width:140px">
+              ${data.unidades.map(u => `
+                <option value="${u.id}" ${u.numero === s.numero ? "selected" : ""}>
+                  S${u.numero}
+                </option>
+              `).join("")}
+            </select>
 
             <select class="form-select form-select-sm horario-select" style="width:110px">
               <option value="9-1" ${s.horario === "9-1" ? "selected" : ""}>9-1</option>
@@ -339,9 +345,12 @@ document.addEventListener("click", function (e) {
   if (!e.target.classList.contains("guardar-horario")) return;
 
   const row = e.target.closest(".sesion-row");
+
   const asistenciaId = row.dataset.asistenciaId;
   const horario = row.querySelector(".horario-select").value;
+  const unidadId = row.querySelector(".sesion-select").value;
 
+  // 1️⃣ guardar horario
   fetch("/cursos/actualizar_horario_fecha/", {
     method: "POST",
     headers: {
@@ -349,16 +358,29 @@ document.addEventListener("click", function (e) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      asistencia_id: asistenciaId,   // 👈 CLAVE
+      asistencia_id: asistenciaId,
       horario: horario
+    })
+  });
+
+  // 2️⃣ guardar sesión
+  fetch("/cursos/actualizar_sesion_fecha/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrfToken,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      asistencia_id: asistenciaId,
+      unidad_id: unidadId
     })
   })
   .then(r => r.json())
   .then(data => {
     if (data.ok) {
-      Swal.fire("Listo", "Horario actualizado", "success");
+      Swal.fire("Listo", "Sesión actualizada", "success");
     } else {
-      Swal.fire("Error", data.msg || "No se pudo guardar", "error");
+      Swal.fire("Error", "No se pudo actualizar", "error");
     }
   });
 });

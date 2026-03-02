@@ -766,29 +766,19 @@ def lista_notas(request):
 
 def detalle_matricula(request, matricula_id, fecha):
     try:
-        matricula = Matricula.objects.select_related('alumno', 'curso').get(id=matricula_id)
+        matricula = Matricula.objects.select_related("alumno", "curso").get(id=matricula_id)
         fecha_dt = datetime.strptime(fecha, "%Y-%m-%d").date()
-
-        # 🔑 PARTE 1: determinar horario final para esta fecha
         fecha_str = fecha_dt.isoformat()
-
-        horario_fecha = None
-        for item in (matricula.fechas_personalizadas or []):
-            if item.get("fecha") == fecha_str:
-                horario_fecha = item.get("horario")
-                break
-
-        # si no hay horario especial para la fecha, usar el general
-        horario = horario_fecha or matricula.horario
 
         codigo, _ = curso_codigo_y_sesiones(matricula.curso.nombre)
 
-        # ✅ horario desde JSON fechas_personalizadas
-        horario = ""
+        # 🔹 horario general del día (solo informativo en el modal)
+        horario_dia = None
         for item in (matricula.fechas_personalizadas or []):
-            if item.get("fecha") == fecha_dt.isoformat():
-                horario = item.get("horario")
-        
+            if item.get("fecha") == fecha_str:
+                horario_dia = item.get("horario")
+                break
+
         clase = (
             Clase.objects
             .filter(curso=matricula.curso, fecha=fecha_dt, matriculas=matricula)
@@ -807,15 +797,16 @@ def detalle_matricula(request, matricula_id, fecha):
 
             for a in asistencias:
                 sesiones.append({
-                    "id": a.id,  # 🔑 CLAVE
-                    "numero": a.unidad.numero,
+                    "id": a.id,                     # 🔑 para editar
+                    "numero": a.unidad.numero,      # S1, S2, etc.
                     "tema": a.unidad.nombre_tema,
-                    "horario": a.horario if a.horario else "—"
+                    "horario": a.horario or "—"     # 👈 horario por sesión
                 })
-        
+
+        # 🔹 Regla Full Day (solo si aplica)
         if (
             matricula.tipo_horario.lower().startswith("full")
-            and horario == "9-6"
+            and horario_dia == "9-6"
             and sesiones
         ):
             sesiones = repartir_horario_full_day(sesiones)
@@ -825,10 +816,10 @@ def detalle_matricula(request, matricula_id, fecha):
             "curso": matricula.curso.nombre,
             "codigo": codigo,
             "turno": matricula.get_tipo_horario_display(),
-            "horario": horario,
+            "horario": horario_dia,     # solo texto informativo
             "saldo": float(matricula.saldo_pendiente),
             "fecha": fecha_dt.strftime("%d/%m/%Y"),
-            "sesiones": sesiones,   # 🔥 ahora enviamos lista
+            "sesiones": sesiones
         })
 
     except Matricula.DoesNotExist:
@@ -3253,5 +3244,24 @@ def actualizar_horario_fecha(request):
 
     asistencia.horario = horario
     asistencia.save(update_fields=["horario"])
+
+    return JsonResponse({"ok": True})
+
+@require_POST
+@login_required
+def actualizar_sesion_fecha(request):
+    data = json.loads(request.body)
+
+    asistencia = get_object_or_404(
+        AsistenciaUnidad,
+        id=data["asistencia_id"]
+    )
+
+    nueva_unidad_id = data["unidad_id"]
+
+    unidad = get_object_or_404(UnidadCurso, id=nueva_unidad_id)
+
+    asistencia.unidad = unidad
+    asistencia.save(update_fields=["unidad"])
 
     return JsonResponse({"ok": True})
