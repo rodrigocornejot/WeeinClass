@@ -3263,18 +3263,22 @@ def actualizar_sesion_fecha(request):
 
     asistencia = get_object_or_404(
         AsistenciaUnidad,
-        id=data["asistencia_id"]
+        id=data.get("asistencia_id")
     )
 
     unidad = get_object_or_404(
         UnidadCurso,
-        id=data["unidad_id"]
+        id=data.get("unidad_id")
     )
 
-    horario = data["horario"]
+    # 👇 ya no rompe si no viene
+    horario = data.get("horario")
 
     asistencia.unidad = unidad
-    asistencia.horario = horario
+
+    if horario:
+        asistencia.horario = horario
+
     asistencia.save(update_fields=["unidad", "horario"])
 
     return JsonResponse({"ok": True})
