@@ -766,6 +766,7 @@ def lista_notas(request):
 
 
 def detalle_matricula(request, matricula_id, fecha):
+    print(">>> ENTRANDO A detalle_matricula")
     try:
         matricula = Matricula.objects.select_related(
             "alumno", "curso"
