@@ -816,7 +816,7 @@ def detalle_matricula(request, matricula_id, fecha):
             UnidadCurso.objects
             .filter(curso=matricula.curso)
             .order_by("numero")
-            .values("id", "numero")
+            .values("id", "numero", "nombre_tema")
         )
 
         return JsonResponse({

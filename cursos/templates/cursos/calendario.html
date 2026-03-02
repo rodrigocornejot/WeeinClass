@@ -189,7 +189,7 @@ eventClick: function(info) {
            <select class="form-select form-select-sm sesion-select" style="width:280px">
               ${data.unidades.map(u => `
                 <option value="${u.id}" ${u.numero === s.numero ? "selected" : ""}>
-                  S${u.numero} – ${u.nombre}
+                  S${u.numero} – ${u.nombre_tema}
                 </option>
               `).join("")}
             </select>
