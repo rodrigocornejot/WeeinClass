@@ -777,7 +777,7 @@ def detalle_matricula(request, matricula_id, fecha):
 
         codigo, _ = curso_codigo_y_sesiones(matricula.curso.nombre)
 
-        # Horario general del día (solo informativo)
+        # 🔹 Horario general del día (informativo)
         horario = None
         for item in (matricula.fechas_personalizadas or []):
             if item.get("fecha") == fecha_str:
@@ -795,15 +795,11 @@ def detalle_matricula(request, matricula_id, fecha):
         )
 
         sesiones = []
-
         if clase:
             asistencias = (
                 AsistenciaUnidad.objects
                 .select_related("unidad")
-                .filter(
-                    matricula=matricula,
-                    clase=clase
-                )
+                .filter(matricula=matricula, clase=clase)
                 .order_by("unidad__numero")
             )
 
@@ -815,6 +811,14 @@ def detalle_matricula(request, matricula_id, fecha):
                     "horario": a.horario or "—"
                 })
 
+        # ✅ ESTO FALTABA
+        unidades = list(
+            UnidadCurso.objects
+            .filter(curso=matricula.curso)
+            .order_by("numero")
+            .values("id", "numero")
+        )
+
         return JsonResponse({
             "nombre": matricula.alumno.nombre,
             "curso": matricula.curso.nombre,
@@ -823,21 +827,16 @@ def detalle_matricula(request, matricula_id, fecha):
             "horario": horario,
             "saldo": float(matricula.saldo_pendiente),
             "fecha": fecha_dt.strftime("%d/%m/%Y"),
-            "sesiones": sesiones
+            "sesiones": sesiones,
+            "unidades": unidades,  # 🔥 CLAVE
         })
 
     except Matricula.DoesNotExist:
-        return JsonResponse(
-            {"error": "Matrícula no encontrada"},
-            status=404
-        )
+        return JsonResponse({"error": "Matrícula no encontrada"}, status=404)
 
     except Exception as e:
-        print("❌ Error detalle_matricula:", e)
-        return JsonResponse(
-            {"error": "Error interno"},
-            status=500
-        )
+        print("❌ Error detalle_matricula:", repr(e))
+        return JsonResponse({"error": "Error interno"}, status=500)
     
 TEMAS_POR_CODIGO = {
     "VDF": [
