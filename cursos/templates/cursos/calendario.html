@@ -383,7 +383,8 @@ document.addEventListener("click", function (e) {
     },
     body: JSON.stringify({
       asistencia_id: asistenciaId,
-      unidad_id: unidadId
+      unidad_id: unidadId,
+      horario: horario
     })
   })
   .then(r => r.json())

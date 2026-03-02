@@ -38,7 +38,7 @@ from .views import (
 
     , reporte_caja, marcar_truncado,
 
-    crear_usuario, lista_usuarios, editar_usuario, eliminar_usuario, actualizar_horario_fecha
+    crear_usuario, lista_usuarios, editar_usuario, eliminar_usuario, actualizar_horario_fecha, actualizar_sesion_fecha
 )
 
 def crear_usuario_admin(request):
@@ -122,5 +122,9 @@ urlpatterns = [
     path("usuarios/", lista_usuarios, name="lista_usuarios"),
     path("usuarios/<int:user_id>/editar/", editar_usuario, name="editar_usuario"),
     path("usuarios/<int:user_id>/eliminar/", eliminar_usuario, name="eliminar_usuario"),
-    path("actualizar_horario_fecha/", actualizar_horario_fecha, name="actualizar_horario_fecha")
+    path("actualizar_horario_fecha/", actualizar_horario_fecha, name="actualizar_horario_fecha"),
+    path(
+    "actualizar_sesion_fecha/", actualizar_sesion_fecha,
+    name="actualizar_sesion_fecha"
+),
 ]
