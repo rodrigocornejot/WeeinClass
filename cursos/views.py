@@ -803,14 +803,6 @@ def detalle_matricula(request, matricula_id, fecha):
                     "horario": a.horario or "—"     # 👈 horario por sesión
                 })
 
-        # 🔹 Regla Full Day (solo si aplica)
-        if (
-            matricula.tipo_horario.lower().startswith("full")
-            and horario_dia == "9-6"
-            and sesiones
-        ):
-            sesiones = repartir_horario_full_day(sesiones)
-
         return JsonResponse({
             "nombre": matricula.alumno.nombre,
             "curso": matricula.curso.nombre,
