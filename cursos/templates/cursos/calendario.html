@@ -186,13 +186,15 @@ eventClick: function(info) {
       if (data.sesiones && data.sesiones.length > 0) {
         sesionesHTML = data.sesiones.map(s => `
           <div class="mb-2 d-flex align-items-center gap-2 sesion-row" data-asistencia-id="${s.id}">
-            <select class="form-select form-select-sm sesion-select" style="width:140px">
+           <select class="form-select form-select-sm sesion-select" style="width:280px">
               ${data.unidades.map(u => `
                 <option value="${u.id}" ${u.numero === s.numero ? "selected" : ""}>
-                  S${u.numero}
+                  S${u.numero} – ${u.nombre}
                 </option>
               `).join("")}
             </select>
+
+            <span class="tema-sesion">${s.tema}</span>
 
             <select class="form-select form-select-sm horario-select" style="width:110px">
               <option value="9-1" ${s.horario === "9-1" ? "selected" : ""}>9-1</option>
@@ -359,8 +361,17 @@ document.addEventListener("click", function (e) {
     },
     body: JSON.stringify({
       asistencia_id: asistenciaId,
+      unidad_id: unidadId,
       horario: horario
     })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      Swal.fire("Listo", "Sesión actualizada", "success");
+    } else {
+      Swal.fire("Error", data.msg || "No se pudo guardar", "error");
+    }
   });
 
   // 2️⃣ guardar sesión
