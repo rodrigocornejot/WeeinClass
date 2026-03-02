@@ -767,9 +767,6 @@ def lista_notas(request):
 
 def detalle_matricula(request, matricula_id, fecha):
     try:
-        # =========================
-        # Datos base
-        # =========================
         matricula = Matricula.objects.select_related(
             "alumno", "curso"
         ).get(id=matricula_id)
@@ -779,18 +776,13 @@ def detalle_matricula(request, matricula_id, fecha):
 
         codigo, _ = curso_codigo_y_sesiones(matricula.curso.nombre)
 
-        # =========================
         # Horario general del día (solo informativo)
-        # =========================
         horario = None
         for item in (matricula.fechas_personalizadas or []):
             if item.get("fecha") == fecha_str:
                 horario = item.get("horario")
                 break
 
-        # =========================
-        # Clase del día
-        # =========================
         clase = (
             Clase.objects
             .filter(
@@ -801,9 +793,6 @@ def detalle_matricula(request, matricula_id, fecha):
             .first()
         )
 
-        # =========================
-        # Sesiones (AsistenciaUnidad)
-        # =========================
         sesiones = []
 
         if clase:
@@ -819,24 +808,21 @@ def detalle_matricula(request, matricula_id, fecha):
 
             for a in asistencias:
                 sesiones.append({
-                    "id": a.id,                         # 🔑 para editar
-                    "numero": a.unidad.numero,          # S1, S2, etc.
+                    "id": a.id,
+                    "numero": a.unidad.numero,
                     "tema": a.unidad.nombre_tema,
-                    "horario": a.horario or "—"         # horario por sesión
+                    "horario": a.horario or "—"
                 })
 
-        # =========================
-        # Respuesta
-        # =========================
         return JsonResponse({
             "nombre": matricula.alumno.nombre,
             "curso": matricula.curso.nombre,
             "codigo": codigo,
             "turno": matricula.get_tipo_horario_display(),
-            "horario": horario,  # solo texto informativo
+            "horario": horario,
             "saldo": float(matricula.saldo_pendiente),
             "fecha": fecha_dt.strftime("%d/%m/%Y"),
-            "sesiones": sesiones,
+            "sesiones": sesiones
         })
 
     except Matricula.DoesNotExist:
