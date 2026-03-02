@@ -773,10 +773,10 @@ def detalle_matricula(request, matricula_id, fecha):
         codigo, _ = curso_codigo_y_sesiones(matricula.curso.nombre)
 
         # 🔹 horario general del día (solo informativo en el modal)
-        horario_dia = None
+        horario = None
         for item in (matricula.fechas_personalizadas or []):
             if item.get("fecha") == fecha_str:
-                horario_dia = item.get("horario")
+                horario = item.get("horario")
                 break
 
         clase = (
@@ -808,7 +808,7 @@ def detalle_matricula(request, matricula_id, fecha):
             "curso": matricula.curso.nombre,
             "codigo": codigo,
             "turno": matricula.get_tipo_horario_display(),
-            "horario": horario_dia,     # solo texto informativo
+            "horario": horario,     # solo texto informativo
             "saldo": float(matricula.saldo_pendiente),
             "fecha": fecha_dt.strftime("%d/%m/%Y"),
             "sesiones": sesiones
