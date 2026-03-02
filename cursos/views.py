@@ -2886,7 +2886,7 @@ def servicios_toggle_activo(request, servicio_id):
 @require_POST
 @login_required
 def toggle_kit_matricula(request, matricula_id):
-    if not _es_admin(request.user):
+    if not request.user.groups.filter(name__in=["Admin", "Asesora"]).exists():
         messages.error(request, "No tienes permisos.")
         return redirect("lista_matriculas")
 
