@@ -764,11 +764,12 @@ def lista_notas(request):
 
     return render(request, 'cursos/lista_notas.html', {'notas': notas})
 
+
 def detalle_matricula(request, matricula_id, fecha):
     try:
-        # ─────────────────────────────────────────────
-        # 1️⃣ Matrícula y fecha
-        # ─────────────────────────────────────────────
+        # =========================
+        # Datos base
+        # =========================
         matricula = Matricula.objects.select_related(
             "alumno", "curso"
         ).get(id=matricula_id)
@@ -776,23 +777,20 @@ def detalle_matricula(request, matricula_id, fecha):
         fecha_dt = datetime.strptime(fecha, "%Y-%m-%d").date()
         fecha_str = fecha_dt.isoformat()
 
-        # ─────────────────────────────────────────────
-        # 2️⃣ Código del curso
-        # ─────────────────────────────────────────────
         codigo, _ = curso_codigo_y_sesiones(matricula.curso.nombre)
 
-        # ─────────────────────────────────────────────
-        # 3️⃣ Horario general del día (solo informativo)
-        # ─────────────────────────────────────────────
-        horario_dia = None
+        # =========================
+        # Horario general del día (solo informativo)
+        # =========================
+        horario = None
         for item in (matricula.fechas_personalizadas or []):
             if item.get("fecha") == fecha_str:
-                horario_dia = item.get("horario")
+                horario = item.get("horario")
                 break
 
-        # ─────────────────────────────────────────────
-        # 4️⃣ Clase del día
-        # ─────────────────────────────────────────────
+        # =========================
+        # Clase del día
+        # =========================
         clase = (
             Clase.objects
             .filter(
@@ -803,39 +801,42 @@ def detalle_matricula(request, matricula_id, fecha):
             .first()
         )
 
-        # ─────────────────────────────────────────────
-        # 5️⃣ Sesiones / asistencias del día
-        # ─────────────────────────────────────────────
+        # =========================
+        # Sesiones (AsistenciaUnidad)
+        # =========================
         sesiones = []
 
         if clase:
             asistencias = (
                 AsistenciaUnidad.objects
                 .select_related("unidad")
-                .filter(matricula=matricula, clase=clase)
+                .filter(
+                    matricula=matricula,
+                    clase=clase
+                )
                 .order_by("unidad__numero")
             )
 
             for a in asistencias:
                 sesiones.append({
-                    "id": a.id,                       # 🔑 clave para editar
-                    "numero": a.unidad.numero,        # S1, S2, S3...
+                    "id": a.id,                         # 🔑 para editar
+                    "numero": a.unidad.numero,          # S1, S2, etc.
                     "tema": a.unidad.nombre_tema,
-                    "horario": a.horario or "—"       # horario por sesión
+                    "horario": a.horario or "—"         # horario por sesión
                 })
 
-        # ─────────────────────────────────────────────
-        # 6️⃣ Respuesta JSON
-        # ─────────────────────────────────────────────
+        # =========================
+        # Respuesta
+        # =========================
         return JsonResponse({
             "nombre": matricula.alumno.nombre,
             "curso": matricula.curso.nombre,
             "codigo": codigo,
             "turno": matricula.get_tipo_horario_display(),
-            "horario": horario_dia,                  # solo texto informativo
+            "horario": horario,  # solo texto informativo
             "saldo": float(matricula.saldo_pendiente),
             "fecha": fecha_dt.strftime("%d/%m/%Y"),
-            "sesiones": sesiones
+            "sesiones": sesiones,
         })
 
     except Matricula.DoesNotExist:
@@ -850,7 +851,7 @@ def detalle_matricula(request, matricula_id, fecha):
             {"error": "Error interno"},
             status=500
         )
-
+    
 TEMAS_POR_CODIGO = {
     "VDF": [
         "SINAMICS",
