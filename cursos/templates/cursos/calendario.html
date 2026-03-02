@@ -352,28 +352,6 @@ document.addEventListener("click", function (e) {
   const horario = row.querySelector(".horario-select").value;
   const unidadId = row.querySelector(".sesion-select").value;
 
-  // 1️⃣ guardar horario
-  fetch("/cursos/actualizar_horario_fecha/", {
-    method: "POST",
-    headers: {
-      "X-CSRFToken": csrfToken,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      asistencia_id: asistenciaId,
-      unidad_id: unidadId,
-      horario: horario
-    })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.ok) {
-      Swal.fire("Listo", "Sesión actualizada", "success");
-    } else {
-      Swal.fire("Error", data.msg || "No se pudo guardar", "error");
-    }
-  });
-
   // 2️⃣ guardar sesión
   fetch("/cursos/actualizar_sesion_fecha/", {
     method: "POST",
