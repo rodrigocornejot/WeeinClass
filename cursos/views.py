@@ -766,25 +766,46 @@ def lista_notas(request):
 
 def detalle_matricula(request, matricula_id, fecha):
     try:
-        matricula = Matricula.objects.select_related("alumno", "curso").get(id=matricula_id)
+        # ─────────────────────────────────────────────
+        # 1️⃣ Matrícula y fecha
+        # ─────────────────────────────────────────────
+        matricula = Matricula.objects.select_related(
+            "alumno", "curso"
+        ).get(id=matricula_id)
+
         fecha_dt = datetime.strptime(fecha, "%Y-%m-%d").date()
         fecha_str = fecha_dt.isoformat()
 
+        # ─────────────────────────────────────────────
+        # 2️⃣ Código del curso
+        # ─────────────────────────────────────────────
         codigo, _ = curso_codigo_y_sesiones(matricula.curso.nombre)
 
-        # 🔹 horario general del día (solo informativo en el modal)
-        horario = None
+        # ─────────────────────────────────────────────
+        # 3️⃣ Horario general del día (solo informativo)
+        # ─────────────────────────────────────────────
+        horario_dia = None
         for item in (matricula.fechas_personalizadas or []):
             if item.get("fecha") == fecha_str:
-                horario = item.get("horario")
+                horario_dia = item.get("horario")
                 break
 
+        # ─────────────────────────────────────────────
+        # 4️⃣ Clase del día
+        # ─────────────────────────────────────────────
         clase = (
             Clase.objects
-            .filter(curso=matricula.curso, fecha=fecha_dt, matriculas=matricula)
+            .filter(
+                curso=matricula.curso,
+                fecha=fecha_dt,
+                matriculas=matricula
+            )
             .first()
         )
 
+        # ─────────────────────────────────────────────
+        # 5️⃣ Sesiones / asistencias del día
+        # ─────────────────────────────────────────────
         sesiones = []
 
         if clase:
@@ -797,29 +818,38 @@ def detalle_matricula(request, matricula_id, fecha):
 
             for a in asistencias:
                 sesiones.append({
-                    "id": a.id,                     # 🔑 para editar
-                    "numero": a.unidad.numero,      # S1, S2, etc.
+                    "id": a.id,                       # 🔑 clave para editar
+                    "numero": a.unidad.numero,        # S1, S2, S3...
                     "tema": a.unidad.nombre_tema,
-                    "horario": a.horario or "—"     # 👈 horario por sesión
+                    "horario": a.horario or "—"       # horario por sesión
                 })
 
+        # ─────────────────────────────────────────────
+        # 6️⃣ Respuesta JSON
+        # ─────────────────────────────────────────────
         return JsonResponse({
             "nombre": matricula.alumno.nombre,
             "curso": matricula.curso.nombre,
             "codigo": codigo,
             "turno": matricula.get_tipo_horario_display(),
-            "horario": horario,     # solo texto informativo
+            "horario": horario_dia,                  # solo texto informativo
             "saldo": float(matricula.saldo_pendiente),
             "fecha": fecha_dt.strftime("%d/%m/%Y"),
             "sesiones": sesiones
         })
 
     except Matricula.DoesNotExist:
-        return JsonResponse({"error": "Matrícula no encontrada"}, status=404)
+        return JsonResponse(
+            {"error": "Matrícula no encontrada"},
+            status=404
+        )
 
     except Exception as e:
-        print("❌ Error:", e)
-        return JsonResponse({"error": "Error interno"}, status=500)
+        print("❌ Error detalle_matricula:", e)
+        return JsonResponse(
+            {"error": "Error interno"},
+            status=500
+        )
 
 TEMAS_POR_CODIGO = {
     "VDF": [
