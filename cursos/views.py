@@ -2105,7 +2105,7 @@ def eliminar_matricula(request, matricula_id):
         if clase.matriculas.count() == 0:
             clase.delete()
 
-    return redirect('lista_matriculas')
+    return JsonResponse({"ok":True})
 
 @login_required
 @solo_asesora
