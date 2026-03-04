@@ -1090,7 +1090,36 @@ def registrar_matricula(request):
 
                 fechas = []
                 if tipo_horario.startswith("full"):
-                    fechas = [fecha_inicio + timedelta(days=7 * i) for i in range(total_clases)]
+
+                    if not dias:
+                        form.add_error('dias', 'Debe seleccionar al menos un día.')
+                        return render(request, "cursos/registrar_matricula.html", {
+                            "form": form,
+                            "alumno": alumno,
+                            "dni": dni,
+                            "sesiones_post": [],
+                            "horarios_post": [],
+                            "personalizar_post": False,
+                        })
+
+                    dias_map = {
+                        'lunes': 0,
+                        'martes': 1,
+                        'miercoles': 2,
+                        'jueves': 3,
+                        'viernes': 4,
+                        'sabado': 5,
+                        'domingo': 6
+                    }
+
+                    dias_num = sorted({dias_map[d] for d in dias if d in dias_map})
+
+                    cursor = fecha_inicio
+
+                    while len(fechas) < total_clases:
+                        if cursor.weekday() in dias_num:
+                            fechas.append(cursor)
+                        cursor += timedelta(days=1)
                 else:
                     if not dias:
                         form.add_error('dias', 'Debe seleccionar al menos un día.')
