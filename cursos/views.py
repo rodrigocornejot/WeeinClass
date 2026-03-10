@@ -1353,7 +1353,7 @@ def datos_dashboard(request):
 
         # 🔵 ingresos por mes
     ingresos_por_mes = (
-        Pago
+        pagos
         .annotate(mes=ExtractMonth("fecha_pago_real"))
         .values("mes")
         .annotate(total=Sum("monto"))
@@ -1362,7 +1362,7 @@ def datos_dashboard(request):
 
     # 🔵 cobros por método
     por_metodo = (
-        Pago
+        pagos
         .exclude(metodo_pago__isnull=True)
         .values("metodo_pago")
         .annotate(total=Sum("monto"))
