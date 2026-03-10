@@ -399,7 +399,9 @@ fetch(`/cursos/datos-dashboard/?${params}`)
 document.getElementById("total").innerText = data.total_matriculados
 
 // CURSOS
-new Chart(document.getElementById("curso_chart"), {
+if(chartCurso) chartCurso.destroy()
+
+chartCurso = new Chart(document.getElementById("curso_chart"), {
 type:"pie",
 data:{
 labels:data.cursos.map(x=>x["curso__nombre"]),
@@ -412,7 +414,9 @@ backgroundColor:["#6366F1","#F59E0B","#10B981","#EF4444","#8B5CF6","#14B8A6"]
 
 
 // MODALIDAD
-new Chart(document.getElementById("modalidad_chart"), {
+if(chartModalidad) chartModalidad.destroy()
+
+chartModalidad = new Chart(document.getElementById("modalidad_chart"), {
 type:"doughnut",
 data:{
 labels:data.modalidad.map(x=>x.modalidad),
@@ -425,7 +429,9 @@ backgroundColor:["#6366F1","#F59E0B"]
 
 
 // CARRERA
-new Chart(document.getElementById("carrera_chart"), {
+if(chartCarrera) chartCarrera.destroy()
+
+chartCarrera = new Chart(document.getElementById("carrera_chart"), {
 type:"bar",
 data:{
 labels:data.carrera.map(x=>x.carrera),
@@ -445,7 +451,9 @@ pm.map(x => parseFloat(x.total))
 )
 
 // DISTRITOS
-new Chart(document.getElementById("distrito_chart"), {
+if(chartDistrito) chartDistrito.destroy()
+
+chartDistrito = new Chart(document.getElementById("distrito_chart"), {
 type:"bar",
 data:{
 labels:data.distrito.map(x=>x.distrito),
@@ -458,7 +466,9 @@ backgroundColor:"#10B981"
 
 
 // ORIGEN
-new Chart(document.getElementById("referencia_chart"), {
+if(chartReferencia) chartReferencia.destroy()
+
+chartReferencia = new Chart(document.getElementById("referencia_chart"), {
 type:"bar",
 data:{
 labels:data.referencia.map(x=>x.referencia),
@@ -475,7 +485,9 @@ const meses = [
 "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
 ]
 
-new Chart(document.getElementById("graficoIngresosMes"), {
+if(chartIngresos) chartIngresos.destroy()
+
+chartIngresos = new Chart(document.getElementById("graficoIngresosMes"), {
 type:"line",
 data:{
 labels:data.ingresos_por_mes.map(x=>meses[x.mes-1]),
@@ -490,7 +502,9 @@ tension:0.3
 })
 
 // EDAD
-new Chart(document.getElementById("edad_chart"), {
+if(chartEdad) chartEdad.destroy()
+
+chartEdad = new Chart(document.getElementById("edad_chart"), {
 type:"line",
 data:{
 labels:data.edad.map(x=>x.edad),
