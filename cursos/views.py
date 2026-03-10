@@ -1295,6 +1295,21 @@ def registrar_matricula(request):
     
 def datos_dashboard(request):
 
+    curso = request.GET.get("curso")
+    mes = request.GET.get("mes")
+    anio = request.GET.get("anio")
+
+    pagos = Pago.objects.all()
+
+    if mes:
+        pagos = pagos.filter(fecha_pago_real__month=mes)
+
+    if anio:
+        pagos = pagos.filter(fecha_pago_real__year=anio)
+
+    if curso:
+        pagos = pagos.filter(matricula__curso_id=curso)
+
     total_matriculados = Matricula.objects.count()
 
     cursos = (
