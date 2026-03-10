@@ -17,7 +17,7 @@ from django.contrib import messages
 from django import forms
 from .forms import CursoForm, MatriculaAdminForm, MatriculaForm, NotaForm, Pago, ServicioForm
 from django.db.models import Count, Avg, Q, Sum, Case, When, F, DateField
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, ExtractMonth
 from .forms import AlumnoForm, UsuarioCreateForm, UsuarioUpdateForm
 from datetime import date, timedelta, datetime, time
 from django.contrib.auth.forms import AuthenticationForm
@@ -1336,6 +1336,22 @@ def datos_dashboard(request):
         .order_by("edad")
     )
 
+        # 🔵 ingresos por mes
+    ingresos_por_mes = (
+        Pago.objects
+        .annotate(mes=ExtractMonth("fecha_pago"))
+        .values("mes")
+        .annotate(total=Sum("monto"))
+        .order_by("mes")
+    )
+
+    # 🔵 cobros por método
+    por_metodo = (
+        Pago.objects
+        .values("metodo_pago")
+        .annotate(total=Sum("monto"))
+    )
+
     return JsonResponse({
         "total_matriculados": total_matriculados,
         "cursos": list(cursos),
@@ -1344,6 +1360,8 @@ def datos_dashboard(request):
         "distrito": list(distrito),
         "referencia": list(referencia),
         "edad": list(edad),
+        "ingresos_por_mes": list(ingresos_por_mes),
+        "por_metodo": list(por_metodo),
     })
 
 def export_dashboard_excel(request):
