@@ -171,7 +171,7 @@
               <thead class="table-dark">
                 <tr><th>#</th><th>Asesor(a)</th><th>Total</th><th>Ops</th></tr>
               </thead>
-              <tbody>
+              <tbody id="tabla_top_monto">
                 {% for a in top_monto %}
                 <tr>
                   <td>{{ forloop.counter }}</td>
@@ -208,7 +208,7 @@
               <thead class="table-dark">
                 <tr><th>#</th><th>Asesor(a)</th><th>Ops</th><th>Total</th></tr>
               </thead>
-              <tbody>
+              <tbody id="tabla_top_cantidad">
                 {% for a in top_cantidad %}
                 <tr>
                   <td>{{ forloop.counter }}</td>
@@ -315,78 +315,53 @@
 </div>
 
 <script>
-  let alumnosChart = null;
-  let metodosChart = null;
-  let chartCurso
-  let chartModalidad
-  let chartCarrera
-  let chartDistrito
-  let chartReferencia
-  let chartEdad
-  let chartIngresos
 
-  function setEmpty(elId, show){
-    const el = document.getElementById(elId);
-    if (!el) return;
-    el.classList.toggle("d-none", !show);
-  }
-
-  function buildAlumnosChart(labels, values){
-    
-    const ctx = document.getElementById('alumnosChart').getContext('2d');
-    if (alumnosChart) alumnosChart.destroy();
-
-    const hasData = values && values.some(v => Number(v) > 0);
-    setEmpty("alumnosEmpty", !hasData);
-
-    alumnosChart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Matrículas', data: values }] },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-  }
+let metodosChart = null
+let chartCurso
+let chartModalidad
+let chartCarrera
+let chartDistrito
+let chartReferencia
+let chartEdad
+let chartIngresos
 
 function buildMetodosChart(labels, values){
 
-  const canvas = document.getElementById("metodosChart");
-  if(!canvas) return;
+const canvas = document.getElementById("metodosChart")
+if(!canvas) return
 
-  const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d")
 
-  if(metodosChart){
-    metodosChart.destroy();
-  }
+if(metodosChart){
+metodosChart.destroy()
+}
 
-  metodosChart = new Chart(ctx,{
-    type:"doughnut",
-    data:{
-      labels: labels,
-      datasets:[{
-        data: values,
-        backgroundColor:[
-          "#6366F1",
-          "#F59E0B",
-          "#10B981",
-          "#EF4444",
-          "#8B5CF6",
-          "#14B8A6",
-          "#06B6D4"
-        ]
-      }]
-    },
-    options:{
-      responsive:true,
-      plugins:{
-        legend:{
-          position:"bottom"
-        }
-      }
-    }
-  });
+metodosChart = new Chart(ctx,{
+type:"doughnut",
+data:{
+labels: labels,
+datasets:[{
+data: values,
+backgroundColor:[
+"#6366F1",
+"#F59E0B",
+"#10B981",
+"#EF4444",
+"#8B5CF6",
+"#14B8A6",
+"#06B6D4"
+]
+}]
+},
+options:{
+responsive:true,
+plugins:{
+legend:{
+position:"bottom"
+}
+}
+}
+})
 
 }
 
@@ -396,12 +371,64 @@ fetch(`/cursos/datos-dashboard/?${params}`)
 .then(response => response.json())
 .then(data => {
 
-document.getElementById("total").innerText = data.total_matriculados
 
-// CURSOS
+// ================= KPIs =================
+
+document.getElementById("kpi_total_cobrado").innerText =
+"S/ " + Number(data.total_cobrado || 0).toFixed(2)
+
+document.getElementById("kpi_ops").innerText =
+data.operaciones || 0
+
+document.getElementById("kpi_ticket").innerText =
+"S/ " + Number(data.ticket_promedio || 0).toFixed(2)
+
+document.getElementById("kpi_deuda").innerText =
+"S/ " + Number(data.deuda_total || 0).toFixed(2)
+
+document.getElementById("kpi_deudores").innerText =
+data.alumnos_con_deuda || 0
+
+document.getElementById("total").innerText =
+data.total_matriculados || 0
+
+
+// ================= TOP ASESORES =================
+
+const tablaMonto = document.getElementById("tabla_top_monto")
+tablaMonto.innerHTML = ""
+
+data.top_monto.forEach((a,i)=>{
+tablaMonto.innerHTML += `
+<tr>
+<td>${i+1}</td>
+<td>${a.registrado_por__username || ""}</td>
+<td>S/ ${Number(a.total).toFixed(2)}</td>
+<td>${a.cantidad}</td>
+</tr>
+`
+})
+
+const tablaCantidad = document.getElementById("tabla_top_cantidad")
+tablaCantidad.innerHTML = ""
+
+data.top_cantidad.forEach((a,i)=>{
+tablaCantidad.innerHTML += `
+<tr>
+<td>${i+1}</td>
+<td>${a.registrado_por__username || ""}</td>
+<td>${a.cantidad}</td>
+<td>S/ ${Number(a.total).toFixed(2)}</td>
+</tr>
+`
+})
+
+
+// ================= CURSOS =================
+
 if(chartCurso) chartCurso.destroy()
 
-chartCurso = new Chart(document.getElementById("curso_chart"), {
+chartCurso = new Chart(document.getElementById("curso_chart"),{
 type:"pie",
 data:{
 labels:data.cursos.map(x=>x["curso__nombre"]),
@@ -413,10 +440,11 @@ backgroundColor:["#6366F1","#F59E0B","#10B981","#EF4444","#8B5CF6","#14B8A6"]
 })
 
 
-// MODALIDAD
+// ================= MODALIDAD =================
+
 if(chartModalidad) chartModalidad.destroy()
 
-chartModalidad = new Chart(document.getElementById("modalidad_chart"), {
+chartModalidad = new Chart(document.getElementById("modalidad_chart"),{
 type:"doughnut",
 data:{
 labels:data.modalidad.map(x=>x.modalidad),
@@ -428,10 +456,11 @@ backgroundColor:["#6366F1","#F59E0B"]
 })
 
 
-// CARRERA
+// ================= CARRERA =================
+
 if(chartCarrera) chartCarrera.destroy()
 
-chartCarrera = new Chart(document.getElementById("carrera_chart"), {
+chartCarrera = new Chart(document.getElementById("carrera_chart"),{
 type:"bar",
 data:{
 labels:data.carrera.map(x=>x.carrera),
@@ -442,7 +471,9 @@ backgroundColor:"#6366F1"
 }
 })
 
-// METODOS DE PAGO
+
+// ================= METODOS DE PAGO =================
+
 const pm = data.por_metodo || []
 
 buildMetodosChart(
@@ -450,10 +481,12 @@ pm.map(x => x.metodo_pago.toUpperCase()),
 pm.map(x => parseFloat(x.total))
 )
 
-// DISTRITOS
+
+// ================= DISTRITOS =================
+
 if(chartDistrito) chartDistrito.destroy()
 
-chartDistrito = new Chart(document.getElementById("distrito_chart"), {
+chartDistrito = new Chart(document.getElementById("distrito_chart"),{
 type:"bar",
 data:{
 labels:data.distrito.map(x=>x.distrito),
@@ -465,10 +498,11 @@ backgroundColor:"#10B981"
 })
 
 
-// ORIGEN
+// ================= ORIGEN =================
+
 if(chartReferencia) chartReferencia.destroy()
 
-chartReferencia = new Chart(document.getElementById("referencia_chart"), {
+chartReferencia = new Chart(document.getElementById("referencia_chart"),{
 type:"bar",
 data:{
 labels:data.referencia.map(x=>x.referencia),
@@ -479,7 +513,9 @@ backgroundColor:"#F59E0B"
 }
 })
 
-// INGRESOS POR MES
+
+// ================= INGRESOS POR MES =================
+
 const meses = [
 "Enero","Febrero","Marzo","Abril","Mayo","Junio",
 "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
@@ -487,13 +523,13 @@ const meses = [
 
 if(chartIngresos) chartIngresos.destroy()
 
-chartIngresos = new Chart(document.getElementById("graficoIngresosMes"), {
+chartIngresos = new Chart(document.getElementById("graficoIngresosMes"),{
 type:"line",
 data:{
-labels:data.ingresos_por_mes.map(x=>meses[x.mes-1]),
+labels:(data.ingresos_por_mes || []).map(x=>meses[x.mes-1]),
 datasets:[{
 label:"Ingresos",
-data:data.ingresos_por_mes.map(x=>x.total),
+data:(data.ingresos_por_mes || []).map(x=>x.total),
 borderColor:"#6366F1",
 backgroundColor:"rgba(99,102,241,0.2)",
 tension:0.3
@@ -501,10 +537,12 @@ tension:0.3
 }
 })
 
-// EDAD
+
+// ================= EDAD =================
+
 if(chartEdad) chartEdad.destroy()
 
-chartEdad = new Chart(document.getElementById("edad_chart"), {
+chartEdad = new Chart(document.getElementById("edad_chart"),{
 type:"line",
 data:{
 labels:data.edad.map(x=>x.edad),
@@ -518,12 +556,17 @@ tension:0.3
 })
 
 })
+
 }
 
-// cargar al abrir
+
+// cargar dashboard al abrir
 cargarDashboard()
 
+
+// filtros
 document.getElementById('filtros-form').addEventListener('submit', function(e){
+
 e.preventDefault()
 
 const curso=document.getElementById('curso').value
@@ -539,6 +582,7 @@ if(mes)params.append("mes",mes)
 if(anio)params.append("anio",anio)
 
 cargarDashboard(params.toString())
+
 })
 
 </script>
