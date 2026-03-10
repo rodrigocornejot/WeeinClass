@@ -262,6 +262,15 @@
         </div>
       </div>
     </div>
+
+    <h2>Total matriculados</h2>
+    <div id="total">0</div>
+
+    <canvas id="curso_chart"></canvas>
+
+    <canvas id="modalidad_chart"></canvas>
+
+    <canvas id="carrera_chart"></canvas>
   </div>
 
 </div>
@@ -390,5 +399,56 @@ fetch("/cursos/datos-dashboard/")
 
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+fetch("/dashboard/datos/")
+.then(res => res.json())
+.then(data => {
+
+document.getElementById("total").innerText = data.total_matriculados
+
+
+// CURSOS
+
+new Chart(document.getElementById("curso_chart"), {
+type:"pie",
+data:{
+labels: data.cursos.map(x=>x.curso__nombre),
+datasets:[{
+data: data.cursos.map(x=>x.total)
+}]
+}
+})
+
+
+// MODALIDAD
+
+new Chart(document.getElementById("modalidad_chart"), {
+type:"doughnut",
+data:{
+labels: data.modalidad.map(x=>x.modalidad),
+datasets:[{
+data: data.modalidad.map(x=>x.total)
+}]
+}
+})
+
+
+// CARRERA
+
+new Chart(document.getElementById("carrera_chart"), {
+type:"bar",
+data:{
+labels: data.carrera.map(x=>x.carrera),
+datasets:[{
+data: data.carrera.map(x=>x.total)
+}]
+}
+})
+
+})
+</script>
 </body>
 </html>

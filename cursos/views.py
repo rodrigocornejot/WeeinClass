@@ -1293,47 +1293,71 @@ def registrar_matricula(request):
             "personalizar_post": personalizar,
         })
     
-@login_required
 def datos_dashboard(request):
-    curso_id = (request.GET.get("curso") or "").strip()
-    periodo = (request.GET.get("periodo") or "mes").strip()
-    mes = request.GET.get("mes")
-    anio = request.GET.get("anio")
 
-    hoy = timezone.localtime()
+    # total matriculados
+    total_matriculados = Matricula.objects.count()
 
-    # ✅ Si no envían año, usar actual
-    if not anio:
-        anio = hoy.year
-    else:
-        anio = int(anio)
+    # curso matriculado
+    cursos = (
+        Matricula.objects
+        .values("curso__nombre")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
 
-    # ✅ Si no envían mes y el periodo es mensual, usar actual
-    if periodo == "mes":
-        if not mes:
-            mes = hoy.month
-        else:
-            mes = int(mes)
-    else:
-        mes = None
+    # modalidad
+    modalidad = (
+        Matricula.objects
+        .values("modalidad")
+        .annotate(total=Count("id"))
+    )
 
-    data = calcular_dashboard_data(
-        curso_id=curso_id or None,
-        periodo=periodo,
-        mes=mes,
-        anio=anio
+    # carrera
+    carrera = (
+        Alumno.objects
+        .values("carrera")
+        .annotate(total=Count("id"))
+    )
+
+    # distrito
+    distrito = (
+        Alumno.objects
+        .values("distrito")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+
+    # referencia
+    referencia = (
+        Alumno.objects
+        .values("referencia")
+        .annotate(total=Count("id"))
+    )
+
+    # trabaja / no trabaja
+    trabajo = (
+        Alumno.objects
+        .values("trabajo")
+        .annotate(total=Count("id"))
+    )
+
+    # pagos por metodo
+    pagos = (
+        Pago.objects
+        .values("metodo_pago")
+        .annotate(total=Count("id"))
     )
 
     return JsonResponse({
-        "alumnos_por_curso": data["alumnos_por_curso"],
-        "total_cobrado": data["total_cobrado"],
-        "operaciones": data["operaciones"],
-        "ticket_promedio": data["ticket_promedio"],
-        "deuda_total": data["deuda_total"],
-        "alumnos_con_deuda": data["alumnos_con_deuda"],
-        "por_metodo": data.get("por_metodo", []),
-        "truncados": data["truncados"],
-        "tasa_desercion": data["tasa_desercion"],
+        "total_matriculados": total_matriculados,
+        "cursos": list(cursos),
+        "modalidad": list(modalidad),
+        "carrera": list(carrera),
+        "distrito": list(distrito),
+        "referencia": list(referencia),
+        "trabajo": list(trabajo),
+        "pagos": list(pagos),
     })
 
 def export_dashboard_excel(request):

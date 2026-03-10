@@ -58,10 +58,7 @@ Volver al menú
 
 </div>
 
-
 <div class="card-body">
-
-<!-- filtro -->
 
 <div class="row mb-3">
 
@@ -82,7 +79,6 @@ Volver al menú
 </div>
 
 </div>
-
 
 <div class="table-responsive">
 
@@ -121,7 +117,6 @@ Volver al menú
 <tr id="fila{{m.id}}">
 
 <td>{{ m.alumno.nombre|default:"—" }}</td>
-
 <td>{{ m.curso.nombre|default:"—" }}</td>
 
 <td>
@@ -171,9 +166,7 @@ Volver al menú
 </span>
 
 {% else %}
-
 —
-
 {% endif %}
 
 </td>
@@ -201,15 +194,10 @@ Volver al menú
 {% endif %}
 </td>
 
-
-<!-- MANUAL -->
-
 <td class="text-center">
 
-<form method="post" action="{% url 'toggle_kit_matricula' m.id %}" class="form-accion">
-
+<form method="post" action="{% url 'toggle_kit_matricula' m.id %}">
 {% csrf_token %}
-
 <input type="hidden" name="tipo" value="manual">
 
 <button class="btn btn-sm {% if m.kit and m.kit.manual_entregado %}btn-success{% else %}btn-outline-secondary{% endif %}">
@@ -226,15 +214,10 @@ Marcar
 
 </td>
 
-
-<!-- VIDEO -->
-
 <td class="text-center">
 
-<form method="post" action="{% url 'toggle_kit_matricula' m.id %}" class="form-accion">
-
+<form method="post" action="{% url 'toggle_kit_matricula' m.id %}">
 {% csrf_token %}
-
 <input type="hidden" name="tipo" value="video">
 
 <button class="btn btn-sm {% if m.kit and m.kit.video_enviado %}btn-success{% else %}btn-outline-secondary{% endif %}">
@@ -251,23 +234,18 @@ Marcar
 
 </td>
 
-
-<!-- ACCIONES -->
-
 <td class="text-nowrap">
 
 <a href="{% url 'editar_matricula' m.id %}" class="btn btn-sm btn-warning">
 Editar
 </a>
 
-<a href="{% url 'eliminar_matricula' m.id %}"
-class="btn btn-sm btn-danger"
-onclick="return confirm('¿Eliminar matrícula?')">
+<button class="btn btn-sm btn-danger btn-eliminar"
+data-id="{{m.id}}">
 Eliminar
-</a>
+</button>
 
-<a href="{% url 'marcar_truncado' m.id %}"
-class="btn btn-sm btn-outline-danger">
+<a href="{% url 'marcar_truncado' m.id %}" class="btn btn-sm btn-outline-danger">
 Truncado
 </a>
 
@@ -289,12 +267,29 @@ Truncado
 
 </div>
 
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
+
+function getCookie(name) {
+let cookieValue = null;
+if (document.cookie && document.cookie !== '') {
+const cookies = document.cookie.split(';');
+for (let i = 0; i < cookies.length; i++) {
+const cookie = cookies[i].trim();
+if (cookie.substring(0, name.length + 1) === (name + '=')) {
+cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+break;
+}
+}
+}
+return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
 
 $(document).ready(function () {
 
@@ -303,29 +298,52 @@ var table = $('#matriculasTable').DataTable({
 stateSave:true,
 
 language:{
-
 lengthMenu:"Mostrar _MENU_ registros",
-
 zeroRecords:"No se encontraron resultados",
-
 info:"Página _PAGE_ de _PAGES_",
-
 search:"Buscar:",
-
 paginate:{previous:"Anterior",next:"Siguiente"}
-
 }
 
 });
 
-
 $('#filtroCurso').on('change', function () {
-
 table.column(1).search(this.value).draw();
-
 });
 
 });
+
+
+document.querySelectorAll(".btn-eliminar").forEach(btn=>{
+
+btn.addEventListener("click",function(){
+
+if(!confirm("¿Eliminar matrícula?")) return
+
+let id=this.dataset.id
+
+fetch(`/cursos/eliminar_matricula/${id}/`,{
+method:"POST",
+headers:{
+"X-CSRFToken":csrftoken
+}
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
+if(data.ok){
+
+document.getElementById("fila"+id).remove()
+
+}
+
+})
+
+})
+
+})
 
 </script>
 
