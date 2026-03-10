@@ -317,6 +317,13 @@
 <script>
   let alumnosChart = null;
   let metodosChart = null;
+  let chartCurso
+  let chartModalidad
+  let chartCarrera
+  let chartDistrito
+  let chartReferencia
+  let chartEdad
+  let chartIngresos
 
   function setEmpty(elId, show){
     const el = document.getElementById(elId);
@@ -325,26 +332,23 @@
   }
 
   function buildAlumnosChart(labels, values){
+    
+    const ctx = document.getElementById('alumnosChart').getContext('2d');
+    if (alumnosChart) alumnosChart.destroy();
 
-  const canvas = document.getElementById("alumnosChart");
-  if(!canvas) return;
+    const hasData = values && values.some(v => Number(v) > 0);
+    setEmpty("alumnosEmpty", !hasData);
 
-  const ctx = canvas.getContext("2d");
-
-  if(alumnosChart) alumnosChart.destroy();
-
-  alumnosChart = new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels:labels,
-      datasets:[{
-        label:'Matrículas',
-        data:values
-      }]
-    }
-  });
-
-}
+    alumnosChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Matrículas', data: values }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
 
 function buildMetodosChart(labels, values){
 
@@ -386,108 +390,22 @@ function buildMetodosChart(labels, values){
 
 }
 
-document.getElementById('filtros-form').addEventListener('submit', function(e) {
-  e.preventDefault();
+function cargarDashboard(params=""){
 
-  const curso = document.getElementById('curso').value;
-  const periodo = document.getElementById('periodo').value;
-  const mes = document.getElementById('mes').value;
-  const anio = document.getElementById('anio').value;
-
-  const params = new URLSearchParams();
-
-  if (curso) params.append("curso", curso);
-  if (periodo) params.append("periodo", periodo);
-  if (mes) params.append("mes", mes);
-  if (anio) params.append("anio", anio);
-
-  fetch(`/cursos/datos-dashboard/?${params.toString()}`)
-    .then(r => r.json())
-    .then(data => {
-
-      buildAlumnosChart(
-        (data.alumnos_por_curso || []).map(x => x.nombre),
-        (data.alumnos_por_curso || []).map(x => x.total_alumnos)
-      );
-
-      document.getElementById('kpi_total_cobrado').innerText = "S/ " + (data.total_cobrado || "0.00");
-      document.getElementById('kpi_ops').innerText = data.operaciones ?? 0;
-      document.getElementById('kpi_ticket').innerText = "S/ " + (data.ticket_promedio || "0.00");
-      document.getElementById('kpi_deuda').innerText = "S/ " + (data.deuda_total || "0.00");
-      document.getElementById('kpi_deudores').innerText = data.alumnos_con_deuda ?? 0;
-
-      const pm = data.por_metodo || [];
-      buildMetodosChart(
-        pm.map(x => x.metodo_pago.toUpperCase()),
-        pm.map(x => parseFloat(x.total))
-      );
-    })
-    .catch(err => console.error("Error dashboard:", err));
-});
-
-fetch("/cursos/datos-dashboard/")
+fetch(`/cursos/datos-dashboard/?${params}`)
 .then(response => response.json())
 .then(data => {
-
-const meses = [
-"Enero","Febrero","Marzo","Abril","Mayo","Junio",
-"Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
-];
-
-const labels = data.ingresos_por_mes.map(i => meses[i.mes - 1]);
-const valores = data.ingresos_por_mes.map(i => i.total);
-
-new Chart(document.getElementById("graficoIngresosMes"), {
-type:'line',
-data:{
-labels:labels,
-datasets:[{
-label:"Ingresos",
-data:valores,
-tension:0.3
-}]
-}
-});
-
-const pm = data.por_metodo || [];
-
-buildMetodosChart(
-pm.map(x => x.metodo_pago.toUpperCase()),
-pm.map(x => parseFloat(x.total))
-);
-
-});
-
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script>
-
-fetch("/cursos/datos-dashboard/")
-.then(response => response.json())
-.then(data => {
-
-console.log(data)  // 🔎 para ver datos en consola
 
 document.getElementById("total").innerText = data.total_matriculados
-
 
 // CURSOS
 new Chart(document.getElementById("curso_chart"), {
 type:"pie",
 data:{
-labels: data.cursos.map(function(x){ return x["curso__nombre"] }),
+labels:data.cursos.map(x=>x["curso__nombre"]),
 datasets:[{
-data: data.cursos.map(function(x){ return x.total }),
-backgroundColor:[
-"#6366F1",
-"#F59E0B",
-"#10B981",
-"#EF4444",
-"#8B5CF6",
-"#14B8A6"
-]
+data:data.cursos.map(x=>x.total),
+backgroundColor:["#6366F1","#F59E0B","#10B981","#EF4444","#8B5CF6","#14B8A6"]
 }]
 }
 })
@@ -497,9 +415,9 @@ backgroundColor:[
 new Chart(document.getElementById("modalidad_chart"), {
 type:"doughnut",
 data:{
-labels: data.modalidad.map(function(x){ return x.modalidad }),
+labels:data.modalidad.map(x=>x.modalidad),
 datasets:[{
-data: data.modalidad.map(function(x){ return x.total }),
+data:data.modalidad.map(x=>x.total),
 backgroundColor:["#6366F1","#F59E0B"]
 }]
 }
@@ -510,24 +428,29 @@ backgroundColor:["#6366F1","#F59E0B"]
 new Chart(document.getElementById("carrera_chart"), {
 type:"bar",
 data:{
-labels: data.carrera.map(function(x){ return x.carrera }),
+labels:data.carrera.map(x=>x.carrera),
 datasets:[{
-label:"Alumnos",
-data: data.carrera.map(function(x){ return x.total }),
+data:data.carrera.map(x=>x.total),
 backgroundColor:"#6366F1"
 }]
 }
 })
 
+// METODOS DE PAGO
+const pm = data.por_metodo || []
+
+buildMetodosChart(
+pm.map(x => x.metodo_pago.toUpperCase()),
+pm.map(x => parseFloat(x.total))
+)
 
 // DISTRITOS
 new Chart(document.getElementById("distrito_chart"), {
 type:"bar",
 data:{
-labels: data.distrito.map(function(x){ return x.distrito }),
+labels:data.distrito.map(x=>x.distrito),
 datasets:[{
-label:"Alumnos",
-data: data.distrito.map(function(x){ return x.total }),
+data:data.distrito.map(x=>x.total),
 backgroundColor:"#10B981"
 }]
 }
@@ -538,24 +461,41 @@ backgroundColor:"#10B981"
 new Chart(document.getElementById("referencia_chart"), {
 type:"bar",
 data:{
-labels: data.referencia.map(function(x){ return x.referencia }),
+labels:data.referencia.map(x=>x.referencia),
 datasets:[{
-label:"Origen",
-data: data.referencia.map(function(x){ return x.total }),
+data:data.referencia.map(x=>x.total),
 backgroundColor:"#F59E0B"
 }]
 }
 })
 
+// INGRESOS POR MES
+const meses = [
+"Enero","Febrero","Marzo","Abril","Mayo","Junio",
+"Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+]
+
+new Chart(document.getElementById("graficoIngresosMes"), {
+type:"line",
+data:{
+labels:data.ingresos_por_mes.map(x=>meses[x.mes-1]),
+datasets:[{
+label:"Ingresos",
+data:data.ingresos_por_mes.map(x=>x.total),
+borderColor:"#6366F1",
+backgroundColor:"rgba(99,102,241,0.2)",
+tension:0.3
+}]
+}
+})
 
 // EDAD
 new Chart(document.getElementById("edad_chart"), {
 type:"line",
 data:{
-labels: data.edad.map(function(x){ return x.edad }),
+labels:data.edad.map(x=>x.edad),
 datasets:[{
-label:"Edad alumnos",
-data: data.edad.map(function(x){ return x.total }),
+data:data.edad.map(x=>x.total),
 borderColor:"#6366F1",
 backgroundColor:"rgba(99,102,241,0.2)",
 tension:0.3
@@ -564,9 +504,27 @@ tension:0.3
 })
 
 })
+}
 
-.catch(error => {
-console.error("ERROR DASHBOARD:", error)
+// cargar al abrir
+cargarDashboard()
+
+document.getElementById('filtros-form').addEventListener('submit', function(e){
+e.preventDefault()
+
+const curso=document.getElementById('curso').value
+const periodo=document.getElementById('periodo').value
+const mes=document.getElementById('mes').value
+const anio=document.getElementById('anio').value
+
+const params=new URLSearchParams()
+
+if(curso)params.append("curso",curso)
+if(periodo)params.append("periodo",periodo)
+if(mes)params.append("mes",mes)
+if(anio)params.append("anio",anio)
+
+cargarDashboard(params.toString())
 })
 
 </script>
