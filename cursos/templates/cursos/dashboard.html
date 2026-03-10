@@ -419,36 +419,37 @@ document.getElementById('filtros-form').addEventListener('submit', function(e) {
 });
 
 fetch("/cursos/datos-dashboard/")
-  .then(response => response.json())
-  .then(data => {
+.then(response => response.json())
+.then(data => {
 
-    const meses = [
-    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
-    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
-    ];
+const meses = [
+"Enero","Febrero","Marzo","Abril","Mayo","Junio",
+"Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+];
 
-    const labels = data.ingresos_por_mes.map(i => meses[i.mes - 1]);
-    const valores = data.ingresos_por_mes.map(i => i.total);
+const labels = data.ingresos_por_mes.map(i => meses[i.mes - 1]);
+const valores = data.ingresos_por_mes.map(i => i.total);
 
-    new Chart(document.getElementById("graficoIngresosMes"), {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: "Ingresos",
-          data: valores,
-          tension: 0.3
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: true }
-        }
-      }
-    });
+new Chart(document.getElementById("graficoIngresosMes"), {
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:"Ingresos",
+data:valores,
+tension:0.3
+}]
+}
+});
 
-  });
+const pm = data.por_metodo || [];
+
+buildMetodosChart(
+pm.map(x => x.metodo_pago.toUpperCase()),
+pm.map(x => parseFloat(x.total))
+);
+
+});
 
 </script>
 
