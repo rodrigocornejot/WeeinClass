@@ -1310,42 +1310,56 @@ def datos_dashboard(request):
     if curso:
         pagos = pagos.filter(matricula__curso_id=curso)
 
-    total_matriculados = Matricula.objects.count()
+    matriculas = Matricula.objects.all()
+
+    if curso:
+        matriculas = matriculas.filter(curso_id=curso)
+
+    # si tu modelo tiene fecha de matrícula
+    if mes:
+        matriculas = matriculas.filter(fecha__month=mes)
+
+    if anio:
+        matriculas = matriculas.filter(fecha__year=anio)
+
+    total_matriculados = matriculas.count()
 
     cursos = (
-        Matricula.objects
+        matriculas
         .values("curso__nombre")
         .annotate(total=Count("id"))
         .order_by("-total")
     )
 
     modalidad = (
-        Matricula.objects
+        matriculas
         .values("modalidad")
         .annotate(total=Count("id"))
     )
 
+    alumnos = Alumno.objects.all()
+
     carrera = (
-        Alumno.objects
+        alumnos
         .values("carrera")
         .annotate(total=Count("id"))
     )
 
     distrito = (
-        Alumno.objects
+        alumnos
         .values("distrito")
         .annotate(total=Count("id"))
         .order_by("-total")
     )
 
     referencia = (
-        Alumno.objects
+        alumnos
         .values("referencia")
         .annotate(total=Count("id"))
     )
 
     edad = (
-        Alumno.objects
+        alumnos
         .values("edad")
         .annotate(total=Count("id"))
         .order_by("edad")
