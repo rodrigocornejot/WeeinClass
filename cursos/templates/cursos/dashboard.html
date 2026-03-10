@@ -325,22 +325,26 @@
   }
 
   function buildAlumnosChart(labels, values){
-    const ctx = document.getElementById('alumnosChart').getContext('2d');
-    if (alumnosChart) alumnosChart.destroy();
 
-    const hasData = values && values.some(v => Number(v) > 0);
-    setEmpty("alumnosEmpty", !hasData);
+  const canvas = document.getElementById("alumnosChart");
+  if(!canvas) return;
 
-    alumnosChart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Matrículas', data: values }] },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-  }
+  const ctx = canvas.getContext("2d");
+
+  if(alumnosChart) alumnosChart.destroy();
+
+  alumnosChart = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:labels,
+      datasets:[{
+        label:'Matrículas',
+        data:values
+      }]
+    }
+  });
+
+}
 
 function buildMetodosChart(labels, values){
 
