@@ -235,18 +235,20 @@
       </div>
     </div>
 
-    <div class="col-md-5">
-      <div class="card card-soft">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="fw-bold">Cobros por método (periodo)</div>
-            <div class="muted small">Ideal para cuadrar caja</div>
+    <div class="row mt-4">
+      <div class="col-md-5">
+        <div class="card card-soft">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="fw-bold">Cobros por método (periodo)</div>
+              <div class="muted small">Ideal para cuadrar caja</div>
+            </div>
+            <canvas id="metodosChart" height="160"></canvas>
+            <div id="metodosEmpty" class="text-muted small mt-2 d-none">No hay cobros en este periodo.</div>
           </div>
-          <canvas id="metodosChart" height="160"></canvas>
-          <div id="metodosEmpty" class="text-muted small mt-2 d-none">No hay cobros en este periodo.</div>
         </div>
       </div>
-    </div>
+    </div>  
 
     <div class="row g-3 mt-3">
 
