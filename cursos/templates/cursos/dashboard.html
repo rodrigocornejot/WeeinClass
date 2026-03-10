@@ -409,7 +409,7 @@ document.getElementById('filtros-form').addEventListener('submit', function(e) {
 
       const pm = data.por_metodo || [];
       buildMetodosChart(
-        pm.map(x => x.metodo_pago || "Sin método"),
+        pm.map(x => x.metodo_pago.toUpperCase()),
         pm.map(x => Number(x.total) || 0)
       );
     })

@@ -1348,8 +1348,10 @@ def datos_dashboard(request):
     # 🔵 cobros por método
     por_metodo = (
         Pago.objects
+        .exclude(metodo_pago__isnull=True)
         .values("metodo_pago")
         .annotate(total=Sum("monto"))
+        .order_by("-total")
     )
 
     return JsonResponse({
