@@ -341,10 +341,7 @@
 
 function buildMetodosChart(labels, values){
 
-  const canvas = document.getElementById('metodosChart');
-  if(!canvas) return;
-
-  const ctx = canvas.getContext('2d');
+  const ctx = document.getElementById('metodosChart').getContext('2d');
 
   if(metodosChart){
     metodosChart.destroy();
@@ -362,7 +359,8 @@ function buildMetodosChart(labels, values){
           "#10B981",
           "#EF4444",
           "#8B5CF6",
-          "#14B8A6"
+          "#14B8A6",
+          "#06B6D4"
         ]
       }]
     },
@@ -410,7 +408,7 @@ document.getElementById('filtros-form').addEventListener('submit', function(e) {
       const pm = data.por_metodo || [];
       buildMetodosChart(
         pm.map(x => x.metodo_pago.toUpperCase()),
-        pm.map(x => Number(x.total) || 0)
+        pm.map(x => parseFloat(x.total))
       );
     })
     .catch(err => console.error("Error dashboard:", err));
