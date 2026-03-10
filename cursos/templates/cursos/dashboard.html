@@ -341,14 +341,17 @@
 
 function buildMetodosChart(labels, values){
 
-  const ctx = document.getElementById('metodosChart').getContext('2d');
+  const canvas = document.getElementById("metodosChart");
+  if(!canvas) return;
+
+  const ctx = canvas.getContext("2d");
 
   if(metodosChart){
     metodosChart.destroy();
   }
 
   metodosChart = new Chart(ctx,{
-    type:'doughnut',
+    type:"doughnut",
     data:{
       labels: labels,
       datasets:[{
@@ -373,6 +376,7 @@ function buildMetodosChart(labels, values){
       }
     }
   });
+
 }
 
 document.getElementById('filtros-form').addEventListener('submit', function(e) {
