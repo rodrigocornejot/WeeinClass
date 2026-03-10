@@ -1309,14 +1309,16 @@ def datos_dashboard(request):
 
     if mes:
         pagos = pagos.filter(fecha_pago_real__month=mes)
-        matriculas = matriculas.filter(fecha_matricula__month=mes)
+        matriculas = matriculas.filter(fecha_inscripcion__month=mes)
 
     if anio:
         pagos = pagos.filter(fecha_pago_real__year=anio)
-        matriculas = matriculas.filter(fecha_matricula__year=anio)
+        matriculas = matriculas.filter(fecha_inscripcion__year=anio)
 
-
+    # =========================
     # KPIs
+    # =========================
+
     total_cobrado = pagos.aggregate(total=Sum("monto"))["total"] or 0
     operaciones = pagos.count()
 
@@ -1326,14 +1328,16 @@ def datos_dashboard(request):
 
     deuda_total = (
         matriculas
-        .filter(deuda__gt=0)
-        .aggregate(total=Sum("deuda"))["total"] or 0
+        .filter(saldo_pendiente__gt=0)
+        .aggregate(total=Sum("saldo_pendiente"))["total"] or 0
     )
 
-    alumnos_con_deuda = matriculas.filter(deuda__gt=0).count()
+    alumnos_con_deuda = matriculas.filter(saldo_pendiente__gt=0).count()
 
-
+    # =========================
     # TOP ASESORES
+    # =========================
+
     top_monto = (
         pagos
         .values("registrado_por__username")
@@ -1354,21 +1358,88 @@ def datos_dashboard(request):
         .order_by("-cantidad")[:5]
     )
 
+    # =========================
+    # GRAFICOS
+    # =========================
+
+    cursos = (
+        matriculas
+        .values("curso__nombre")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+
+    modalidad = (
+        matriculas
+        .values("modalidad")
+        .annotate(total=Count("id"))
+    )
+
+    carrera = (
+        Alumno.objects
+        .values("carrera")
+        .annotate(total=Count("id"))
+    )
+
+    distrito = (
+        Alumno.objects
+        .values("distrito")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+
+    referencia = (
+        Alumno.objects
+        .values("referencia")
+        .annotate(total=Count("id"))
+    )
+
+    edad = (
+        Alumno.objects
+        .values("edad")
+        .annotate(total=Count("id"))
+        .order_by("edad")
+    )
+
+    ingresos_por_mes = (
+        pagos
+        .annotate(mes=ExtractMonth("fecha_pago_real"))
+        .values("mes")
+        .annotate(total=Sum("monto"))
+        .order_by("mes")
+    )
+
+    por_metodo = (
+        pagos
+        .exclude(metodo_pago__isnull=True)
+        .values("metodo_pago")
+        .annotate(total=Sum("monto"))
+        .order_by("-total")
+    )
+
+    # =========================
+    # RESPONSE
+    # =========================
+
     return JsonResponse({
         "total_cobrado": float(total_cobrado),
         "operaciones": operaciones,
         "ticket_promedio": float(ticket_promedio),
         "deuda_total": float(deuda_total),
         "alumnos_con_deuda": alumnos_con_deuda,
+
         "top_monto": list(top_monto),
         "top_cantidad": list(top_cantidad),
+
         "total_matriculados": matriculas.count(),
+
         "cursos": list(cursos),
         "modalidad": list(modalidad),
         "carrera": list(carrera),
         "distrito": list(distrito),
         "referencia": list(referencia),
         "edad": list(edad),
+
         "ingresos_por_mes": list(ingresos_por_mes),
         "por_metodo": list(por_metodo),
     })
