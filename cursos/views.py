@@ -1317,10 +1317,10 @@ def datos_dashboard(request):
 
     # si tu modelo tiene fecha de matrícula
     if mes:
-        matriculas = matriculas.filter(fecha__month=mes)
+        matriculas = matriculas.filter(fecha_inscripcion__month=mes)
 
     if anio:
-        matriculas = matriculas.filter(fecha__year=anio)
+        matriculas = matriculas.filter(fecha_inscripcion__year=anio)
 
     total_matriculados = matriculas.count()
 
