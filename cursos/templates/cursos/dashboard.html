@@ -324,7 +324,7 @@
 
     </div>
 </div>
-
+</div>
 <script>
   let alumnosChart = null;
   let metodosChart = null;
@@ -396,7 +396,7 @@ document.getElementById('filtros-form').addEventListener('submit', function(e) {
   if (mes) params.append("mes", mes);
   if (anio) params.append("anio", anio);
 
-  fetch(`/cursos/datos-dashboard/?${params.toString()}`)
+  fetch(`/datos-dashboard/?${params.toString()}`)
     .then(r => r.json())
     .then(data => {
 
@@ -420,7 +420,7 @@ document.getElementById('filtros-form').addEventListener('submit', function(e) {
     .catch(err => console.error("Error dashboard:", err));
 });
 
-fetch("/cursos/datos-dashboard/")
+fetch("/datos-dashboard/")
   .then(response => response.json())
   .then(data => {
 
@@ -454,8 +454,10 @@ fetch("/cursos/datos-dashboard/")
 <script>
 
 fetch("/datos-dashboard/")
-.then(res => res.json())
+.then(response => response.json())
 .then(data => {
+
+console.log(data)  // 🔎 para ver datos en consola
 
 document.getElementById("total").innerText = data.total_matriculados
 
@@ -464,9 +466,9 @@ document.getElementById("total").innerText = data.total_matriculados
 new Chart(document.getElementById("curso_chart"), {
 type:"pie",
 data:{
-labels: data.cursos.map(x=>x.curso__nombre),
+labels: data.cursos.map(function(x){ return x["curso__nombre"] }),
 datasets:[{
-data: data.cursos.map(x=>x.total),
+data: data.cursos.map(function(x){ return x.total }),
 backgroundColor:[
 "#6366F1",
 "#F59E0B",
@@ -484,13 +486,10 @@ backgroundColor:[
 new Chart(document.getElementById("modalidad_chart"), {
 type:"doughnut",
 data:{
-labels: data.modalidad.map(x=>x.modalidad),
+labels: data.modalidad.map(function(x){ return x.modalidad }),
 datasets:[{
-data: data.modalidad.map(x=>x.total),
-backgroundColor:[
-"#6366F1",
-"#F59E0B"
-]
+data: data.modalidad.map(function(x){ return x.total }),
+backgroundColor:["#6366F1","#F59E0B"]
 }]
 }
 })
@@ -500,10 +499,10 @@ backgroundColor:[
 new Chart(document.getElementById("carrera_chart"), {
 type:"bar",
 data:{
-labels: data.carrera.map(x=>x.carrera),
+labels: data.carrera.map(function(x){ return x.carrera }),
 datasets:[{
 label:"Alumnos",
-data: data.carrera.map(x=>x.total),
+data: data.carrera.map(function(x){ return x.total }),
 backgroundColor:"#6366F1"
 }]
 }
@@ -514,10 +513,10 @@ backgroundColor:"#6366F1"
 new Chart(document.getElementById("distrito_chart"), {
 type:"bar",
 data:{
-labels: data.distrito.map(x=>x.distrito),
+labels: data.distrito.map(function(x){ return x.distrito }),
 datasets:[{
 label:"Alumnos",
-data: data.distrito.map(x=>x.total),
+data: data.distrito.map(function(x){ return x.total }),
 backgroundColor:"#10B981"
 }]
 }
@@ -528,10 +527,10 @@ backgroundColor:"#10B981"
 new Chart(document.getElementById("referencia_chart"), {
 type:"bar",
 data:{
-labels: data.referencia.map(x=>x.referencia),
+labels: data.referencia.map(function(x){ return x.referencia }),
 datasets:[{
-label:"Origen del alumno",
-data: data.referencia.map(x=>x.total),
+label:"Origen",
+data: data.referencia.map(function(x){ return x.total }),
 backgroundColor:"#F59E0B"
 }]
 }
@@ -542,18 +541,23 @@ backgroundColor:"#F59E0B"
 new Chart(document.getElementById("edad_chart"), {
 type:"line",
 data:{
-labels: data.edad.map(x=>x.edad),
+labels: data.edad.map(function(x){ return x.edad }),
 datasets:[{
 label:"Edad alumnos",
-data: data.edad.map(x=>x.total),
-tension:0.3,
+data: data.edad.map(function(x){ return x.total }),
 borderColor:"#6366F1",
-backgroundColor:"rgba(99,102,241,0.2)"
+backgroundColor:"rgba(99,102,241,0.2)",
+tension:0.3
 }]
 }
 })
 
 })
+
+.catch(error => {
+console.error("ERROR DASHBOARD:", error)
+})
+
 </script>
 </body>
 </html>
