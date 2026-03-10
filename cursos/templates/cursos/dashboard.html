@@ -228,91 +228,92 @@
     </div>
   </div>
 
-    <div class="card mt-4">
-      <div class="card-body">
-        <h5 class="fw-bold">Ingresos por Mes</h5>
-        <canvas id="graficoIngresosMes"></canvas>
-      </div>
+<!-- INGRESOS + METODOS -->
+<div class="row g-3 mt-3">
+
+  <div class="col-md-7">
+    <div class="card card-soft p-3 h-100">
+      <h6 class="fw-bold mb-3">Ingresos por Mes</h6>
+      <canvas id="graficoIngresosMes"></canvas>
     </div>
+  </div>
 
-    <div class="row mt-4">
-      <div class="col-md-5">
-        <div class="card card-soft">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="fw-bold">Cobros por método (periodo)</div>
-              <div class="muted small">Ideal para cuadrar caja</div>
-            </div>
-            <canvas id="metodosChart" height="160"></canvas>
-            <div id="metodosEmpty" class="text-muted small mt-2 d-none">No hay cobros en este periodo.</div>
-          </div>
-        </div>
-      </div>
-    </div>  
-
-    <div class="row g-3 mt-3">
-
-      <div class="col-md-3">
-        <div class="card card-soft text-center p-3">
-          <h5>Total matriculados</h5>
-          <h2 id="total">0</h2>
-        </div>
-      </div>
-
-      <div class="col-md-5">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Curso matriculado</h6>
-          <canvas id="curso_chart"></canvas>
-        </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Modalidad</h6>
-          <canvas id="modalidad_chart"></canvas>
-        </div>
-      </div>
-
+  <div class="col-md-5">
+    <div class="card card-soft p-3 h-100">
+      <h6 class="fw-bold mb-3">Cobros por método</h6>
+      <canvas id="metodosChart"></canvas>
     </div>
+  </div>
 
-    <div class="row g-3 mt-3">
-
-      <div class="col-md-6">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Carreras</h6>
-          <canvas id="carrera_chart"></canvas>
-        </div>
-      </div>
-
-      <div class="col-md-6">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Distritos</h6>
-          <canvas id="distrito_chart"></canvas>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="row g-3 mt-3">
-
-      <div class="col-md-6">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Origen del alumno</h6>
-          <canvas id="referencia_chart"></canvas>
-        </div>
-      </div>
-
-      <div class="col-md-6">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Edad alumnos</h6>
-          <canvas id="edad_chart"></canvas>
-        </div>
-      </div>
-
-    </div>
 </div>
 
+
+<!-- MATRICULAS -->
+<div class="row g-3 mt-3">
+
+  <div class="col-md-3">
+    <div class="card card-soft text-center p-3 h-100">
+      <h6>Total matriculados</h6>
+      <h2 id="total">0</h2>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card card-soft p-3 h-100">
+      <h6 class="fw-bold mb-3">Curso matriculado</h6>
+      <canvas id="curso_chart"></canvas>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card card-soft p-3 h-100">
+      <h6 class="fw-bold mb-3">Modalidad</h6>
+      <canvas id="modalidad_chart"></canvas>
+    </div>
+  </div>
+
 </div>
+
+
+<!-- UBICACION -->
+<div class="row g-3 mt-3">
+
+  <div class="col-md-6">
+    <div class="card card-soft p-3 h-100">
+      <h6 class="fw-bold mb-3">Carreras</h6>
+      <canvas id="carrera_chart"></canvas>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card card-soft p-3 h-100">
+      <h6 class="fw-bold mb-3">Distritos</h6>
+      <canvas id="distrito_chart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- MARKETING -->
+<div class="row g-3 mt-3">
+
+  <div class="col-md-6">
+    <div class="card card-soft p-3 h-100">
+      <h6 class="fw-bold mb-3">Origen del alumno</h6>
+      <canvas id="referencia_chart"></canvas>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card card-soft p-3 h-100">
+      <h6 class="fw-bold mb-3">Edad alumnos</h6>
+      <canvas id="edad_chart"></canvas>
+    </div>
+  </div>
+
+</div>
+
 <script>
   let alumnosChart = null;
   let metodosChart = null;
