@@ -1339,7 +1339,7 @@ def datos_dashboard(request):
         # 🔵 ingresos por mes
     ingresos_por_mes = (
         Pago.objects
-        .annotate(mes=ExtractMonth("fecha_pago"))
+        .annotate(mes=ExtractMonth("fecha_pago_real"))
         .values("mes")
         .annotate(total=Sum("monto"))
         .order_by("mes")
