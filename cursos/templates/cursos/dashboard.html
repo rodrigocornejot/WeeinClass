@@ -397,7 +397,7 @@ document.getElementById('filtros-form').addEventListener('submit', function(e) {
   if (mes) params.append("mes", mes);
   if (anio) params.append("anio", anio);
 
-  fetch(`/datos-dashboard/?${params.toString()}`)
+  fetch(`/cursos/datos-dashboard/?${params.toString()}`)
     .then(r => r.json())
     .then(data => {
 
@@ -421,7 +421,7 @@ document.getElementById('filtros-form').addEventListener('submit', function(e) {
     .catch(err => console.error("Error dashboard:", err));
 });
 
-fetch("/datos-dashboard/")
+fetch("/cursos/datos-dashboard/")
   .then(response => response.json())
   .then(data => {
 
@@ -454,7 +454,7 @@ fetch("/datos-dashboard/")
 
 <script>
 
-fetch("/datos-dashboard/")
+fetch("/cursos/datos-dashboard/")
 .then(response => response.json())
 .then(data => {
 
