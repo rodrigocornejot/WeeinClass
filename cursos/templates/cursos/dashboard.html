@@ -1,494 +1,140 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<title>Dashboard</title>
 
-  <style>
-    body{ background:#f6f7fb; }
-    .page-title{ font-weight:800; color:#0f172a; }
-    .muted{ color:#64748b; }
-    .card-soft{
-      border:0; border-radius:14px;
-      box-shadow:0 10px 24px rgba(0,0,0,.06);
-    }
-    .kpi{
-      display:flex; gap:12px; align-items:center;
-    }
-    .kpi .icon{
-      width:44px; height:44px; border-radius:12px;
-      display:grid; place-items:center;
-      background:#eef2ff; color:#1e40af; font-size:20px;
-      flex:0 0 auto;
-    }
-    .kpi .value{ font-size:1.35rem; font-weight:800; color:#0f172a; line-height:1; }
-    .kpi .label{ font-size:.85rem; color:#64748b; margin-top:4px; }
-    .table thead th{ white-space:nowrap; }
-  </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{background:#f6f7fb;}
+.page-title{font-weight:800;color:#0f172a;}
+.muted{color:#64748b;}
+
+.card-soft{
+border:0;
+border-radius:14px;
+box-shadow:0 10px 24px rgba(0,0,0,.06);
+}
+</style>
 </head>
 
 <body>
+
 <div class="container-fluid py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-      <div class="page-title fs-3">Dashboard</div>
-      <div class="muted">Resumen rápido de caja, matrículas y asesores</div>
-    </div>
-    <div class="d-flex gap-2">
-      <a href="{% url 'menu_admin' %}" class="btn btn-outline-secondary">← Volver</a>
-      <a href="{% url 'export_dashboard_excel' %}" class="btn btn-success">Exportar Excel</a>
-    </div>
-  </div>
 
-  <!-- 🔎 Filtros -->
-  <div class="card card-soft mb-3">
-    <div class="card-body">
-      <form id="filtros-form" class="row g-2 align-items-end">
-        <div class="col-md-5">
-          <label class="form-label fw-semibold">Curso</label>
-          <select id="curso" name="curso" class="form-select">
-            <option value="">Todos los cursos</option>
-            {% for curso in cursos %}
-              <option value="{{ curso.id }}">{{ curso.nombre }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Periodo</label>
-          <select id="periodo" name="periodo" class="form-select">
-            <option value="semana">Semanal</option>
-            <option value="mes" selected>Mensual</option>
-            <option value="anio">Anual</option>
-          </select>
-          <div class="form-text">Afecta alumnos por curso, deuda y cobros.</div>
-        </div>
-
-              <!-- ✅ NUEVO -->
-        <div class="col-md-2">
-          <label class="form-label fw-semibold">Mes</label>
-          <select id="mes" name="mes" class="form-select">
-            <option value="">Actual</option>
-            <option value="1">Ene</option>
-            <option value="2">Feb</option>
-            <option value="3">Mar</option>
-            <option value="4">Abr</option>
-            <option value="5">May</option>
-            <option value="6">Jun</option>
-            <option value="7">Jul</option>
-            <option value="8">Ago</option>
-            <option value="9">Sep</option>
-            <option value="10">Oct</option>
-            <option value="11">Nov</option>
-            <option value="12">Dic</option>
-          </select>
-        </div>
-
-        <!-- ✅ NUEVO -->
-        <div class="col-md-2">
-          <label class="form-label fw-semibold">Año</label>
-          <select id="anio" name="anio" class="form-select">
-            <option value="">Actual</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-          </select>
-        </div>
-
-        <div class="col-md-3">
-          <button class="btn btn-primary w-100">Aplicar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ✅ KPIs -->
-  <div class="row g-3 mb-3">
-    <div class="col-md-3">
-      <div class="card card-soft">
-        <div class="card-body kpi">
-          <div class="icon">💰</div>
-          <div>
-            <div class="value" id="kpi_total_cobrado">S/ {{ total_cobrado|default:"0.00" }}</div>
-            <div class="label">Total cobrado (periodo)</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card card-soft">
-        <div class="card-body kpi">
-          <div class="icon">🧾</div>
-          <div>
-            <div class="value" id="kpi_ops">{{ operaciones|default:"0" }}</div>
-            <div class="label">Operaciones (periodo)</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card card-soft">
-        <div class="card-body kpi">
-          <div class="icon">🎯</div>
-          <div>
-            <div class="value" id="kpi_ticket">S/ {{ ticket_promedio|default:"0.00" }}</div>
-            <div class="label">Ticket promedio</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card card-soft">
-        <div class="card-body kpi">
-          <div class="icon">⚠️</div>
-          <div>
-            <div class="value" id="kpi_deuda">S/ {{ deuda_total|default:"0.00" }}</div>
-            <div class="label">
-              Deuda total · <span id="kpi_deudores">{{ alumnos_con_deuda|default:"0" }}</span> alumnos con saldo
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ✅ Top asesores -->
-  <div class="row g-3 mb-3">
-    <div class="col-md-6">
-      <div class="card card-soft">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="fw-bold">🏆 Top asesores (monto del mes)</div>
-            <span class="badge bg-primary">Top 5</span>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle text-center mb-0">
-              <thead class="table-dark">
-                <tr><th>#</th><th>Asesor(a)</th><th>Total</th><th>Ops</th></tr>
-              </thead>
-              <tbody>
-                {% for a in top_monto %}
-                <tr>
-                  <td>{{ forloop.counter }}</td>
-                  <td>
-                    {% if a.registrado_por__first_name %}
-                      {{ a.registrado_por__first_name }} {{ a.registrado_por__last_name }}
-                    {% else %}
-                      {{ a.registrado_por__username }}
-                    {% endif %}
-                  </td>
-                  <td class="fw-semibold">S/ {{ a.total }}</td>
-                  <td>{{ a.cantidad }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-muted py-3">Sin ventas este mes.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          <div class="form-text mt-2">Monto del mes = quién cobra más dinero.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card card-soft">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="fw-bold">📈 Top asesores (cantidad del mes)</div>
-            <span class="badge bg-primary">Top 5</span>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle text-center mb-0">
-              <thead class="table-dark">
-                <tr><th>#</th><th>Asesor(a)</th><th>Ops</th><th>Total</th></tr>
-              </thead>
-              <tbody>
-                {% for a in top_cantidad %}
-                <tr>
-                  <td>{{ forloop.counter }}</td>
-                  <td>{{ a.registrado_por__username }}</td>
-                  <td class="fw-semibold">{{ a.cantidad }}</td>
-                  <td>S/ {{ a.total }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-muted py-3">Sin registros este mes.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          <div class="form-text mt-2">Cantidad del mes = quién hace más cobros.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ✅ Gráficos -->
-  <div class="row g-3">
-    <div class="col-md-7">
-      <div class="card card-soft">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="fw-bold">Alumnos matriculados por curso (según periodo)</div>
-            <div class="muted small">Semanal / Mensual / Anual</div>
-          </div>
-          <canvas id="alumnosChart" height="120"></canvas>
-          <div id="alumnosEmpty" class="text-muted small mt-2 d-none">No hay matrículas en este periodo.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card mt-4">
-      <div class="card-body">
-        <h5 class="fw-bold">Ingresos por Mes</h5>
-        <canvas id="graficoIngresosMes"></canvas>
-      </div>
-    </div>
-
-    <div class="col-md-5">
-      <div class="card card-soft">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="fw-bold">Cobros por método (periodo)</div>
-            <div class="muted small">Ideal para cuadrar caja</div>
-          </div>
-          <canvas id="metodosChart" height="160"></canvas>
-          <div id="metodosEmpty" class="text-muted small mt-2 d-none">No hay cobros en este periodo.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row g-3 mt-3">
-
-      <div class="col-md-3">
-        <div class="card card-soft text-center p-3">
-          <h5>Total matriculados</h5>
-          <h2 id="total">0</h2>
-        </div>
-      </div>
-
-      <div class="col-md-5">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Curso matriculado</h6>
-          <canvas id="curso_chart"></canvas>
-        </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Modalidad</h6>
-          <canvas id="modalidad_chart"></canvas>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="row g-3 mt-3">
-
-      <div class="col-md-6">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Carreras</h6>
-          <canvas id="carrera_chart"></canvas>
-        </div>
-      </div>
-
-      <div class="col-md-6">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Distritos</h6>
-          <canvas id="distrito_chart"></canvas>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="row g-3 mt-3">
-
-      <div class="col-md-6">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Origen del alumno</h6>
-          <canvas id="referencia_chart"></canvas>
-        </div>
-      </div>
-
-      <div class="col-md-6">
-        <div class="card card-soft p-3">
-          <h6 class="fw-bold">Edad alumnos</h6>
-          <canvas id="edad_chart"></canvas>
-        </div>
-      </div>
-
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+<div>
+<div class="page-title fs-3">Dashboard</div>
+<div class="muted">Resumen rápido de matrículas</div>
 </div>
 </div>
-<script>
-  let alumnosChart = null;
-  let metodosChart = null;
 
-  function setEmpty(elId, show){
-    const el = document.getElementById(elId);
-    if (!el) return;
-    el.classList.toggle("d-none", !show);
-  }
+<!-- KPI -->
+<div class="row g-3 mb-4">
 
-  function buildAlumnosChart(labels, values){
-    const ctx = document.getElementById('alumnosChart').getContext('2d');
-    if (alumnosChart) alumnosChart.destroy();
+<div class="col-md-3">
+<div class="card card-soft text-center p-3">
+<h6>Total matriculados</h6>
+<h2 id="total">0</h2>
+</div>
+</div>
 
-    const hasData = values && values.some(v => Number(v) > 0);
-    setEmpty("alumnosEmpty", !hasData);
-
-    alumnosChart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Matrículas', data: values }] },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-  }
-
-function buildMetodosChart(labels, values){
-  const canvas = document.getElementById('metodosChart');
-  if (!canvas) return;
-
-  const ctx = canvas.getContext('2d');
-
-  if (metodosChart) metodosChart.destroy();
-
-  const hasData = values && values.some(v => Number(v) > 0);
-  setEmpty("metodosEmpty", !hasData);
-
-  // ✅ si no hay data, no dibujes
-  if (!hasData) {
-    metodosChart = null;
-    return;
-  }
-
-  metodosChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: values }] },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: "bottom" } }
-    }
-  });
-}
+</div>
 
 
-document.getElementById('filtros-form').addEventListener('submit', function(e) {
-  e.preventDefault();
+<!-- GRAFICOS -->
+<div class="row g-3">
 
-  const curso = document.getElementById('curso').value;
-  const periodo = document.getElementById('periodo').value;
-  const mes = document.getElementById('mes').value;
-  const anio = document.getElementById('anio').value;
+<div class="col-md-5">
+<div class="card card-soft p-3">
+<h6 class="fw-bold">Curso matriculado</h6>
+<canvas id="curso_chart"></canvas>
+</div>
+</div>
 
-  const params = new URLSearchParams();
+<div class="col-md-4">
+<div class="card card-soft p-3">
+<h6 class="fw-bold">Modalidad</h6>
+<canvas id="modalidad_chart"></canvas>
+</div>
+</div>
 
-  if (curso) params.append("curso", curso);
-  if (periodo) params.append("periodo", periodo);
-  if (mes) params.append("mes", mes);
-  if (anio) params.append("anio", anio);
+</div>
 
-  fetch(`/datos-dashboard/?${params.toString()}`)
-    .then(r => r.json())
-    .then(data => {
 
-      buildAlumnosChart(
-        (data.alumnos_por_curso || []).map(x => x.nombre),
-        (data.alumnos_por_curso || []).map(x => x.total_alumnos)
-      );
+<div class="row g-3 mt-3">
 
-      document.getElementById('kpi_total_cobrado').innerText = "S/ " + (data.total_cobrado || "0.00");
-      document.getElementById('kpi_ops').innerText = data.operaciones ?? 0;
-      document.getElementById('kpi_ticket').innerText = "S/ " + (data.ticket_promedio || "0.00");
-      document.getElementById('kpi_deuda').innerText = "S/ " + (data.deuda_total || "0.00");
-      document.getElementById('kpi_deudores').innerText = data.alumnos_con_deuda ?? 0;
+<div class="col-md-6">
+<div class="card card-soft p-3">
+<h6 class="fw-bold">Carreras</h6>
+<canvas id="carrera_chart"></canvas>
+</div>
+</div>
 
-      const pm = data.por_metodo || [];
-      buildMetodosChart(
-        pm.map(x => x.metodo),
-        pm.map(x => x.total)
-      );
-    })
-    .catch(err => console.error("Error dashboard:", err));
-});
+<div class="col-md-6">
+<div class="card card-soft p-3">
+<h6 class="fw-bold">Distritos</h6>
+<canvas id="distrito_chart"></canvas>
+</div>
+</div>
 
-fetch("/datos-dashboard/")
-  .then(response => response.json())
-  .then(data => {
+</div>
 
-    const labels = data.ingresos_por_mes.map(i => i.mes);
-    const valores = data.ingresos_por_mes.map(i => i.total);
 
-    new Chart(document.getElementById("graficoIngresosMes"), {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: "Ingresos",
-          data: valores,
-          tension: 0.3
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: true }
-        }
-      }
-    });
+<div class="row g-3 mt-3">
 
-  });
+<div class="col-md-6">
+<div class="card card-soft p-3">
+<h6 class="fw-bold">Origen del alumno</h6>
+<canvas id="referencia_chart"></canvas>
+</div>
+</div>
 
-</script>
+<div class="col-md-6">
+<div class="card card-soft p-3">
+<h6 class="fw-bold">Edad alumnos</h6>
+<canvas id="edad_chart"></canvas>
+</div>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</div>
+
+</div>
+
 
 <script>
 
 fetch("/datos-dashboard/")
-.then(response => response.json())
+.then(res => res.json())
 .then(data => {
 
-console.log(data)  // 🔎 para ver datos en consola
+console.log("Datos:",data)
 
 document.getElementById("total").innerText = data.total_matriculados
 
 
 // CURSOS
-new Chart(document.getElementById("curso_chart"), {
+new Chart(document.getElementById("curso_chart"),{
 type:"pie",
 data:{
-labels: data.cursos.map(function(x){ return x["curso__nombre"] }),
+labels:data.cursos.map(x=>x["curso__nombre"]),
 datasets:[{
-data: data.cursos.map(function(x){ return x.total }),
-backgroundColor:[
-"#6366F1",
-"#F59E0B",
-"#10B981",
-"#EF4444",
-"#8B5CF6",
-"#14B8A6"
-]
+data:data.cursos.map(x=>x.total),
+backgroundColor:["#6366F1","#F59E0B","#10B981","#EF4444","#8B5CF6"]
 }]
 }
 })
 
 
 // MODALIDAD
-new Chart(document.getElementById("modalidad_chart"), {
+new Chart(document.getElementById("modalidad_chart"),{
 type:"doughnut",
 data:{
-labels: data.modalidad.map(function(x){ return x.modalidad }),
+labels:data.modalidad.map(x=>x.modalidad),
 datasets:[{
-data: data.modalidad.map(function(x){ return x.total }),
+data:data.modalidad.map(x=>x.total),
 backgroundColor:["#6366F1","#F59E0B"]
 }]
 }
@@ -496,27 +142,27 @@ backgroundColor:["#6366F1","#F59E0B"]
 
 
 // CARRERA
-new Chart(document.getElementById("carrera_chart"), {
+new Chart(document.getElementById("carrera_chart"),{
 type:"bar",
 data:{
-labels: data.carrera.map(function(x){ return x.carrera }),
+labels:data.carrera.map(x=>x.carrera),
 datasets:[{
 label:"Alumnos",
-data: data.carrera.map(function(x){ return x.total }),
+data:data.carrera.map(x=>x.total),
 backgroundColor:"#6366F1"
 }]
 }
 })
 
 
-// DISTRITOS
-new Chart(document.getElementById("distrito_chart"), {
+// DISTRITO
+new Chart(document.getElementById("distrito_chart"),{
 type:"bar",
 data:{
-labels: data.distrito.map(function(x){ return x.distrito }),
+labels:data.distrito.map(x=>x.distrito),
 datasets:[{
 label:"Alumnos",
-data: data.distrito.map(function(x){ return x.total }),
+data:data.distrito.map(x=>x.total),
 backgroundColor:"#10B981"
 }]
 }
@@ -524,13 +170,13 @@ backgroundColor:"#10B981"
 
 
 // ORIGEN
-new Chart(document.getElementById("referencia_chart"), {
+new Chart(document.getElementById("referencia_chart"),{
 type:"bar",
 data:{
-labels: data.referencia.map(function(x){ return x.referencia }),
+labels:data.referencia.map(x=>x.referencia),
 datasets:[{
 label:"Origen",
-data: data.referencia.map(function(x){ return x.total }),
+data:data.referencia.map(x=>x.total),
 backgroundColor:"#F59E0B"
 }]
 }
@@ -538,13 +184,13 @@ backgroundColor:"#F59E0B"
 
 
 // EDAD
-new Chart(document.getElementById("edad_chart"), {
+new Chart(document.getElementById("edad_chart"),{
 type:"line",
 data:{
-labels: data.edad.map(function(x){ return x.edad }),
+labels:data.edad.map(x=>x.edad),
 datasets:[{
 label:"Edad alumnos",
-data: data.edad.map(function(x){ return x.total }),
+data:data.edad.map(x=>x.total),
 borderColor:"#6366F1",
 backgroundColor:"rgba(99,102,241,0.2)",
 tension:0.3
@@ -553,11 +199,11 @@ tension:0.3
 })
 
 })
-
-.catch(error => {
-console.error("ERROR DASHBOARD:", error)
+.catch(error=>{
+console.error("Error cargando dashboard:",error)
 })
 
 </script>
+
 </body>
 </html>
