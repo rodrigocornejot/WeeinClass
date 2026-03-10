@@ -1295,10 +1295,8 @@ def registrar_matricula(request):
     
 def datos_dashboard(request):
 
-    # total matriculados
     total_matriculados = Matricula.objects.count()
 
-    # curso matriculado
     cursos = (
         Matricula.objects
         .values("curso__nombre")
@@ -1306,21 +1304,18 @@ def datos_dashboard(request):
         .order_by("-total")
     )
 
-    # modalidad
     modalidad = (
         Matricula.objects
         .values("modalidad")
         .annotate(total=Count("id"))
     )
 
-    # carrera
     carrera = (
         Alumno.objects
         .values("carrera")
         .annotate(total=Count("id"))
     )
 
-    # distrito
     distrito = (
         Alumno.objects
         .values("distrito")
@@ -1328,25 +1323,17 @@ def datos_dashboard(request):
         .order_by("-total")
     )
 
-    # referencia
     referencia = (
         Alumno.objects
         .values("referencia")
         .annotate(total=Count("id"))
     )
 
-    # trabaja / no trabaja
-    trabajo = (
+    edad = (
         Alumno.objects
-        .values("trabajo")
+        .values("edad")
         .annotate(total=Count("id"))
-    )
-
-    # pagos por metodo
-    pagos = (
-        Pago.objects
-        .values("metodo_pago")
-        .annotate(total=Count("id"))
+        .order_by("edad")
     )
 
     return JsonResponse({
@@ -1356,8 +1343,7 @@ def datos_dashboard(request):
         "carrera": list(carrera),
         "distrito": list(distrito),
         "referencia": list(referencia),
-        "trabajo": list(trabajo),
-        "pagos": list(pagos),
+        "edad": list(edad),
     })
 
 def export_dashboard_excel(request):
