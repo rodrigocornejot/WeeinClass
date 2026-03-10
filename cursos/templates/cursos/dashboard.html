@@ -227,7 +227,7 @@
       </div>
     </div>
   </div>
-  
+
     <div class="card mt-4">
       <div class="card-body">
         <h5 class="fw-bold">Ingresos por Mes</h5>
@@ -399,7 +399,7 @@ document.getElementById('filtros-form').addEventListener('submit', function(e) {
 
       const pm = data.por_metodo || [];
       buildMetodosChart(
-        pm.map(x => x.metodo),
+        pm.map(x => x.metodo_pago),
         pm.map(x => x.total)
       );
     })
@@ -410,7 +410,12 @@ fetch("/cursos/datos-dashboard/")
   .then(response => response.json())
   .then(data => {
 
-    const labels = data.ingresos_por_mes.map(i => i.mes);
+    const meses = [
+    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+    ];
+
+    const labels = data.ingresos_por_mes.map(i => meses[i.mes - 1]);
     const valores = data.ingresos_por_mes.map(i => i.total);
 
     new Chart(document.getElementById("graficoIngresosMes"), {
