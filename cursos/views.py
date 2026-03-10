@@ -1337,7 +1337,9 @@ def datos_dashboard(request):
         .annotate(total=Count("id"))
     )
 
-    alumnos = Alumno.objects.all()
+    alumnos = Alumno.objects.filter(
+        id__in=matriculas.values_list("alumno_id", flat=True)
+    )
 
     carrera = (
         alumnos
