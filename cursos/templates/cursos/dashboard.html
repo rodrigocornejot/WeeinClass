@@ -340,32 +340,42 @@
   }
 
 function buildMetodosChart(labels, values){
+
   const canvas = document.getElementById('metodosChart');
-  if (!canvas) return;
+  if(!canvas) return;
 
   const ctx = canvas.getContext('2d');
 
-  if (metodosChart) metodosChart.destroy();
-
-  const hasData = values && values.some(v => Number(v) > 0);
-  setEmpty("metodosEmpty", !hasData);
-
-  // ✅ si no hay data, no dibujes
-  if (!hasData) {
-    metodosChart = null;
-    return;
+  if(metodosChart){
+    metodosChart.destroy();
   }
 
-  metodosChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: values }] },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: "bottom" } }
+  metodosChart = new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels: labels,
+      datasets:[{
+        data: values,
+        backgroundColor:[
+          "#6366F1",
+          "#F59E0B",
+          "#10B981",
+          "#EF4444",
+          "#8B5CF6",
+          "#14B8A6"
+        ]
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{
+          position:"bottom"
+        }
+      }
     }
   });
 }
-
 
 document.getElementById('filtros-form').addEventListener('submit', function(e) {
   e.preventDefault();
