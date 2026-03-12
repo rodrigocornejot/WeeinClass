@@ -271,7 +271,7 @@ def calendario_matriculas(request):
 
             eventos.append({ 
                 "id": f"clase-{clase.id}-mat-{matricula.id}", 
-                "title": f"{codigo}{sufijo}",
+                "title": f"{codigo}{sufijo} - {matricula.alumno.nombre}",
                 "start": clase.fecha.isoformat(), 
                 "color": color, "textColor": "black", 
                 "extendedProps": { 
