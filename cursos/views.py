@@ -1306,7 +1306,7 @@ def datos_dashboard(request):
     if curso:
         pagos = pagos.filter(matricula__curso_id=curso)
         matriculas = matriculas.filter(curso_id=curso)
-
+    
     if mes:
         pagos = pagos.filter(fecha_pago_real__month=mes)
         matriculas = matriculas.filter(fecha_inscripcion__month=mes)
@@ -1431,7 +1431,7 @@ def datos_dashboard(request):
         "top_monto": list(top_monto),
         "top_cantidad": list(top_cantidad),
 
-        "total_matriculados": matriculas.count(),
+        "total_matriculados": matriculas.distinct().count(),
 
         "cursos": list(cursos),
         "modalidad": list(modalidad),
