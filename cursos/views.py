@@ -267,23 +267,21 @@ def calendario_matriculas(request):
         for matricula in clase.matriculas.all():
 
             es_virtual = (matricula.modalidad or "").strip().lower() == "virtual"
-            if es_virtual:
-                hay_virtual = True
+            sufijo = " - V" if es_virtual else ""
 
-        sufijo = " - V" if hay_virtual else ""
-
-        eventos.append({ 
-            "id": f"clase-{clase.id}-mat-{matricula.id}", 
-            "start": clase.fecha.isoformat(), 
-            "color": color, "textColor": "black", 
-            "extendedProps": { 
-                "clase_id": clase.id, 
-                "matricula_id": matricula.id, 
-                "curso": clase.curso.nombre, 
-                "alumno": matricula.alumno.nombre, 
-                "modalidad": matricula.modalidad, # opcional 
+            eventos.append({ 
+                "id": f"clase-{clase.id}-mat-{matricula.id}", 
+                "title": f"{codigo}{sufijo}",
+                "start": clase.fecha.isoformat(), 
+                "color": color, "textColor": "black", 
+                "extendedProps": { 
+                    "clase_id": clase.id, 
+                    "matricula_id": matricula.id, 
+                    "curso": clase.curso.nombre, 
+                    "alumno": matricula.alumno.nombre, 
+                    "modalidad": matricula.modalidad, # opcional 
                 } 
-        })
+            })
 
     print("EVENTOS DEVUELTOS:", len(eventos))
     return JsonResponse(eventos, safe=False)
