@@ -349,10 +349,12 @@ function totalClasesPorTipo() {
 }
 
 function renderClases(n) {
+
   const $c = $('#sesiones_container');
   $c.empty();
 
   for (let i = 1; i <= n; i++) {
+
     const fechaVal = (SESIONES_POST[i-1] || "");
     const horarioVal = (HORARIOS_POST[i-1] || "9-1");
 
@@ -367,14 +369,34 @@ function renderClases(n) {
     }).join("");
 
     $c.append(`
+
       <div class="col-12">
         <div class="mini-card">
-          <div class="fw-bold mb-2">Clase ${i}</div>
+
+          <div class="fw-bold mb-2 d-flex justify-content-between">
+            Clase ${i}
+
+            <div class="form-check form-switch">
+              <input class="form-check-input standby-toggle" type="checkbox" data-clase="${i}">
+              <label class="form-check-label text-warning fw-bold">
+                Standby
+              </label>
+            </div>
+
+          </div>
 
           <div class="row g-2 align-items-end">
+
             <div class="col-12 col-md-4">
               <label class="form-label fw-semibold mb-1">Fecha</label>
-              <input type="date" class="form-control" name="sesion_${i}" value="${fechaVal}" required>
+
+              <input
+                type="date"
+                class="form-control fecha-input"
+                name="sesion_${i}"
+                value="${fechaVal}"
+              >
+
             </div>
 
             <div class="col-12 col-md-8">
@@ -383,11 +405,34 @@ function renderClases(n) {
                 ${radios}
               </div>
             </div>
+
           </div>
+
         </div>
       </div>
+
     `);
   }
+
+  // 🔵 activar lógica standby
+  $('.standby-toggle').on('change', function(){
+
+    const clase = $(this).data("clase");
+    const fechaInput = $(`input[name="sesion_${clase}"]`);
+
+    if($(this).is(':checked')){
+
+      fechaInput.val("");
+      fechaInput.prop("disabled", true);
+
+    }else{
+
+      fechaInput.prop("disabled", false);
+
+    }
+
+  });
+
 }
 
 function toggleUI() {

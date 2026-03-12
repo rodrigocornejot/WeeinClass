@@ -1263,21 +1263,33 @@ def registrar_matricula(request):
                 if x["fecha"]
             ]
             
-            if not fechas:
-                raise ValueError("No se generaron fechas para la matrícula.")
+            if not (matricula.fechas_personalizadas or []):
+                raise ValueError("No se generaron sesiones para la matrícula.")
 
             unidad_idx = 0
             for data in (matricula.fechas_personalizadas or []):
-                fecha = datetime.strptime(data["fecha"], "%Y-%m-%d").date()
+
+                if data["fecha"]:
+                    fecha = datetime.strptime(data["fecha"], "%Y-%m-%d").date()
+                    estado = "programada"
+                else:
+                    fecha = None
+                    estado = "standby"
+
                 codigo_horario = data.get("horario", "9-1")
                 hora_real = HORARIO_MAP.get(codigo_horario, time(9, 0))
 
                 clase, created = Clase.objects.get_or_create(
                     curso=matricula.curso,
-                    fecha=fecha if fecha else None,
+                    fecha=fecha,
                     horario=hora_real,
-                    defaults={"estado": "programada" if fecha else "standby"}
+                    defaults={"estado": estado}
                 )
+
+                # ⚠️ si ya existía hay que actualizar estado
+                if not created and clase.estado != estado:
+                    clase.estado = estado
+                    clase.save(update_fields=["estado"])
 
                 clase.matriculas.add(matricula)
 
