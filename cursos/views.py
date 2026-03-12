@@ -234,7 +234,10 @@ def calendario_matriculas(request):
 
     clases = (
         Clase.objects
-        .filter(estado="programada")
+        .filter(
+            estado="programada",
+            fecha__isnull=False
+            )
         .select_related("curso")
         .prefetch_related("matriculas__alumno")
         .order_by("fecha")
@@ -268,7 +271,7 @@ def calendario_matriculas(request):
 
             eventos.append({
                 "id": f"clase-{clase.id}-mat-{matricula.id}",
-                "start": clase.fecha.strftime("%Y-%m-%d") if clase.fecha else None,
+                "start": clase.fecha.isoformat(),
                 "color": color,
                 "textColor": "black",
                 "extendedProps": {
