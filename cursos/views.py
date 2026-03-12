@@ -254,34 +254,45 @@ def calendario_matriculas(request):
     eventos = []
 
     for clase in clases:
+
         nombre_curso = (clase.curso.nombre or "").strip()
 
-        # ✅ usa curso_obj para que respete curso.codigo si existe
         codigo, _ = curso_codigo_y_sesiones(nombre_curso, curso_obj=clase.curso)
 
         color = CURSO_COLORES.get(codigo, "#0d6efd")
 
-        # si no hay matrículas, no hay evento
         if not clase.matriculas.exists():
             continue
 
-        for matricula in clase.matriculas.all():
-            es_virtual = (matricula.modalidad or "").strip().lower() == "virtual"
-            sufijo = " - V" if es_virtual else ""
+        alumnos = []
+        matriculas_ids = []
+        hay_virtual = False
 
-            eventos.append({
-                "id": f"clase-{clase.id}-mat-{matricula.id}",
-                "start": clase.fecha.isoformat(),
-                "color": color,
-                "textColor": "black",
-                "extendedProps": {
-                    "clase_id": clase.id,
-                    "matricula_id": matricula.id,
-                    "curso": clase.curso.nombre,
-                    "alumno": matricula.alumno.nombre,
-                    "modalidad": matricula.modalidad,  # opcional
-                }
-            })
+        for matricula in clase.matriculas.all():
+
+            alumnos.append(matricula.alumno.nombre)
+            matriculas_ids.append(matricula.id)
+
+            es_virtual = (matricula.modalidad or "").strip().lower() == "virtual"
+            if es_virtual:
+                hay_virtual = True
+
+        sufijo = " - V" if hay_virtual else ""
+
+        eventos.append({
+            "id": f"clase-{clase.id}",
+            "title": f"{clase.curso.nombre}{sufijo} ({len(alumnos)})",
+            "start": clase.fecha.isoformat(),
+            "color": color,
+            "textColor": "black",
+            "extendedProps": {
+                "clase_id": clase.id,
+                "curso": clase.curso.nombre,
+                "alumnos": alumnos,
+                "matriculas_ids": matriculas_ids,
+                "virtual": hay_virtual
+            }
+        })
 
     print("EVENTOS DEVUELTOS:", len(eventos))
     return JsonResponse(eventos, safe=False)

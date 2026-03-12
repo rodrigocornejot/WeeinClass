@@ -163,12 +163,38 @@
         eventTextColor: '#fff',
         events: "{% url 'calendario_matriculas' %}",
 
+
         /* CLICK -> DETALLE */
 eventClick: function(info) {
+
   const fecha = info.event.startStr;
   const matriculaId = info.event.extendedProps.matricula_id;
+  const alumnos = info.event.extendedProps.alumnos;
 
-    // 👇 variables globales
+  // 👇 si el evento tiene varios alumnos (evento agrupado)
+  if (alumnos) {
+
+    let lista = "";
+    alumnos.forEach(a => {
+      lista += `<li>${a}</li>`;
+    });
+
+    document.getElementById('detalleEvento').innerHTML = `
+      <div class="mb-2">
+        <strong>Curso:</strong> ${info.event.extendedProps.curso}
+      </div>
+
+      <div class="mb-2">
+        <strong>Alumnos:</strong>
+        <ul>${lista}</ul>
+      </div>
+    `;
+
+    new bootstrap.Modal(document.getElementById('eventoModal')).show();
+    return;
+  }
+
+  // 👇 comportamiento original (tu código intacto)
   window.currentMatriculaId = matriculaId;
   window.currentFecha = fecha;
 
@@ -186,7 +212,7 @@ eventClick: function(info) {
       if (data.sesiones && data.sesiones.length > 0) {
         sesionesHTML = data.sesiones.map(s => `
           <div class="mb-2 d-flex align-items-center gap-2 sesion-row" data-asistencia-id="${s.id}">
-           <select class="form-select form-select-sm sesion-select" style="width:280px">
+            <select class="form-select form-select-sm sesion-select" style="width:280px">
               ${data.unidades.map(u => `
                 <option value="${u.id}" ${u.numero === s.numero ? "selected" : ""}>
                   S${u.numero} – ${u.nombre_tema}
