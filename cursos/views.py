@@ -1299,6 +1299,12 @@ def datos_dashboard(request):
     mes = request.GET.get("mes")
     anio = request.GET.get("anio")
 
+    if mes == "Actual":
+        mes = datetime.now().month
+
+    if anio == "Actual":
+        anio = datetime.now().year
+        
     pagos = Pago.objects.all()
     matriculas = Matricula.objects.all()
 
