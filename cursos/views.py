@@ -1087,7 +1087,10 @@ def registrar_matricula(request):
                     })
 
                 # ordenar por fecha
-                fechas_data = sorted(fechas_data, key=lambda x: x["fecha"])
+                fechas_data = sorted(
+                    fechas_data,
+                    key=lambda x: x["fecha"] if x["fecha"] else "9999-12-31"
+                )
 
             # AUTOMÁTICO
             else:
