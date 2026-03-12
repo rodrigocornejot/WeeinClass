@@ -1477,6 +1477,7 @@ def export_dashboard_excel(request):
     wb.save(response)
     return response
 
+@solo_asesora
 @login_required
 def dashboard(request):
     hoy = timezone.localdate()
