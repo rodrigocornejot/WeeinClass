@@ -1,0 +1,30 @@
+<h2>Clases en Standby</h2>
+
+<table>
+<tr>
+<th>Curso</th>
+<th>Horario</th>
+<th>Alumnos</th>
+<th>Acción</th>
+</tr>
+
+{% for clase in clases %}
+<tr>
+<td>{{ clase.curso.nombre }}</td>
+<td>{{ clase.horario }}</td>
+
+<td>
+{% for m in clase.matriculas.all %}
+{{ m.alumno.nombre }} <br>
+{% endfor %}
+</td>
+
+<td>
+<a href="{% url 'programar_clase' clase.id %}">
+Programar
+</a>
+</td>
+
+</tr>
+{% endfor %}
+</table>

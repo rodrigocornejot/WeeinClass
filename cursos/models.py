@@ -200,9 +200,22 @@ class Matricula(models.Model):
         return self.costo_curso - self.primer_pago - pagos
 
 class Clase(models.Model):
+
+    ESTADO_CHOICES = [
+        ('programada', 'Programada'),
+        ('standby', 'Standby'),
+        ('realizada', 'Realizada'),
+    ]
+
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE)
-    fecha = models.DateField(default=now)
+    fecha = models.DateField(null=True, blank=True)
     horario = models.TimeField(default="08:00:00")
+    
+    estado = models.CharField(
+        max_length=15,
+        choices=ESTADO_CHOICES,
+        default='programada'
+    )
     matriculas = models.ManyToManyField(Matricula, blank=True)
 
     def __str__(self):

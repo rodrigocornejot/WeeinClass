@@ -234,6 +234,7 @@ def calendario_matriculas(request):
 
     clases = (
         Clase.objects
+        .filter(estado="programada")
         .select_related("curso")
         .prefetch_related("matriculas__alumno")
         .order_by("fecha")
@@ -267,8 +268,7 @@ def calendario_matriculas(request):
 
             eventos.append({
                 "id": f"clase-{clase.id}-mat-{matricula.id}",
-                "title": f"{codigo}{sufijo} - {matricula.alumno.nombre}",
-                "start": clase.fecha.strftime("%Y-%m-%d"),
+                "start": clase.fecha.strftime("%Y-%m-%d") if clase.fecha else None,
                 "color": color,
                 "textColor": "black",
                 "extendedProps": {
@@ -1044,10 +1044,12 @@ def registrar_matricula(request):
                     h = (request.POST.get(f"horario_{i}") or "").strip()
 
                     if not f:
-                        form.add_error(None, f"Falta la fecha de la clase {i}.")
+                        fecha_dt = None
+                        estado = "standby"
                     else:
                         try:
-                            datetime.strptime(f, "%Y-%m-%d")
+                            fecha_dt = datetime.strptime(f, "%Y-%m-%d").date()
+                            estado = "programada"
                         except ValueError:
                             form.add_error(None, f"Fecha inválida en la clase {i}.")
 
@@ -1067,10 +1069,22 @@ def registrar_matricula(request):
 
                 # 2) construir fechas_data
                 for i in range(1, total_clases + 1):
+
                     f = request.POST.get(f"sesion_{i}")
                     h = (request.POST.get(f"horario_{i}") or "").strip()
-                    fecha_dt = datetime.strptime(f, "%Y-%m-%d").date()
-                    fechas_data.append({"fecha": fecha_dt.isoformat(), "horario": h})
+
+                    if not f:
+                        fecha_dt = None
+                        estado = "standby"
+                    else:
+                        fecha_dt = datetime.strptime(f, "%Y-%m-%d").date()
+                        estado = "programada"
+
+                    fechas_data.append({
+                        "fecha": fecha_dt.isoformat() if fecha_dt else None,
+                        "horario": h,
+                        "estado": estado
+                    })
 
                 # ordenar por fecha
                 fechas_data = sorted(fechas_data, key=lambda x: x["fecha"])
@@ -1242,8 +1256,13 @@ def registrar_matricula(request):
             unidades = [u for u in unidades if u.numero <= total_unidades]
 
             # fechas desde JSON (solo las fechas)
-            fechas = [datetime.strptime(x["fecha"], "%Y-%m-%d").date() for x in (matricula.fechas_personalizadas or [])]
 
+            fechas = [
+                datetime.strptime(x["fecha"], "%Y-%m-%d").date()
+                for x in (matricula.fechas_personalizadas or [])
+                if x["fecha"]
+            ]
+            
             if not fechas:
                 raise ValueError("No se generaron fechas para la matrícula.")
 
@@ -1255,8 +1274,9 @@ def registrar_matricula(request):
 
                 clase, created = Clase.objects.get_or_create(
                     curso=matricula.curso,
-                    fecha=fecha,
+                    fecha=fecha if fecha else None,
                     horario=hora_real,
+                    defaults={"estado": "programada" if fecha else "standby"}
                 )
 
                 clase.matriculas.add(matricula)
@@ -1304,7 +1324,7 @@ def datos_dashboard(request):
 
     if anio == "Actual":
         anio = datetime.now().year
-        
+
     pagos = Pago.objects.all()
     matriculas = Matricula.objects.all()
 
@@ -3426,3 +3446,36 @@ def actualizar_sesion_fecha(request):
     asistencia.save(update_fields=["unidad", "horario"])
 
     return JsonResponse({"ok": True})
+
+@login_required
+def clases_standby(request):
+
+    clases = (
+        Clase.objects
+        .filter(estado="standby")
+        .select_related("curso")
+        .prefetch_related("matriculas__alumno")
+    )
+
+    return render(request,"cursos/clases_standby.html",{
+        "clases":clases
+    })
+
+@login_required
+def programar_clase(request, clase_id):
+
+    clase = get_object_or_404(Clase,id=clase_id)
+
+    if request.method == "POST":
+
+        fecha = request.POST.get("fecha")
+
+        clase.fecha = fecha
+        clase.estado = "programada"
+        clase.save()
+
+        return redirect("clases_standby")
+
+    return render(request,"cursos/programar_clase.html",{
+        "clase":clase
+    })
