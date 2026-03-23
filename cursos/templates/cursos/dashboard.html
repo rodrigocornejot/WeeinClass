@@ -316,6 +316,24 @@
 
 <script>
 
+// 🔥 ACTIVAR PLUGIN GLOBAL
+Chart.register(ChartDataLabels);
+
+// 🔥 CONFIG GLOBAL PARA TODOS LOS GRÁFICOS
+Chart.defaults.plugins.datalabels = {
+  color: '#fff',
+  font: {
+    weight: 'bold',
+    size: 12
+  },
+  formatter: (value, context) => {
+    let data = context.chart.data.datasets[0].data;
+    let total = data.reduce((a, b) => a + b, 0);
+    let porcentaje = ((value / total) * 100).toFixed(1) + "%";
+    return value + "\n" + porcentaje;
+  }
+};
+
 let metodosChart = null
 let chartCurso
 let chartModalidad
