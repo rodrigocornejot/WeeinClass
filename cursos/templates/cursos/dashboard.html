@@ -371,6 +371,7 @@ backgroundColor:[
 ]
 }]
 },
+plugins:[ChartDataLabels],
 options:{
 responsive:true,
 plugins:{
@@ -499,7 +500,8 @@ datasets:[{
 data:data.carrera.map(x=>x.total),
 backgroundColor:"#6366F1"
 }]
-}
+},
+plugins:[ChartDataLabels],
 })
 
 
@@ -583,6 +585,13 @@ borderColor:"#6366F1",
 backgroundColor:"rgba(99,102,241,0.2)",
 tension:0.3
 }]
+},
+options:{
+  plugins:{
+    datalabels:{
+      display:false
+    }
+  }
 }
 })
 
