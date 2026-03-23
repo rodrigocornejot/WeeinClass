@@ -501,7 +501,13 @@ data:data.carrera.map(x=>x.total),
 backgroundColor:"#6366F1"
 }]
 },
-plugins:[ChartDataLabels],
+options:{
+plugins:{
+datalabels:{
+display:false
+}
+}
+}
 })
 
 
@@ -527,6 +533,13 @@ datasets:[{
 data:data.distrito.map(x=>x.total),
 backgroundColor:"#10B981"
 }]
+},
+options:{
+plugins:{
+datalabels:{
+display:false
+}
+}
 }
 })
 
