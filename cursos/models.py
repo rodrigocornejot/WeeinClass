@@ -207,7 +207,7 @@ class Matricula(models.Model):
 
     def saldo(self):
         pagos = self.pagos.aggregate(total=Sum('monto'))['total'] or 0
-        return self.costo_curso - self.primer_pago - pagos
+        return self.precio_final - pagos
 
 class Clase(models.Model):
 
