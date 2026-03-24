@@ -3503,7 +3503,7 @@ def clases_standby(request):
 
     matriculas = (
         Matricula.objects
-        .filter(clases__estado="standby")  # 👈 si es ManyToMany
+        .filter(clase__estado="standby")  # 👈 si es ManyToMany
         .select_related("curso", "alumno")
         .distinct()
     )
