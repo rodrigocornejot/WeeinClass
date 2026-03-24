@@ -112,11 +112,14 @@ Standby
 </td>
 
 <td>
-
-<a href="{% url 'programar_clase' clase.id %}" class="btn btn-programar btn-sm w-100">
-📅 Programar
-</a>
-
+  {% for m in clase.matriculas.all %}
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <span>{{ m.alumno.nombre }}</span>
+      <a href="{% url 'programar_alumno' m.id %}" class="btn btn-sm btn-primary">
+        Programar
+      </a>
+    </div>
+  {% endfor %}
 </td>
 
 </tr>

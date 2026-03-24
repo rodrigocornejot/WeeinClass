@@ -3513,20 +3513,37 @@ def clases_standby(request):
     })
 
 @login_required
-def programar_clase(request, clase_id):
+def programar_alumno(request, matricula_id):
 
-    clase = get_object_or_404(Clase,id=clase_id)
+    matricula = get_object_or_404(Matricula, id=matricula_id)
 
     if request.method == "POST":
-
         fecha = request.POST.get("fecha")
 
-        clase.fecha = fecha
-        clase.estado = "programada"
-        clase.save()
+        # 🔴 quitar alumno de clase standby
+        clases_standby = Clase.objects.filter(
+            matriculas=matricula,
+            estado="standby"
+        )
+
+        for c in clases_standby:
+            c.matriculas.remove(matricula)
+
+            if not c.matriculas.exists():
+                c.delete()
+
+        # 🟢 crear nueva clase programada
+        nueva_clase, creada = Clase.objects.get_or_create(
+            curso=matricula.curso,
+            fecha=fecha,
+            horario="09:00",  # puedes mejorar esto luego
+            defaults={"estado":"programada"}
+        )
+
+        nueva_clase.matriculas.add(matricula)
 
         return redirect("clases_standby")
 
-    return render(request,"cursos/programar_clase.html",{
-        "clase":clase
+    return render(request, "cursos/programar_alumno.html", {
+        "matricula": matricula
     })
