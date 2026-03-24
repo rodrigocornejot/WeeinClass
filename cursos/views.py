@@ -1136,10 +1136,43 @@ def registrar_matricula(request):
 
                     cursor = fecha_inicio
 
-                    while len(fechas) < total_clases:
-                        if cursor.weekday() in dias_num:
-                            fechas.append(cursor)
-                        cursor += timedelta(days=1)
+                    cantidad_dias = len(dias_num)
+
+                    if cantidad_dias == 0:
+                        form.add_error('dias', 'Debe seleccionar al menos un día.')
+                        return render(request, "cursos/registrar_matricula.html", {
+                            "form": form,
+                            "alumno": alumno,
+                            "dni": dni,
+                            "personalizar_post": False,
+                        })
+
+                    semanas = total_clases // cantidad_dias
+
+                    fechas = []
+
+                    # 🔥 encontrar inicio de la primera semana
+                    cursor = fecha_inicio
+
+                    # mover al lunes de esa semana (opcional pero recomendado)
+                    cursor -= timedelta(days=cursor.weekday())
+
+                    for semana in range(semanas):
+
+                        for dia in dias_num:
+                            fecha_clase = cursor + timedelta(days=dia)
+                            
+                            # evitar fechas antes del inicio
+                            if fecha_clase < fecha_inicio:
+                                continue
+
+                            fechas.append(fecha_clase)
+
+                        # avanzar a la siguiente semana
+                        cursor += timedelta(days=7)
+
+                    # 🔥 ordenar por si acaso
+                    fechas = sorted(fechas)
                 else:
                     if not dias:
                         form.add_error('dias', 'Debe seleccionar al menos un día.')

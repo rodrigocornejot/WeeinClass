@@ -194,6 +194,13 @@ class Matricula(models.Model):
         if "extendida" in tipo and not personaliza and not dias:
             raise ValidationError("Debes ingresar al menos un día de estudio.")
 
+        cantidad_dias = len(dias)
+
+        if cantidad_dias > 3:
+            raise ValidationError("Máximo puedes seleccionar 3 días para modalidad extendida.")
+
+        if cantidad_dias <= 0:
+            raise ValidationError("Debes seleccionar días válidos.")
         
     def pagos_realizados(self):
         return self.pagos.aggregate(total=Sum('monto'))['total'] or 0
