@@ -232,10 +232,12 @@ eventClick: function(info) {
             <span class="tema-sesion">${s.tema}</span>
 
             <select class="form-select form-select-sm horario-select" style="width:110px">
-              <option value="9-1" ${s.horario === "9-1" ? "selected" : ""}>9-1</option>
-              <option value="2-6" ${s.horario === "2-6" ? "selected" : ""}>2-6</option>
-              <option value="9-6" ${s.horario === "9-6" ? "selected" : ""}>9-6</option>
-              <option value="7-9" ${s.horario === "7-9" ? "selected" : ""}>7-9</option>
+              <option value="9-1" ${s.horario === "9-1" ? "selected" : ""}>9:00 AM - 1:00 PM</option>
+              <option value="2-6" ${s.horario === "2-6" ? "selected" : ""}>2:00 PM - 6:00 PM</option>
+              <option value="9-6" ${s.horario === "9-6" ? "selected" : ""}>9:00 AM - 6:00 PM</option>
+              <option value="7-9" ${s.horario === "7-9" ? "selected" : ""}>7:00 PM - 9:00 PM</option>
+              <option value="6-730" ${s.horario === "6-730" ? "selected" : ""}>6:00 PM - 7:30 PM</option>
+              <option value="730-9" ${s.horario === "730-9" ? "selected" : ""}>7:30 PM - 9:00 PM</option>
             </select>
 
             <button type="button" class="btn btn-sm btn-success guardar-horario">💾</button>
