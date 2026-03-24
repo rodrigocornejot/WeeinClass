@@ -3501,15 +3501,15 @@ def actualizar_sesion_fecha(request):
 @login_required
 def clases_standby(request):
 
-    clases = (
-        Clase.objects
-        .filter(estado="standby")
-        .select_related("curso")
-        .prefetch_related("matriculas__alumno")
+    matriculas = (
+        Matricula.objects
+        .filter(clases__estado="standby")  # 👈 si es ManyToMany
+        .select_related("curso", "alumno")
+        .distinct()
     )
 
-    return render(request,"cursos/clases_standby.html",{
-        "clases":clases
+    return render(request, "cursos/clases_standby.html", {
+        "matriculas": matriculas
     })
 
 @login_required

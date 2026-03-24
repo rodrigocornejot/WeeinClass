@@ -40,12 +40,6 @@ background:#0f172a;
 color:white;
 }
 
-.alumnos-box{
-max-height:120px;
-overflow:auto;
-font-size:14px;
-}
-
 </style>
 
 </head>
@@ -65,44 +59,36 @@ font-size:14px;
 <div class="card">
 <div class="card-body">
 
-<table class="table table-hover align-middle">
+<table class="table table-hover align-middle text-center">
 
 <thead>
 <tr>
 <th>Curso</th>
+<th>Alumno</th>
 <th>Horario</th>
-<th>Alumnos</th>
 <th>Estado</th>
-<th style="width:150px;">Acción</th>
+<th>Acción</th>
 </tr>
 </thead>
 
 <tbody>
 
-{% for clase in clases %}
+{% for m in matriculas %}
 
 <tr>
 
 <td>
-<strong>{{ clase.curso.nombre }}</strong>
+<strong>{{ m.curso.nombre }}</strong>
+</td>
+
+<td>
+👤 {{ m.alumno.nombre }}
 </td>
 
 <td>
 <span class="badge bg-light text-dark">
-{{ clase.horario }}
+9 a.m.
 </span>
-</td>
-
-<td>
-
-<div class="alumnos-box">
-
-{% for m in clase.matriculas.all %}
-<div>👤 {{ m.alumno.nombre }}</div>
-{% endfor %}
-
-</div>
-
 </td>
 
 <td>
@@ -112,14 +98,9 @@ Standby
 </td>
 
 <td>
-  {% for m in clase.matriculas.all %}
-    <div class="d-flex justify-content-between align-items-center mb-1">
-      <span>{{ m.alumno.nombre }}</span>
-      <a href="{% url 'programar_alumno' m.id %}" class="btn btn-sm btn-primary">
-        Programar
-      </a>
-    </div>
-  {% endfor %}
+<a href="{% url 'programar_alumno' m.id %}" class="btn btn-programar btn-sm">
+📅 Programar
+</a>
 </td>
 
 </tr>
