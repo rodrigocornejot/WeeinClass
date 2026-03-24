@@ -186,12 +186,12 @@ class Matricula(models.Model):
         return f"{self.alumno.nombre} - {self.curso.nombre} ({self.modalidad})"
 
     def clean(self):
-        modalidad = (self.modalidad or "").lower()
+        tipo = (self.tipo_horario or "").lower()
         dias = self.dias or []
         personaliza = bool(self.fechas_personalizadas)
 
         # Solo exigir días si es extendida y NO personaliza
-        if modalidad == "extendida" and not personaliza and not dias:
+        if "extendida" in tipo and not personaliza and not dias:
             raise ValidationError("Debes ingresar al menos un día de estudio.")
 
         
