@@ -141,7 +141,7 @@ class Matricula(models.Model):
     costo_curso = models.DecimalField(max_digits=8, decimal_places=2)
     primer_pago = models.DecimalField(max_digits=8, decimal_places=2)
     precio_final = models.DecimalField(max_digits=8, decimal_places=2)  # Precio acordado
-    porcentaje = models.PositiveIntegerField()
+    porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
 
     saldo_pendiente = models.DecimalField(max_digits=8, decimal_places=2)
 
@@ -168,12 +168,15 @@ class Matricula(models.Model):
     razon_trunco = models.TextField(null=True, blank=True) 
 
     def save(self, *args, **kwargs):
-    # Convertir fecha si viene como string
+
         if isinstance(self.fecha_inicio, str):
             self.fecha_inicio = datetime.strptime(self.fecha_inicio, "%Y-%m-%d").date()
 
-        # 🔹 Calcular precio final SOLO si no existe
-        if not self.precio_final:
+        # 🔥 CALCULAR PRECIO FINAL CON DESCUENTO
+        if self.porcentaje:
+            descuento = (self.costo_curso * self.porcentaje) / 100
+            self.precio_final = self.costo_curso - descuento
+        else:
             self.precio_final = self.costo_curso
 
         super().save(*args, **kwargs)
