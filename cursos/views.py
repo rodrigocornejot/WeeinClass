@@ -882,7 +882,9 @@ HORARIO_MAP = {
     "9-1": time(9, 0),
     "2-6": time(14, 0),
     "9-6": time(9, 0),
-    "7-9": time(19, 0)
+    "7-9": time(19, 0),
+    "6-730": time(18,0),   
+    "730-9": time(19,30)   
 }
 
 
@@ -926,7 +928,14 @@ def registrar_matricula(request):
     personalizar = request.POST.get("personalizar_fechas") in ("on", "true", "1")
 
     # ✅ horarios válidos (tú dijiste que siempre serán estos 3)
-    HORARIOS_VALIDOS = {"9-1", "2-6", "7-9", "9-6"}
+    HORARIOS_VALIDOS = {
+        "9-1",
+        "2-6", 
+        "7-9", 
+        "9-6",
+        "6-730",
+        "730-9"
+    }
 
     # =========================
     # MÉTODO DE PAGO ANTICIPO
@@ -1200,10 +1209,18 @@ def registrar_matricula(request):
                             fechas.append(cursor)
                         cursor += timedelta(days=1)
 
+                HORARIOS_VALIDOS = {
+                    "9-1",
+                    "2-6",
+                    "7-9",
+                    "9-6",
+                    "6-730",
+                    "730-9"
+                }
                 # en automático, horario default "9-1"
                 horario_general = (request.POST.get("horario_general") or "").strip()
 
-                if horario_general not in {"9-1", "2-6", "9-6", "7-9"}:
+                if horario_general not in HORARIOS_VALIDOS:
                     form.add_error(None, "Debe seleccionar un horario válido.")
                     return render(request, "cursos/registrar_matricula.html", {
                         "form": form,

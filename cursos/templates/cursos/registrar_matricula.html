@@ -325,10 +325,12 @@ const SESIONES_POST = JSON.parse(document.getElementById("sesiones-post-data").t
 const HORARIOS_POST = JSON.parse(document.getElementById("horarios-post-data").textContent);
 
 const HORARIOS = [
-  { value: "9-1", label: "9–1" },
-  { value: "2-6", label: "2–6" },
-  { value: "7-9", label: "7–9" },
-  { value: "9-6", label: "9–6" },
+  { value: "9-1", label: "9 a.m. - 1 p.m." },
+  { value: "2-6", label: "2 p.m. - 6 p.m." },
+  { value: "7-9", label: "7 p.m. - 9 p.m." },
+  { value: "9-6", label: "9 a.m. - 6 p.m." },
+  { value: "6-730", label: "6:00 p.m. - 7:30 p.m." },
+  { value: "730-9", label: "7:30 p.m. - 9:00 p.m." }
 ];
 
 function totalClasesPorTipo() {
