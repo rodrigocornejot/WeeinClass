@@ -559,9 +559,20 @@ def lista_matriculas(request):
 
     cursos = Curso.objects.all().order_by("nombre")
 
+    mes = request.GET.get("mes")
+    anio = request.GET.get("anio")
+
+    if mes:
+        matriculas_qs = matriculas_qs.filter(fecha_inscripcion__month=mes)
+
+    if anio:
+        matriculas_qs = matriculas_qs.filter(fecha_inscripcion__year=anio)
+
     return render(request, "cursos/lista_matriculas.html", {
         "matriculas": matriculas_qs,  # ✅ sin paginator (DataTables pagina)
-        "cursos": cursos
+        "cursos": cursos,
+        "mes": mes,
+        "anio": anio
     })
 
 @login_required
