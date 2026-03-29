@@ -84,8 +84,8 @@ class MatriculaForm(forms.ModelForm):
             return cleaned
 
         # Solo exigir días para EXTENDIDA
-        if "extendida" in tipo and not dias:
-            raise forms.ValidationError("Debes seleccionar días para Extendida.")
+        if not dias:
+            raise forms.ValidationError("Debes seleccionar días validos.")
         return cleaned
     
 class MatriculaAdminForm(forms.ModelForm):
