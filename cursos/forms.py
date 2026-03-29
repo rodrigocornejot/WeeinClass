@@ -78,13 +78,14 @@ class MatriculaForm(forms.ModelForm):
 
         tipo = (cleaned.get("tipo_horario") or "").strip().lower()
         dias = cleaned.get("dias") or []
-        personalizar = cleaned.get("personalizar_fechas") is True
+        personalizar = cleaned.get("personalizar_fechas") 
 
-        # ✅ Si NO personaliza: pedimos días solo para EXTENDIDA
-        if not personalizar and tipo == "extendida" and not dias:
+        if personalizar:
+            return cleaned
+
+        # Solo exigir días para EXTENDIDA
+        if "extendida" in tipo and not dias:
             raise forms.ValidationError("Debes seleccionar días para Extendida.")
-
-        # ✅ Full Day no obliga días (si quieres obligarlo, dime)
         return cleaned
     
 class MatriculaAdminForm(forms.ModelForm):
