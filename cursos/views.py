@@ -1131,7 +1131,7 @@ def registrar_matricula(request):
                 fechas = []
                 if tipo_horario.startswith("full"):
 
-                    if not dias:
+                    if not dias and not personalizar:
                         form.add_error('dias', 'Debe seleccionar al menos un día.')
                         return render(request, "cursos/registrar_matricula.html", {
                             "form": form,
@@ -1194,7 +1194,7 @@ def registrar_matricula(request):
                     # 🔥 ordenar por si acaso
                     fechas = sorted(fechas)
                 else:
-                    if not dias:
+                    if not dias and not personalizar:
                         form.add_error('dias', 'Debe seleccionar al menos un día.')
                         return render(request, "cursos/registrar_matricula.html", {
                             "form": form,
