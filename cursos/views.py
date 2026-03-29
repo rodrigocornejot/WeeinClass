@@ -1348,17 +1348,19 @@ def registrar_matricula(request):
                 codigo_horario = data.get("horario", "9-1")
                 hora_real = HORARIO_MAP.get(codigo_horario, time(9, 0))
 
-                clase, created = Clase.objects.get_or_create(
+                clase = Clase.objects.filter(
                     curso=matricula.curso,
                     fecha=fecha,
-                    horario=hora_real,
-                    defaults={"estado": estado}
-                )
+                    horario=hora_real
+                ).first()
 
-                # ⚠️ si ya existía hay que actualizar estado
-                if not created and clase.estado != estado:
-                    clase.estado = estado
-                    clase.save(update_fields=["estado"])
+                if not clase:
+                    clase = Clase.objects.create(
+                        curso=matricula.curso,
+                        fecha=fecha,
+                        horario=hora_real,
+                        estado=estado
+                    )
 
                 clase.matriculas.add(matricula)
 
