@@ -1005,6 +1005,8 @@ def registrar_matricula(request):
             "personalizar_post": personalizar,
             "total_unidades": total_unidades
         })
+    
+    print("ERRORES FORM:", form.errors)
 
     if not form.is_valid():
         return render(request, "cursos/registrar_matricula.html", {
