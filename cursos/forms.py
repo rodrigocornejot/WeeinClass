@@ -96,8 +96,10 @@ class MatriculaAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # En lugar de: choices=self.fields['dias_estudio'].choices
-        self.fields['dias_estudio'].widget = forms.CheckboxSelectMultiple(choices=DAY_CHOICES
-)
+        if 'dias' in self.field:
+            self.fields['dias'].widget = forms.CheckboxSelectMultiple(
+                choices=DAY_CHOICES
+            )
 
 class NotaForm(forms.ModelForm):
     alumno = forms.ModelChoiceField(queryset=Alumno.objects.all())
