@@ -39,6 +39,8 @@ from .views import (
     , reporte_caja, marcar_truncado,
 
     crear_usuario, lista_usuarios, editar_usuario, eliminar_usuario, actualizar_horario_fecha, actualizar_sesion_fecha , clases_standby, programar_alumno
+    
+    , clases_profesores , programacion_profesores, cambiar_profesor
 )
 
 def crear_usuario_admin(request):
@@ -128,4 +130,9 @@ urlpatterns = [
     name="actualizar_sesion_fecha"),
     path("clases-standby/", clases_standby,name="clases_standby"),
     path("programar-alumno/<int:matricula_id>/", programar_alumno, name="programar_alumno"),
+    path("programacion-profesores/", programacion_profesores ,name="programacion_profesores"),
+
+    path("clases_profesores/", clases_profesores ,name="clases_profesores"),
+
+    path("cambiar-profesor/", cambiar_profesor ,name="cambiar_profesor"),
 ]

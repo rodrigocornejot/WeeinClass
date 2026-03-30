@@ -3591,3 +3591,42 @@ def programar_alumno(request, matricula_id):
     return render(request, "cursos/programar_alumno.html", {
         "matricula": matricula
     })
+
+@login_required
+def programacion_profesores(request):
+
+    clases = Clase.objects.select_related(
+        "curso",
+        "profesor"
+    ).order_by("fecha","horario")
+
+    profesores = User.objects.filter(groups__name="Profesores")
+
+    return render(request,"cursos/programacion_profesores.html",{
+        "clases":clases,
+        "profesores":profesores
+    })
+
+@login_required
+def cambiar_profesor(request):
+
+    data=json.loads(request.body)
+
+    clase=Clase.objects.get(id=data["clase_id"])
+    profesor=User.objects.get(id=data["profesor_id"])
+
+    clase.profesor=profesor
+    clase.save()
+
+    return JsonResponse({"ok":True})
+
+@login_required
+def clases_profesores(request):
+
+    clases=Clase.objects.filter(
+        profesor=request.user
+    ).select_related("curso")
+
+    return render(request,"cursos/clases_profesores.html",{
+        "clases":clases
+    })

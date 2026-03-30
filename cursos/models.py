@@ -230,6 +230,14 @@ class Clase(models.Model):
         default='programada'
     )
     matriculas = models.ManyToManyField(Matricula, blank=True)
+    
+    profesor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={'groups__name': 'Profesores'}
+    )
 
     def __str__(self):
         return f"Clase de {self.curso.nombre} - {self.fecha} {self.horario}"
