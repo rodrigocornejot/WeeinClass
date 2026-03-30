@@ -330,8 +330,20 @@ def mi_login_view(request):
             return redirect("menu_admin")
 
         else:
-            print("Formulario invalido")
-            print(form.errors)
+            print("❌ LOGIN FALLIDO")
+            print("POST:", request.POST)
+
+            if "username" in request.POST:
+                username = request.POST.get("username")
+
+                from django.contrib.auth.models import User
+
+                if not User.objects.filter(username=username).exists():
+                    print("Motivo: usuario no existe")
+                else:
+                    print("Motivo: contraseña incorrecta")
+
+            print("Errores del form:", form.errors)
             return render(request, "registration/login.html", {"form": form})
 
     else:
