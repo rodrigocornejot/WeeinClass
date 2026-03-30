@@ -3602,9 +3602,34 @@ def programacion_profesores(request):
 
     profesores = User.objects.filter(groups__name="Profesores")
 
+    agenda = {
+        "Lunes": [],
+        "Martes": [],
+        "Miércoles": [],
+        "Jueves": [],
+        "Viernes": [],
+        "Sábado": [],
+        "Domingo": [],
+    }
+
+    dias = {
+        0: "Lunes",
+        1: "Martes",
+        2: "Miércoles",
+        3: "Jueves",
+        4: "Viernes",
+        5: "Sábado",
+        6: "Domingo"
+    }
+
+    for clase in clases:
+        if clase.fecha:
+            dia = dias[clase.fecha.weekday()]
+            agenda[dia].append(clase)
+
     return render(request,"cursos/programacion_profesores.html",{
-        "clases":clases,
-        "profesores":profesores
+        "agenda": agenda,
+        "profesores": profesores
     })
 
 @login_required
@@ -3623,10 +3648,14 @@ def cambiar_profesor(request):
 @login_required
 def clases_profesores(request):
 
-    clases=Clase.objects.filter(
-        profesor=request.user
-    ).select_related("curso")
+    clases = Clase.objects.select_related(
+        "curso",
+        "profesor"
+    ).order_by("fecha","horario")
+
+    profesores = User.objects.filter(groups__name="Profesores")
 
     return render(request,"cursos/clases_profesores.html",{
-        "clases":clases
+        "clases":clases,
+        "profesores":profesores
     })

@@ -35,68 +35,72 @@ font-size:14px;
 
 <div class="card p-3">
 
-<table class="table table-hover">
+<table class="table table-bordered text-center">
 
 <thead class="table-dark">
-
 <tr>
-
-<th>Fecha</th>
-<th>Hora</th>
-<th>Curso</th>
-<th>Profesor</th>
-<th>Cambiar</th>
-
+<th>Lunes</th>
+<th>Martes</th>
+<th>Miércoles</th>
+<th>Jueves</th>
+<th>Viernes</th>
+<th>Sábado</th>
+<th>Domingo</th>
 </tr>
-
 </thead>
 
 <tbody>
 
-{% for clase in clases %}
-
 <tr>
 
-<td>{{ clase.fecha }}</td>
+{% for dia, clases in agenda.items %}
 
-<td>{{ clase.horario }}</td>
+<td style="vertical-align:top">
 
-<td>{{ clase.curso.nombre }}</td>
+{% for clase in clases %}
 
-<td>
+<div class="card mb-2 p-2 shadow-sm">
 
+<div><strong>{{ clase.horario }}</strong></div>
+
+<div>{{ clase.curso.nombre }}</div>
+
+<div>
 {% if clase.profesor %}
-{{ clase.profesor.first_name }} {{ clase.profesor.last_name }}
+👨‍🏫 {{ clase.profesor.first_name }}
 {% else %}
-<span class="text-danger">Sin asignar</span>
+<span class="text-danger">Sin profesor</span>
 {% endif %}
+</div>
 
-</td>
-
-<td>
-
-<select class="form-select cambiar-profesor"
+<select class="form-select cambiar-profesor mt-1"
 data-clase="{{clase.id}}">
 
-<option value="">-- seleccionar --</option>
+<option value="">Cambiar</option>
 
 {% for profesor in profesores %}
-
 <option value="{{profesor.id}}">
-
 {{profesor.first_name}} {{profesor.last_name}}
-
 </option>
-
 {% endfor %}
 
 </select>
 
-</td>
+</div>
 
-</tr>
+{% empty %}
+
+<div class="text-muted small">
+Sin clases
+</div>
 
 {% endfor %}
+
+</td>
+
+{% endfor %}
+
+</tr>
 
 </tbody>
 
