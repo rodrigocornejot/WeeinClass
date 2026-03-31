@@ -13,7 +13,6 @@ admin.site.register(Area)
 class MatriculaAdmin(admin.ModelAdmin):
     list_display = ('saldo_pendiente', 'alumno', 'curso', 'fecha_inscripcion', 'modalidad')
     search_fields = ('alumno__nombre', 'curso__nombre')
-    #form = MatriculaAdminForm
 
 @admin.register(Alumno)
 class AlumnoAdmin(admin.ModelAdmin):
