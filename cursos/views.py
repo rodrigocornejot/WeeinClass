@@ -3650,17 +3650,22 @@ def clases_profesores(request):
 
     user = request.user
 
-    # Si es profesor → solo ve sus clases
     if user.groups.filter(name="Profesor").exists():
 
         clases = Clase.objects.filter(
             profesor=user
-        ).select_related("curso","profesor").order_by("fecha","horario")
+        ).select_related(
+            "curso",
+            "profesor",
+            "matricula__alumno"
+        ).order_by("fecha","horario")
 
     else:
-        # Admin o asesora → ven todas
+
         clases = Clase.objects.select_related(
-            "curso","profesor"
+            "curso",
+            "profesor",
+            "matricula__alumno"
         ).order_by("fecha","horario")
 
     profesores = User.objects.filter(groups__name="Profesor")
