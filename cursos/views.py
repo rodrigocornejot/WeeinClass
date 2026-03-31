@@ -3657,7 +3657,6 @@ def clases_profesores(request):
         ).select_related(
             "curso",
             "profesor",
-            "matricula__alumno"
         ).order_by("fecha","horario")
 
     else:
