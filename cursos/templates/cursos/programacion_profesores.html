@@ -19,6 +19,12 @@ border-radius:15px;
 box-shadow:0 3px 10px rgba(0,0,0,0.1);
 }
 
+.card-clase{
+background:white;
+border-radius:10px;
+font-size:13px;
+}
+
 table{
 font-size:14px;
 }
@@ -55,33 +61,74 @@ font-size:14px;
 
 {% for dia, clases in agenda.items %}
 
-<td style="vertical-align:top">
+<td style="vertical-align:top; min-width:180px">
 
 {% for clase in clases %}
 
-<div class="card mb-2 p-2 shadow-sm">
+<div class="card-clase mb-2 p-2 shadow-sm">
 
-<div><strong>{{ clase.horario }}</strong></div>
+<!-- Hora -->
+<div>
+<strong>⏰ {{ clase.horario }}</strong>
+</div>
 
-<div>{{ clase.curso.nombre }}</div>
+<!-- Curso -->
+<div>
+📚 {{ clase.curso.nombre }}
+</div>
+
+<!-- Alumnos -->
+<div class="mt-1">
+
+{% for matricula in clase.matriculas.all %}
 
 <div>
+👨‍🎓 {{ matricula.alumno.nombre }}
+</div>
+
+<div>
+Modalidad: {{ matricula.modalidad }}
+</div>
+
+<div>
+Sesión: {{ matricula.unidad_actual }}
+</div>
+
+{% empty %}
+
+<div class="text-muted">
+Sin alumnos
+</div>
+
+{% endfor %}
+
+</div>
+
+<!-- Profesor -->
+<div class="mt-1">
+
 {% if clase.profesor %}
-👨‍🏫 {{ clase.profesor.first_name }}
+👨‍🏫 {{ clase.profesor.first_name }} {{ clase.profesor.last_name }}
 {% else %}
 <span class="text-danger">Sin profesor</span>
 {% endif %}
+
 </div>
 
-<select class="form-select cambiar-profesor mt-1"
+<!-- Cambiar profesor -->
+<select class="form-select form-select-sm cambiar-profesor mt-2"
 data-clase="{{clase.id}}">
 
-<option value="">Cambiar</option>
+<option value="">Cambiar profesor</option>
 
 {% for profesor in profesores %}
+
 <option value="{{profesor.id}}">
+
 {{profesor.first_name}} {{profesor.last_name}}
+
 </option>
+
 {% endfor %}
 
 </select>
@@ -112,6 +159,36 @@ Sin clases
 
 <script>
 
+function getCookie(name) {
+
+let cookieValue = null;
+
+if (document.cookie && document.cookie !== '') {
+
+const cookies = document.cookie.split(';');
+
+for (let i = 0; i < cookies.length; i++) {
+
+const cookie = cookies[i].trim();
+
+if (cookie.substring(0, name.length + 1) === (name + '=')) {
+
+cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+
+break;
+
+}
+
+}
+
+}
+
+return cookieValue;
+
+}
+
+const csrftoken = getCookie('csrftoken');
+
 document.querySelectorAll(".cambiar-profesor").forEach(select=>{
 
 select.addEventListener("change",function(){
@@ -119,13 +196,13 @@ select.addEventListener("change",function(){
 let profesor=this.value
 let clase=this.dataset.clase
 
-fetch("/cambiar-profesor/",{
+fetch("/cursos/cambiar-profesor/",{
 
 method:"POST",
 
 headers:{
 "Content-Type":"application/json",
-"X-CSRFToken":"{{csrf_token}}"
+"X-CSRFToken":csrftoken
 },
 
 body:JSON.stringify({
