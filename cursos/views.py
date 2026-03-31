@@ -3667,7 +3667,8 @@ def clases_profesores(request):
             "curso",
             "profesor"
         ).prefetch_related(
-            "matriculas__alumno"
+            "matriculas__alumno",
+            "matriculas__asistencias__unidad"
         ).order_by("fecha", "horario")
 
     profesores = User.objects.filter(groups__name="Profesor")
