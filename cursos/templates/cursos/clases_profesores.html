@@ -108,38 +108,56 @@ data-clase="{{clase.id}}">
 
 <script>
 
-document.querySelectorAll(".cambiar-profesor").forEach(select=>{
+function getCookie(name) {
+    let cookieValue = null;
 
-select.addEventListener("change",function(){
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
 
-let profesor=this.value
-let clase=this.dataset.clase
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
 
-fetch("/cambiar-profesor/",{
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
 
-method:"POST",
+    return cookieValue;
+}
 
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":"{{csrf_token}}"
-},
+const csrftoken = getCookie('csrftoken');
 
-body:JSON.stringify({
+document.querySelectorAll(".cambiar-profesor").forEach(select => {
 
-clase_id:clase,
-profesor_id:profesor
+    select.addEventListener("change", function(){
 
-})
+        let profesor = this.value
+        let clase = this.dataset.clase
 
-})
+        fetch("/cursos/cambiar-profesor/", {
 
-.then(res=>res.json())
+            method: "POST",
 
-.then(data=>{
-location.reload()
-})
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken
+            },
 
-})
+            body: JSON.stringify({
+                clase_id: clase,
+                profesor_id: profesor
+            })
+
+        })
+
+        .then(res => res.json())
+        .then(data => {
+            location.reload()
+        })
+
+    })
 
 })
 
