@@ -3646,6 +3646,59 @@ def cambiar_profesor(request):
     return JsonResponse({"ok":True})
 
 @login_required
+def programacion_profesores(request):
+
+    clases = Clase.objects.select_related(
+        "curso",
+        "profesor"
+    ).order_by("fecha","horario")
+
+    profesores = User.objects.filter(groups__name="Profesores")
+
+    agenda = {
+        "Lunes": [],
+        "Martes": [],
+        "Miércoles": [],
+        "Jueves": [],
+        "Viernes": [],
+        "Sábado": [],
+        "Domingo": [],
+    }
+
+    dias = {
+        0: "Lunes",
+        1: "Martes",
+        2: "Miércoles",
+        3: "Jueves",
+        4: "Viernes",
+        5: "Sábado",
+        6: "Domingo"
+    }
+
+    for clase in clases:
+        if clase.fecha:
+            dia = dias[clase.fecha.weekday()]
+            agenda[dia].append(clase)
+
+    return render(request,"cursos/programacion_profesores.html",{
+        "agenda": agenda,
+        "profesores": profesores
+    })
+
+@login_required
+def cambiar_profesor(request):
+
+    data=json.loads(request.body)
+
+    clase=Clase.objects.get(id=data["clase_id"])
+    profesor=User.objects.get(id=data["profesor_id"])
+
+    clase.profesor=profesor
+    clase.save()
+
+    return JsonResponse({"ok":True})
+
+@login_required
 def clases_profesores(request):
 
     user = request.user
