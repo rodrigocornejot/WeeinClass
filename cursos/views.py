@@ -3656,20 +3656,23 @@ def clases_profesores(request):
             profesor=user
         ).select_related(
             "curso",
-            "profesor",
-        ).order_by("fecha","horario")
+            "profesor"
+        ).prefetch_related(
+            "matriculas__alumno"
+        ).order_by("fecha", "horario")
 
     else:
 
         clases = Clase.objects.select_related(
             "curso",
-            "profesor",
-            "matricula__alumno"
-        ).order_by("fecha","horario")
+            "profesor"
+        ).prefetch_related(
+            "matriculas__alumno"
+        ).order_by("fecha", "horario")
 
     profesores = User.objects.filter(groups__name="Profesor")
 
-    return render(request,"cursos/clases_profesores.html",{
-        "clases":clases,
-        "profesores":profesores
+    return render(request, "cursos/clases_profesores.html", {
+        "clases": clases,
+        "profesores": profesores
     })
