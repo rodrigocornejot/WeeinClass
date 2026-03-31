@@ -73,6 +73,8 @@ font-size:14px;
 
 </td>
 
+{% if user.groups.first.name != "Profesor" %}
+
 <td>
 
 <select class="form-select cambiar-profesor"
@@ -83,9 +85,7 @@ data-clase="{{clase.id}}">
 {% for profesor in profesores %}
 
 <option value="{{profesor.id}}">
-
 {{profesor.first_name}} {{profesor.last_name}}
-
 </option>
 
 {% endfor %}
@@ -93,6 +93,8 @@ data-clase="{{clase.id}}">
 </select>
 
 </td>
+
+{% endif %}
 
 </tr>
 
@@ -105,6 +107,8 @@ data-clase="{{clase.id}}">
 </div>
 
 </div>
+
+{% if user.groups.first.name != "Profesor %"}
 
 <script>
 
@@ -162,6 +166,7 @@ document.querySelectorAll(".cambiar-profesor").forEach(select => {
 })
 
 </script>
+{% endif %}
 
 </body>
 </html>

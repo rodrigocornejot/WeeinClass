@@ -3663,6 +3663,9 @@ def clases_profesores(request):
             "curso","profesor"
         ).order_by("fecha","horario")
 
+    profesores = User.objects.filter(groups__name="Profesor")
+
     return render(request,"cursos/clases_profesores.html",{
-        "clases":clases
+        "clases":clases,
+        "profesores":profesores
     })
