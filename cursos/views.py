@@ -3648,14 +3648,21 @@ def cambiar_profesor(request):
 @login_required
 def clases_profesores(request):
 
-    clases = Clase.objects.select_related(
-        "curso",
-        "profesor"
-    ).order_by("fecha","horario")
+    user = request.user
 
-    profesores = User.objects.filter(groups__name="Profesor")
+    # Si es profesor → solo ve sus clases
+    if user.groups.filter(name="Profesor").exists():
+
+        clases = Clase.objects.filter(
+            profesor=user
+        ).select_related("curso","profesor").order_by("fecha","horario")
+
+    else:
+        # Admin o asesora → ven todas
+        clases = Clase.objects.select_related(
+            "curso","profesor"
+        ).order_by("fecha","horario")
 
     return render(request,"cursos/clases_profesores.html",{
-        "clases":clases,
-        "profesores":profesores
+        "clases":clases
     })
