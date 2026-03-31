@@ -2,7 +2,7 @@
 <html>
 <head>
 
-<title>Programación de Profesores</title>
+<title>Agenda de Clases</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -23,6 +23,24 @@ box-shadow:0 3px 10px rgba(0,0,0,0.1);
 background:white;
 border-radius:10px;
 font-size:13px;
+border-left:4px solid #0d6efd;
+}
+
+.badge-virtual{
+background:#e8f2ff;
+color:#0d6efd;
+}
+
+.badge-presencial{
+background:#e7f7ef;
+color:#198754;
+}
+
+.alumno-card{
+background:#f9fafc;
+border-radius:6px;
+padding:4px;
+margin-bottom:4px;
 }
 
 table{
@@ -37,7 +55,11 @@ font-size:14px;
 
 <div class="container mt-4">
 
+{% if user.groups.first.name == "Profesor" %}
+<h3 class="mb-4">📚 Mi Agenda de Clases</h3>
+{% else %}
 <h3 class="mb-4">📅 Programación de Profesores</h3>
+{% endif %}
 
 <div class="card p-3">
 
@@ -61,7 +83,7 @@ font-size:14px;
 
 {% for dia, clases in agenda.items %}
 
-<td style="vertical-align:top; min-width:180px">
+<td style="vertical-align:top; min-width:220px">
 
 {% for clase in clases %}
 
@@ -69,53 +91,101 @@ font-size:14px;
 
 <!-- Hora -->
 <div>
-<strong>⏰ {{ clase.horario }}</strong>
+<strong>
+⏰ {{ clase.horario }}
+</strong>
 </div>
 
 <!-- Curso -->
 <div>
-📚 {{ clase.curso.nombre }}
+📚 {{ clase.curso.get_nombre_display }}
 </div>
+
+<!-- Duración -->
+<div class="text-muted small">
+Duración: {{ clase.curso.duracion }}h
+</div>
+
+<hr class="my-1">
 
 <!-- Alumnos -->
-<div class="mt-1">
-
 {% for matricula in clase.matriculas.all %}
 
-<div>
-👨‍🎓 {{ matricula.alumno.nombre }}
-</div>
+<div class="alumno-card">
 
 <div>
-Modalidad: {{ matricula.modalidad }}
+👨‍🎓 <strong>{{ matricula.alumno.nombre }}</strong>
 </div>
 
+<!-- Modalidad -->
 <div>
-Sesión: {{ matricula.unidad_actual }}
+
+{% if matricula.modalidad == "virtual" %}
+
+<span class="badge badge-virtual">
+💻 Virtual
+</span>
+
+{% else %}
+
+<span class="badge badge-presencial">
+🏫 Presencial
+</span>
+
+{% endif %}
+
+</div>
+
+<!-- Sesión -->
+<div class="text-muted small">
+
+{% with matricula.asistencias.last as asistencia %}
+
+{% if asistencia %}
+
+Sesión {{ asistencia.unidad.numero }}  
+{{ asistencia.unidad.nombre_tema }}
+
+{% else %}
+
+Sesión pendiente
+
+{% endif %}
+
+{% endwith %}
+
+</div>
+
 </div>
 
 {% empty %}
 
-<div class="text-muted">
+<div class="text-muted small">
 Sin alumnos
 </div>
 
 {% endfor %}
 
-</div>
+<hr class="my-1">
 
 <!-- Profesor -->
-<div class="mt-1">
+
+<div>
 
 {% if clase.profesor %}
+
 👨‍🏫 {{ clase.profesor.first_name }} {{ clase.profesor.last_name }}
+
 {% else %}
+
 <span class="text-danger">Sin profesor</span>
+
 {% endif %}
 
 </div>
 
-<!-- Cambiar profesor -->
+{% if user.groups.first.name != "Profesor" %}
+
 <select class="form-select form-select-sm cambiar-profesor mt-2"
 data-clase="{{clase.id}}">
 
@@ -132,6 +202,8 @@ data-clase="{{clase.id}}">
 {% endfor %}
 
 </select>
+
+{% endif %}
 
 </div>
 
@@ -157,23 +229,25 @@ Sin clases
 
 </div>
 
+{% if user.groups.first.name != "Profesor" %}
+
 <script>
 
-function getCookie(name) {
+function getCookie(name){
 
-let cookieValue = null;
+let cookieValue=null;
 
-if (document.cookie && document.cookie !== '') {
+if(document.cookie && document.cookie!==''){
 
-const cookies = document.cookie.split(';');
+const cookies=document.cookie.split(';');
 
-for (let i = 0; i < cookies.length; i++) {
+for(let i=0;i<cookies.length;i++){
 
-const cookie = cookies[i].trim();
+const cookie=cookies[i].trim();
 
-if (cookie.substring(0, name.length + 1) === (name + '=')) {
+if(cookie.substring(0,name.length+1)===(name+'=')){
 
-cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+cookieValue=decodeURIComponent(cookie.substring(name.length+1));
 
 break;
 
@@ -187,7 +261,7 @@ return cookieValue;
 
 }
 
-const csrftoken = getCookie('csrftoken');
+const csrftoken=getCookie('csrftoken');
 
 document.querySelectorAll(".cambiar-profesor").forEach(select=>{
 
@@ -215,16 +289,15 @@ profesor_id:profesor
 })
 
 .then(res=>res.json())
-
-.then(data=>{
-location.reload()
-})
+.then(data=>location.reload())
 
 })
 
 })
 
 </script>
+
+{% endif %}
 
 </body>
 </html>
