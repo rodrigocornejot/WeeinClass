@@ -3593,46 +3593,6 @@ def programar_alumno(request, matricula_id):
     })
 
 @login_required
-def programacion_profesores(request):
-
-    clases = Clase.objects.select_related(
-        "curso",
-        "profesor"
-    ).order_by("fecha","horario")
-
-    profesores = User.objects.filter(groups__name="Profesores")
-
-    agenda = {
-        "Lunes": [],
-        "Martes": [],
-        "Miércoles": [],
-        "Jueves": [],
-        "Viernes": [],
-        "Sábado": [],
-        "Domingo": [],
-    }
-
-    dias = {
-        0: "Lunes",
-        1: "Martes",
-        2: "Miércoles",
-        3: "Jueves",
-        4: "Viernes",
-        5: "Sábado",
-        6: "Domingo"
-    }
-
-    for clase in clases:
-        if clase.fecha:
-            dia = dias[clase.fecha.weekday()]
-            agenda[dia].append(clase)
-
-    return render(request,"cursos/programacion_profesores.html",{
-        "agenda": agenda,
-        "profesores": profesores
-    })
-
-@login_required
 def cambiar_profesor(request):
 
     data=json.loads(request.body)
@@ -3714,7 +3674,8 @@ def clases_profesores(request):
             "curso",
             "profesor"
         ).prefetch_related(
-            "matriculas__alumno"
+            "matriculas__alumno",
+            "matriculas__asistencias__unidad"
         ).order_by("fecha", "horario")
 
     else:
