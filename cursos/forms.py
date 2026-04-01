@@ -77,14 +77,14 @@ class MatriculaForm(forms.ModelForm):
 
         cleaned = super().clean()
 
-        tipo = (cleaned.get("tipo_horario") or "").strip().lower()
-        dias = cleaned.get("dias") or []
-
-        # leer directamente del POST para evitar el problema
+        # detectar si el usuario activó personalización
         personalizar = self.data.get("personalizar_fechas")
 
         if personalizar in ("on", "true", "1", True):
             return cleaned
+
+        dias = cleaned.get("dias") or []
+        tipo = (cleaned.get("tipo_horario") or "").lower()
 
         if "extendida" in tipo:
 
