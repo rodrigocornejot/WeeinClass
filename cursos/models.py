@@ -336,6 +336,7 @@ class AsistenciaUnidad(models.Model):
     
     class Meta:
         unique_together = ('matricula', 'unidad', 'fecha')
+        ordering = ['unidad__numero']
 
 class Pago(models.Model):
     METODO_PAGO_CHOICES = [

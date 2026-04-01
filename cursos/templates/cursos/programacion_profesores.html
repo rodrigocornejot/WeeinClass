@@ -39,8 +39,8 @@ color:#198754;
 .alumno-card{
 background:#f9fafc;
 border-radius:6px;
-padding:4px;
-margin-bottom:4px;
+padding:6px;
+margin-bottom:6px;
 }
 
 table{
@@ -91,9 +91,7 @@ font-size:14px;
 
 <!-- Hora -->
 <div>
-<strong>
-⏰ {{ clase.horario }}
-</strong>
+<strong>⏰ {{ clase.horario }}</strong>
 </div>
 
 <!-- Curso -->
@@ -101,7 +99,6 @@ font-size:14px;
 📚 {{ clase.curso.get_nombre_display }}
 </div>
 
-<!-- Duración -->
 <div class="text-muted small">
 Duración: {{ clase.curso.duracion }}h
 </div>
@@ -117,43 +114,33 @@ Duración: {{ clase.curso.duracion }}h
 👨‍🎓 <strong>{{ matricula.alumno.nombre }}</strong>
 </div>
 
-<!-- Modalidad -->
 <div>
 
 {% if matricula.modalidad == "virtual" %}
-
-<span class="badge badge-virtual">
-💻 Virtual
-</span>
-
+<span class="badge badge-virtual">💻 Virtual</span>
 {% else %}
-
-<span class="badge badge-presencial">
-🏫 Presencial
-</span>
-
+<span class="badge badge-presencial">🏫 Presencial</span>
 {% endif %}
 
 </div>
 
+<!-- Sesión -->
 <div class="text-muted small">
 
-{% for asistencia in matricula.asistencias.all %}
+{% with matricula.asistencias.first as asistencia %}
 
-{% if not asistencia.completado %}
+{% if asistencia %}
 
 Sesión {{ asistencia.unidad.numero }}  
 {{ asistencia.unidad.nombre_tema }}
 
-{% break %}
+{% else %}
+
+Sesión pendiente
 
 {% endif %}
 
-{% empty %}
-
-Sesión completada
-
-{% endfor %}
+{% endwith %}
 
 </div>
 
@@ -170,17 +157,12 @@ Sin alumnos
 <hr class="my-1">
 
 <!-- Profesor -->
-
 <div>
 
 {% if clase.profesor %}
-
 👨‍🏫 {{ clase.profesor.first_name }} {{ clase.profesor.last_name }}
-
 {% else %}
-
 <span class="text-danger">Sin profesor</span>
-
 {% endif %}
 
 </div>
@@ -193,13 +175,9 @@ data-clase="{{clase.id}}">
 <option value="">Cambiar profesor</option>
 
 {% for profesor in profesores %}
-
 <option value="{{profesor.id}}">
-
 {{profesor.first_name}} {{profesor.last_name}}
-
 </option>
-
 {% endfor %}
 
 </select>
@@ -249,7 +227,6 @@ const cookie=cookies[i].trim();
 if(cookie.substring(0,name.length+1)===(name+'=')){
 
 cookieValue=decodeURIComponent(cookie.substring(name.length+1));
-
 break;
 
 }
@@ -281,10 +258,8 @@ headers:{
 },
 
 body:JSON.stringify({
-
 clase_id:clase,
 profesor_id:profesor
-
 })
 
 })
