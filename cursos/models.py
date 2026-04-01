@@ -191,7 +191,7 @@ class Matricula(models.Model):
         dias = self.dias or []
 
         # 🔥 si se está personalizando fechas no validar días
-        if self.fechas_personalizadas:
+        if self.fechas_personalizadas is not None:
             return
 
         if "extendida" in tipo:
