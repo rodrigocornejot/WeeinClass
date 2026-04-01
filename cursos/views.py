@@ -1044,7 +1044,7 @@ def registrar_matricula(request):
 
             # 🔥 esto evita que el modelo valide dias cuando personalizas fechas
             if request.POST.get("personalizar_fechas"):
-                matricula.fechas_personalizadas = [{}]
+                matricula.dias = []
             matricula.registrada_por = request.user
             matricula.alumno = alumno
 
