@@ -74,28 +74,9 @@ class MatriculaForm(forms.ModelForm):
         self.fields["porcentaje"].widget.attrs.setdefault("placeholder", "Ej: 30")
 
     def clean(self):
-
         cleaned = super().clean()
-
-        # detectar si el usuario activó personalización
-        personalizar = self.data.get("personalizar_fechas")
-
-        if personalizar in ("on", "true", "1", True):
-            return cleaned
-
-        dias = cleaned.get("dias") or []
-        tipo = (cleaned.get("tipo_horario") or "").lower()
-
-        if "extendida" in tipo:
-
-            if not dias:
-                raise forms.ValidationError("Debes seleccionar días válidos.")
-
-            if len(dias) > 3:
-                raise forms.ValidationError("Máximo puedes seleccionar 3 días.")
-
         return cleaned
-        
+            
 class MatriculaAdminForm(forms.ModelForm):
     class Meta:
         model = Matricula
