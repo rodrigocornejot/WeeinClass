@@ -190,20 +190,16 @@ class Matricula(models.Model):
         tipo = (self.tipo_horario or "").lower()
         dias = self.dias or []
 
-        # si el usuario no selecciona dias pero personaliza fechas no validar
-        if self.fechas_personalizadas:
-            return
+        # solo validar días si realmente no hay personalización
+        if not self.fechas_personalizadas:
 
-        cantidad_dias = len(dias)
+            if "extendida" in tipo:
 
-        if "extendida" in tipo:
+                if len(dias) == 0:
+                    raise ValidationError("Debes seleccionar días válidos.")
 
-            if cantidad_dias == 0:
-                raise ValidationError("Debes seleccionar días válidos.")
-
-            if cantidad_dias > 3:
-                raise ValidationError("Máximo puedes seleccionar 3 días para modalidad extendida.")
-            
+                if len(dias) > 3:
+                    raise ValidationError("Máximo puedes seleccionar 3 días.")
     def pagos_realizados(self):
         return self.pagos.aggregate(total=Sum('monto'))['total'] or 0
 
