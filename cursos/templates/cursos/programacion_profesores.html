@@ -127,20 +127,20 @@ Duración: {{ clase.curso.duracion }}h
 <!-- Sesión -->
 <div class="text-muted small">
 
-{% with matricula.asistencias.first as asistencia %}
+{% for asistencia in matricula.asistencias.all %}
 
-{% if asistencia %}
+{% if asistencia.clase and asistencia.clase.id == clase.id %}
 
 Sesión {{ asistencia.unidad.numero }}  
 {{ asistencia.unidad.nombre_tema }}
 
-{% else %}
+{% endif %}
+
+{% empty %}
 
 Sesión pendiente
 
-{% endif %}
-
-{% endwith %}
+{% endfor %}
 
 </div>
 
