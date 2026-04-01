@@ -191,8 +191,9 @@ class Matricula(models.Model):
         dias = self.dias or []
 
         # si el usuario no selecciona dias pero personaliza fechas no validar
-        if self.fechas_personalizadas:
-            return
+        if self.fechas_personalizadas is not None:
+            if len(self.fechas_personalizadas) > 0:
+                return
 
         cantidad_dias = len(dias)
 
