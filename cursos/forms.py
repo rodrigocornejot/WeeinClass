@@ -81,11 +81,11 @@ class MatriculaForm(forms.ModelForm):
         dias = cleaned.get("dias") or []
         personalizar = cleaned.get("personalizar_fechas")
 
-        # Si personaliza fechas no validar días
+        # 🚨 si el usuario personaliza fechas no validar días
         if personalizar:
             return cleaned
 
-        # Solo validar días si es extendida
+        # solo validar días si es extendida
         if "extendida" in tipo:
 
             if not dias:
@@ -95,7 +95,7 @@ class MatriculaForm(forms.ModelForm):
                 raise forms.ValidationError("Máximo puedes seleccionar 3 días.")
 
         return cleaned
-    
+        
 class MatriculaAdminForm(forms.ModelForm):
     class Meta:
         model = Matricula
