@@ -186,20 +186,19 @@ class Matricula(models.Model):
         return f"{self.alumno.nombre} - {self.curso.nombre} ({self.modalidad})"
 
     def clean(self):
+
         tipo = (self.tipo_horario or "").lower()
         dias = self.dias or []
-        personaliza = bool(self.fechas_personalizadas)
 
-        # Si personaliza fechas, no validar días
-        if personaliza:
+        # si el usuario no selecciona dias pero personaliza fechas no validar
+        if self.fechas_personalizadas:
             return
 
         cantidad_dias = len(dias)
 
-        # Solo validar días en EXTENDIDA
         if "extendida" in tipo:
 
-            if cantidad_dias <= 0:
+            if cantidad_dias == 0:
                 raise ValidationError("Debes seleccionar días válidos.")
 
             if cantidad_dias > 3:
