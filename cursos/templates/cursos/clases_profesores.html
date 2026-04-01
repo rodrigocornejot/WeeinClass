@@ -107,9 +107,23 @@ color:#333;
 <td>
 
 {% for matricula in clase.matriculas.all %}
-<span class="badge badge-sesion">
-{{ matricula.unidad_actual }}
-</span><br>
+
+    {% for asistencia in matricula.asistencias.all %}
+
+        {% if asistencia.clase and asistencia.clase.id == clase.id %}
+
+            <span class="badge badge-sesion">
+                Sesión {{ asistencia.unidad.numero }}
+            </span><br>
+
+        {% endif %}
+
+    {% empty %}
+
+        <span class="text-muted">-</span>
+
+    {% endfor %}
+
 {% endfor %}
 
 </td>

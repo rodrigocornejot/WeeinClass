@@ -1,24 +1,22 @@
-import os 
+import os
 import django
 
-# Inicializar Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "WeeinClass.settings")
 django.setup()
 
-from cursos.models import Matricula, Clase, AsistenciaUnidad
+from cursos.models import Clase, AsistenciaUnidad
 
-for matricula in Matricula.objects.all():
+for clase in Clase.objects.all():
 
-    clases = Clase.objects.filter(
-        matriculas=matricula
-    ).order_by("fecha")
+    for matricula in clase.matriculas.all():
 
-    asistencias = AsistenciaUnidad.objects.filter(
-        matricula=matricula
-    ).order_by("unidad__numero")
+        asistencias = AsistenciaUnidad.objects.filter(
+            matricula=matricula,
+            clase__isnull=True
+        )
 
-    for clase, asistencia in zip(clases, asistencias):
-        asistencia.clase = clase
-        asistencia.save()
+        for asistencia in asistencias:
+            asistencia.clase = clase
+            asistencia.save()
 
-print("SESIONES CONECTADAS")
+print("SESIONES CONECTADAS CORRECTAMENTE")
