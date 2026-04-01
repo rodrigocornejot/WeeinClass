@@ -79,13 +79,13 @@ class MatriculaForm(forms.ModelForm):
 
         tipo = (cleaned.get("tipo_horario") or "").strip().lower()
         dias = cleaned.get("dias") or []
-        personalizar = cleaned.get("personalizar_fechas")
 
-        # 🚨 si el usuario personaliza fechas no validar días
-        if personalizar:
+        # leer directamente del POST para evitar el problema
+        personalizar = self.data.get("personalizar_fechas")
+
+        if personalizar in ("on", "true", "1", True):
             return cleaned
 
-        # solo validar días si es extendida
         if "extendida" in tipo:
 
             if not dias:
