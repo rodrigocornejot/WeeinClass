@@ -462,6 +462,8 @@ function toggleUI() {
   if (!personalizar) {
     $('#fecha_inicio_box').show();
     $('#dias_box').show();
+    $('#dias_box').hide();
+    $('#id_dias input').prop('disabled', false);
     $('#horario_general_box').show();
     $('#personalizado_box').addClass('hidden');
     return;
@@ -470,6 +472,7 @@ function toggleUI() {
   // 🟢 PERSONALIZA
   $('#fecha_inicio_box').hide();
   $('#dias_box').hide();
+  $('#id_dias input').prop('disabled', true);
   $('#horario_general_box').hide();
   $('#personalizado_box').removeClass('hidden');
 
