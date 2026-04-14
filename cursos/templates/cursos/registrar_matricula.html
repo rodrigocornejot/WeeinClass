@@ -456,13 +456,11 @@ function toggleUI() {
     $('#personalizado_box').addClass('hidden');
     return;
   }
-  $('#id_curso').on('change', toggleUI);
 
   // 🔵 NO PERSONALIZA
   if (!personalizar) {
     $('#fecha_inicio_box').show();
     $('#dias_box').show();
-    $('#dias_box').hide();
     $('#id_dias input').prop('disabled', false);
     $('#horario_general_box').show();
     $('#personalizado_box').addClass('hidden');
@@ -490,6 +488,8 @@ function toggleUI() {
 
 $('#id_tipo_horario').on('change', toggleUI);
 $('#id_personalizar_fechas').on('change', toggleUI);
+$('#id_curso').on('change', toggleUI);
+
 $(document).ready(function(){
     toggleUI();
 });
