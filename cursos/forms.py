@@ -36,7 +36,7 @@ class MatriculaForm(forms.ModelForm):
     dias = forms.MultipleChoiceField(
         choices=DAY_CHOICES,
         required=False,
-        widget=forms.MultipleHiddenInput
+        widget=forms.CheckboxSelectMultiple
     )
 
     class Meta:
