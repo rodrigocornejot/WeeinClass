@@ -491,5 +491,7 @@ function toggleUI() {
 
 $('#id_tipo_horario').on('change', toggleUI);
 $('#id_personalizar_fechas').on('change', toggleUI);
-$(document).ready(toggleUI);
+$(document).ready(function(){
+    toggleUI();
+});
 </script>
