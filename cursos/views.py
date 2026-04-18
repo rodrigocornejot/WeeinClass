@@ -3698,3 +3698,34 @@ def clases_profesores(request):
         "clases": clases,
         "profesores": profesores
     })
+
+@login_required
+def corregir_matricula(request):
+
+    alumno = None
+    matriculas = []
+
+    dni = request.GET.get("dni")
+
+    if dni:
+        alumno = Alumno.objects.filter(dni=dni).first()
+
+        if alumno:
+            matriculas = Matricula.objects.filter(alumno=alumno)
+
+    if request.method == "POST":
+
+        matricula_id = request.POST.get("matricula_id")
+        nueva_fecha = request.POST.get("fecha")
+
+        matricula = get_object_or_404(Matricula,id=matricula_id)
+
+        matricula.fecha_inscripcion = nueva_fecha
+        matricula.save()
+
+        return redirect(f"/cursos/corregir-matricula/?dni={matricula.alumno.dni}")
+
+    return render(request,"cursos/corregir_matricula.html",{
+        "alumno":alumno,
+        "matriculas":matriculas
+    })
